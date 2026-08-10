@@ -21,143 +21,119 @@
 
 ---
 
-## 1. Đặt Vấn Đề: Tại Sao Lint Cả Dự Án Lại Là "Thảm Họa"?
+## 1. Đặt Vấn Đề & Giải Pháp Lint-staged
 
-Ở [Lesson 1.6](../lesson-1.6/lesson-1.6.md), chúng ta đã tích hợp thành công **Husky** để tự động kích hoạt câu lệnh linter trước mỗi lần commit. Tuy nhiên, nếu bạn chỉ đặt lệnh `pnpm lint` hoặc `pnpm format` trực tiếp vào tệp `.husky/pre-commit`, dự án thực tế sẽ nhanh chóng gặp 3 bất cập lớn:
+Ở [Lesson 1.6](../lesson-1.6/lesson-1.6.md), chúng ta đã dùng **Husky** để tự động kích hoạt linter trước khi commit. Tuy nhiên, việc đặt trực tiếp `pnpm lint` vào `.husky/pre-commit` để kiểm tra **toàn bộ dự án** gây ra 3 vấn đề lớn:
 
-### ⚠️ 3 Bất Cập Khi Kiểm Tra Toàn Bộ Dự Án (Whole Repo Checking)
+> [!WARNING]
+>
+> - ⏱️ **Chậm chạp:** Dự án lớn tốn 30s – vài phút chạy lint dù bạn chỉ sửa 1 dòng code.
+> - 🚫 **Bị phạt "oan":** Commit bị chối vì file của đồng nghiệp chưa sửa lỗi lint.
+> - 💥 **Format nhầm:** `prettier --write .` format cả những file dở dang chưa `git add`.
 
-1. **⏱️ Chậm chạp (Performance Bottleneck):**
-   Khi dự án phát triển lên hàng trăm tệp tin TypeScript (`.ts`), việc thực thi `pnpm lint` kiểm tra lại **toàn bộ codebase** mỗi lần gõ `git commit` sẽ tốn từ **30 giây đến vài phút**. Lập trình viên sẽ cảm thấy vô cùng ức chế khi chỉ sửa 1 dòng code nhưng phải ngồi chờ linter chạy xong.
+### 💡 Giải Pháp Với Lint-staged
 
-2. **🚫 Bị phạt "oan" (Noise & Collateral Damage):**
-   Bạn chỉ chỉnh sửa tệp `src/users/users.service.ts`, nhưng câu lệnh `git commit` lại bị chặn vì tệp `src/auth/auth.controller.ts` (do một đồng nghiệp khác commit từ hôm qua) đang chứa lỗi lint chưa sửa.
+**Lint-staged** chỉ thực thi linter/formatter trên các tệp đang ở **Staging Area** (`git add`), tối ưu hóa tốc độ và bảo vệ mã nguồn.
 
-3. **💥 Format nhầm các tệp chưa làm xong (Unstaged Files Damage):**
-   Nếu chạy `prettier --write .`, Prettier sẽ tự động định dạng lại **tất cả** tệp trong dự án — bao gồm cả những tệp bạn đang gõ dở, chưa kiểm thử và chưa hề muốn đưa vào `git add`.
-
----
-
-### 💡 Giải Pháp: Lint-staged Là Gì?
-
-**Lint-staged** là một thư viện Node.js chuyên biệt giúp lọc và **chỉ thực thi các kịch bản linter/formatter đối với những tệp đang nằm trong Staging Area** (tức các tệp đã được bạn chọn lọc thông qua lệnh `git add`).
-
-| Tiêu chí | Chạy Linter Toàn Dự Án (`pnpm lint`) | Chạy Với Lint-staged (`lint-staged`) |
-| :--- | :--- | :--- |
-| **Phạm vi kiểm tra** | Toàn bộ 100% tệp tin trong repo | **Chỉ các tệp đã `git add` (Staged)** |
-| **Tốc độ thực thi** | Chậm (Tăng dần theo quy mô dự án) | **Siêu tốc (Chỉ tốn vài trăm mili-giây)** |
-| **Tự động Re-stage** | Không hỗ trợ tự động | **Tự động `git add` lại sau khi auto-fix** |
-| **Tác động file dở dở** | Nguy cơ ảnh hưởng file chưa add | **Tuyệt đối an toàn cho unstaged files** |
+| Tiêu chí                  | Chạy Linter Toàn Dự Án (`pnpm lint`) | Chạy Với Lint-staged (`lint-staged`)  |
+| :------------------------ | :----------------------------------- | :------------------------------------ |
+| **Phạm vi kiểm tra**      | 100% tệp tin trong repo              | **Chỉ các tệp đã `git add` (Staged)** |
+| **Tốc độ thực thi**       | Chậm (Tăng theo quy mô dự án)        | **Siêu tốc (< 1 giây)**               |
+| **Tự động Re-stage**      | Không hỗ trợ                         | **Tự động `git add` lại sau khi fix** |
+| **Tác động file dở dang** | Nguy cơ ảnh hưởng file unstaged      | **Tuyệt đối an toàn**                 |
 
 ---
 
 ## 2. Nguyên Lý Hoạt Động & Workflow Của Lint-staged
 
-Quy trình phối hợp giữa **Git**, **Husky** và **Lint-staged** diễn ra theo 4 bước khép kín như sơ đồ dưới đây:
+Luồng phối hợp tự động giữa **Git**, **Husky** và **Lint-staged**:
 
 <p align="center">
   <img src="./assets/lint_staged_workflow.svg" alt="Lint-staged Workflow Diagram" width="100%" />
 </p>
 
-### 🛠️ Chi Tiết 4 Bước Xử Lý:
+### 🛠️ 4 Bước Xử Lý Cốt Lõi:
 
-1. **Kích hoạt Hook:** Lập trình viên chạy lệnh `git commit -m "..."`. Git kích hoạt kịch bản `.husky/pre-commit`.
-2. **Lọc Staged Files:** Husky thực thi lệnh `lint-staged`. Lint-staged truy vấn Git để lấy danh sách các file trong trạng thái Staged (`git diff --staged --name-only`).
-3. **Chạy Task Theo Match Pattern:** So khớp đuôi file với cấu hình:
-   - Các file `*.ts`: Chạy `eslint --fix` và `prettier --write`.
-   - Các file `*.json`, `*.md`: Chạy `prettier --write`.
+1. **Kích hoạt Hook:** Dev chạy `git commit` $\rightarrow$ Husky gọi `.husky/pre-commit`.
+2. **Lọc Staged Files:** `lint-staged` lấy danh sách file staged từ Git (`git diff --staged`).
+3. **Chạy Task Theo Match Pattern:**
+   - Files `*.ts`: Chạy `eslint --fix` & `prettier --write`.
+   - Files `*.json`, `*.md`: Chạy `prettier --write`.
 4. **Tự Động Re-stage & Hoàn Tất:**
-   - 🟢 Nếu code được tự động sửa (Auto-fixed) và không còn lỗi: Lint-staged tự động `git add` lại các thay đổi vừa sửa và ghi nhận commit thành công.
-   - 🔴 Nếu chứa lỗi không thể auto-fix (Lỗi cú pháp syntax, thiếu kiểu dữ liệu...): Lint-staged trả về exit code `1`, ngăn chặn lệnh commit và in vị trí dòng lỗi ra terminal.
+   - 🟢 **Success:** Auto-fix thành công $\rightarrow$ Tự động `git add` lại $\rightarrow$ Commit ghi nhận.
+   - 🔴 **Failed:** Phát hiện lỗi nặng (syntax/type) $\rightarrow$ Trả về Exit Code 1 $\rightarrow$ Hủy commit.
 
 ---
 
-## 3. Các Bước Cài Đặt & Cấu Hình Step-by-Step
+## 3. Cài Đặt & Cấu Hình Step-by-Step
 
 ### 📌 Bước 1: Cài Đặt Package `lint-staged`
-
-Mở terminal tại thư mục gốc của dự án NestJS và cài đặt `lint-staged` vào danh sách `devDependencies`:
 
 ```bash
 pnpm add --save-dev lint-staged
 ```
 
----
+### 📌 Bước 2: Tạo Tệp Cấu Hình `.lintstagedrc.json`
 
-### 📌 Bước 2: Tạo File Cấu Hình `.lintstagedrc.json`
-
-Tạo một tệp cấu hình mới có tên `.lintstagedrc.json` nằm tại thư mục gốc của dự án (cùng cấp với `package.json`):
+Tạo tệp `.lintstagedrc.json` tại thư mục gốc dự án:
 
 📄 **`.lintstagedrc.json`**
+
 ```json
 {
-  "*.ts": [
-    "eslint --fix",
-    "prettier --write"
-  ],
-  "*.{json,md,yml,yaml}": [
-    "prettier --write"
-  ]
+  "*.ts": ["eslint --fix", "prettier --write"],
+  "*.{json,md,yml,yaml}": ["prettier --write"]
 }
 ```
 
 > [!TIP]
-> **Giải thích cấu hình:**
-> - `"*.ts"`: Áp dụng cho mọi tệp TypeScript đang staged. Đầu tiên chạy `eslint --fix` để tự động sửa các quy tắc code style NestJS/TypeScript, sau đó chạy `prettier --write` để căn chỉnh khoảng trắng và format lại chuẩn xác.
-> - `"*.{json,md,yml,yaml}"`: Định dạng lại các tệp cấu hình JSON, tài liệu Markdown và YAML với Prettier.
+>
+> - `"*.ts"`: Sửa lỗi code style NestJS/TypeScript với ESLint, sau đó định dạng lại chuẩn Prettier.
+> - `"*.{json,md,yml,yaml}"`: Định dạng gọn gàng các tệp cấu hình & tài liệu.
 
-> [!NOTE]
-> Ngoài cách dùng `.lintstagedrc.json`, bạn cũng có thể nhúng trực tiếp cấu hình này vào key `"lint-staged"` trong tệp `package.json`. Tuy nhiên, việc tách file riêng giúp `package.json` gọn gàng hơn.
+### 📌 Bước 3: Tích Hợp Vào Husky Pre-commit Hook
 
----
-
-### 📌 Bước 3: Tích Hợp Lint-staged Vào Husky Pre-commit Hook
-
-Mở tệp kịch bản `.husky/pre-commit` đã khởi tạo từ Lesson 1.6, cập nhật nội dung để chuyển từ việc chạy linter toàn bộ sang dùng `lint-staged`:
+Cập nhật kịch bản `.husky/pre-commit`:
 
 📄 **`.husky/pre-commit`**
+
 ```bash
 pnpm exec lint-staged
 ```
 
 > [!IMPORTANT]
-> Câu lệnh `pnpm exec lint-staged` giúp gọi trực tiếp binary executable của `lint-staged` đã cài trong `node_modules` một cách chuẩn xác trên cả macOS, Linux và Windows mà không lo lỗi môi trường path.
+> Lệnh `pnpm exec lint-staged` gọi trực tiếp binary executable của `lint-staged` trong `node_modules`, đảm bảo chạy ổn định trên mọi hệ điều hành (macOS, Linux, Windows).
 
 ---
 
 ## 4. Kịch Bản Thử Nghiệm Thực Tế (Hands-on Lab)
 
-Hãy cùng thực hành 2 kịch bản thực tế để kiểm chứng sức mạnh của `lint-staged`.
+### 🟢 Kịch Bản 1: Tự Động Format & Fix Code Staged (Success Flow)
 
----
-
-### 🟢 Kịch Bản 1: Tự Động Format & Fix Code Đang Staged (Success Flow)
-
-Chúng ta sẽ cố tình viết một file code TypeScript bị lỗi format và thừa khoảng trắng để xem `lint-staged` tự động xử lý.
-
-#### 1️⃣ Bước 1: Chỉnh sửa file `src/users/users.service.ts` với code "bẩn":
+1️⃣ **Cố tình viết code "bẩn" tại `src/users/users.service.ts`:**
 
 📄 **`src/users/users.service.ts`**
+
 ```typescript
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
   findAll() {
-      const msg = 'Hello NestJS'  ; // Dư thừa khoảng trắng & thiếu semicolon
+    const msg = 'Hello NestJS'; // Thừa khoảng trắng & thiếu dấu chấm phẩy
     return msg;
   }
 }
 ```
 
-#### 2️⃣ Bước 2: Đưa file vào Staging Area và commit:
+2️⃣ **Stage file và commit:**
 
 ```bash
 git add src/users/users.service.ts
 git commit -m "feat: implement find all users"
 ```
 
-#### 3️⃣ Bước 3: Quan sát Terminal Output:
+3️⃣ **Kết quả trên Terminal:**
 
 ```bash
 ✔ Preparing lint-staged...
@@ -169,34 +145,18 @@ git commit -m "feat: implement find all users"
 ✔ Applying modifications from tasks...
 ✔ Cleaned up working tree.
 [main 4f8a12b] feat: implement find all users
- 1 file changed, 6 insertions(+)
 ```
 
-#### 4️⃣ Bước 4: Kiểm tra lại tệp `src/users/users.service.ts`:
-
-Mở lại file trong VS Code, bạn sẽ thấy code đã được **tự động căn chỉnh mượt mà** và tự động stage lại vào commit mà bạn không cần thao tác thêm bất kỳ lệnh nào!
-
-```typescript
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export class UsersService {
-  findAll() {
-    const msg = 'Hello NestJS';
-    return msg;
-  }
-}
-```
+4️⃣ **Kiểm tra file sau commit:** Code tự động được căn chỉnh chuẩn xác và lưu vào commit mà không cần can thiệp thủ công.
 
 ---
 
-### 🔴 Kịch Bản 2: Phát Hiện Lỗi Cú Pháp Không Thể Auto-Fix (Blocked Flow)
+### 🔴 Kịch Bản 2: Chặn Commit Khi Có Lỗi Cú Pháp (Blocked Flow)
 
-Bây giờ, chúng ta thử tạo một lỗi logic nghiêm trọng hoặc lỗi cú pháp syntax mà ESLint/TypeScript không thể tự sửa được.
-
-#### 1️⃣ Bước 1: Cố tình viết code lỗi cú pháp tại `src/app.controller.ts`:
+1️⃣ **Viết code lỗi syntax nghiêm trọng tại `src/app.controller.ts`:**
 
 📄 **`src/app.controller.ts`**
+
 ```typescript
 import { Controller, Get } from '@nestjs/common';
 
@@ -204,27 +164,20 @@ import { Controller, Get } from '@nestjs/common';
 export class AppController {
   @Get()
   getHello(): string {
-    const total: number = "INVALID_NUMBER_STRING"; // Lỗi gán sai type & chưa đóng ngoặc chuẩn
-    return total
+    const total: number = "INVALID_NUMBER_STRING";
+    return total // Thừa lỗi syntax chưa đóng ngoặc
 ```
 
-#### 2️⃣ Bước 2: Đưa file vào Staging Area và commit:
+2️⃣ **Stage file và commit:**
 
 ```bash
 git add src/app.controller.ts
 git commit -m "fix: add broken endpoint"
 ```
 
-#### 3️⃣ Bước 3: Quan sát Terminal Output:
+3️⃣ **Kết quả trên Terminal:**
 
 ```bash
-✔ Preparing lint-staged...
-❯ Running tasks for staged files...
-  ❯ .lintstagedrc.json — 1 file
-    💥 *.ts — 1 file
-      ✖ eslint --fix [FAILED]
-      ◼ prettier --write
-
 ✖ eslint --fix:
 /path/to/src/app.controller.ts
   8:5  error  Parsing error: Unexpected token, expected "}"
@@ -234,7 +187,7 @@ husky - pre-commit script failed (exit code 1)
 ```
 
 > [!CAUTION]
-> **Kết quả:** Lệnh `git commit` bị chặn ngay lập tức với exit code `1`. Lỗi cú pháp được chỉ rõ dòng 8 cột 5. Tệp hư hỏng không thể bị đưa vào lịch sử Git branch của dự án.
+> Lệnh `git commit` bị chặn lập tức (Exit Code 1). File lỗi không thể lọt vào Git history của dự án.
 
 ---
 
@@ -245,8 +198,8 @@ mindmap
   root(("Lint-staged Automation"))
     "Mục Tiêu Cốt Lõi"
       "Chỉ lint staged files"
-      "Siêu tốc độ"
-      "An toàn cho code dở dang"
+      "Tốc độ siêu nhanh"
+      "An toàn cho code unstaged"
     "Cấu Hình Tệp"
       ".lintstagedrc.json"
       "Pattern *.ts"
@@ -255,18 +208,17 @@ mindmap
       ".husky/pre-commit"
       "Lệnh pnpm exec lint-staged"
     "Luồng Xử Lý"
-      "Auto-fix code"
-      "Tự động git add lại"
+      "Auto-fix & Re-stage"
       "Chặn commit nếu có lỗi nặng"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu lý do không nên chạy `pnpm lint` toàn dự án trong `pre-commit` hook.
-- [x] Đã cài đặt thư viện `lint-staged` bằng `pnpm add -D lint-staged`.
-- [x] Đã tạo file cấu hình `.lintstagedrc.json` định nghĩa quy tắc cho `*.ts`, `*.json`, `*.md`.
-- [x] Đã cập nhật file `.husky/pre-commit` thành `pnpm exec lint-staged`.
-- [x] Thử nghiệm thành công kịch bản auto-fix & kịch bản ngăn chặn commit khi gặp lỗi syntax.
+- [x] Nắm vững ưu điểm của `lint-staged` so với việc lint toàn bộ dự án.
+- [x] Cài đặt package `lint-staged` via `pnpm add -D lint-staged`.
+- [x] Cấu hình tệp `.lintstagedrc.json` định nghĩa quy tắc cho `*.ts`, `*.json`, `*.md`.
+- [x] Cập nhật kịch bản `.husky/pre-commit` với lệnh `pnpm exec lint-staged`.
+- [x] Kiểm thử thành công 2 kịch bản: Auto-fix code & Chặn commit lỗi syntax.
 
 ---
 
