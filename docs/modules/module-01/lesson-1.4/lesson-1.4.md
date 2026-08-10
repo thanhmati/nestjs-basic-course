@@ -30,7 +30,7 @@ nest --version
 Sử dụng lệnh `nest new` để khởi tạo dự án backend cho ứng dụng Social Chat App:
 
 ```bash
-nest new social-app-be
+nest new nestjs-basic-course
 ```
 
 Trong quá trình khởi tạo, Nest CLI sẽ hỏi bạn lựa chọn **Package Manager**. Hãy chọn **`pnpm`**:
@@ -45,7 +45,7 @@ Trong quá trình khởi tạo, Nest CLI sẽ hỏi bạn lựa chọn **Package
 Sau khi quá trình cài đặt hoàn tất, di chuyển vào thư mục dự án:
 
 ```bash
-cd social-app-be
+cd nestjs-basic-course
 ```
 
 ---
@@ -55,7 +55,7 @@ cd social-app-be
 Dưới đây là sơ đồ tổng quan thư mục của dự án NestJS vừa tạo:
 
 ```text
-social-app-be/
+nestjs-basic-course/
 ├── src/
 │   ├── main.ts              # Entry point (Điểm khởi chạy ứng dụng)
 │   ├── app.module.ts        # Root Module (Module gốc chứa các module khác)

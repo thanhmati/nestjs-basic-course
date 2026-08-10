@@ -33,7 +33,7 @@ Mặc định, các file hooks của Git nằm trong thư mục ẩn `.git/hooks
 
 ### Bước 1: Kiểm Tra Git Repository
 
-Đảm bảo dự án NestJS của bạn đã được khởi tạo Git. Nếu chưa, hãy mở Terminal tại thư mục `social-app-be` và chạy:
+Đảm bảo dự án NestJS của bạn đã được khởi tạo Git. Nếu chưa, hãy mở Terminal tại thư mục `nestjs-basic-course` và chạy:
 
 ```bash
 git init
@@ -140,10 +140,10 @@ pnpm lint
 
 4. **Kết quả trên Terminal:**
    ```text
-   > social-app-be@0.0.1 lint /Users/tanthanh/nestjs-udemy-course-docs/social-app-be
+   > nestjs-basic-course@0.0.1 lint /Users/tanthanh/Documents/Project/nestjs-basic-course
    > eslint "{src,apps,libs,test}/**/*.ts" --fix
 
-   /Users/tanthanh/.../src/app.controller.ts
+   /Users/tanthanh/Documents/Project/nestjs-basic-course/src/app.controller.ts
      7:11  error  'unusedVariable' is assigned a value but never used  @typescript-eslint/no-unused-vars
 
    ✖ 1 problem (1 error, 0 warnings)
