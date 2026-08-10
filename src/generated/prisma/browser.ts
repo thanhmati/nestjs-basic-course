@@ -22,7 +22,27 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel;
 /**
+ * Model Profile
+ *
+ */
+export type Profile = Prisma.ProfileModel;
+/**
  * Model Post
  *
  */
 export type Post = Prisma.PostModel;
+/**
+ * Model Comment
+ *
+ */
+export type Comment = Prisma.CommentModel;
+/**
+ * Model Message
+ *
+ */
+export type Message = Prisma.MessageModel;
+/**
+ * Model Notification
+ *
+ */
+export type Notification = Prisma.NotificationModel;

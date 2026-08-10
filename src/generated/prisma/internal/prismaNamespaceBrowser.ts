@@ -55,7 +55,11 @@ export const AnyNull = runtime.AnyNull;
 
 export const ModelName = {
   User: 'User',
+  Profile: 'Profile',
   Post: 'Post',
+  Comment: 'Comment',
+  Message: 'Message',
+  Notification: 'Notification',
 } as const;
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
@@ -77,22 +81,77 @@ export type TransactionIsolationLevel =
 export const UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
+  password: 'password',
   name: 'name',
+  role: 'role',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
 } as const;
 
 export type UserScalarFieldEnum =
   (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum];
+
+export const ProfileScalarFieldEnum = {
+  id: 'id',
+  bio: 'bio',
+  avatarUrl: 'avatarUrl',
+  location: 'location',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId',
+} as const;
+
+export type ProfileScalarFieldEnum =
+  (typeof ProfileScalarFieldEnum)[keyof typeof ProfileScalarFieldEnum];
 
 export const PostScalarFieldEnum = {
   id: 'id',
   title: 'title',
   content: 'content',
   published: 'published',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   authorId: 'authorId',
 } as const;
 
 export type PostScalarFieldEnum =
   (typeof PostScalarFieldEnum)[keyof typeof PostScalarFieldEnum];
+
+export const CommentScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  postId: 'postId',
+  authorId: 'authorId',
+} as const;
+
+export type CommentScalarFieldEnum =
+  (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum];
+
+export const MessageScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  isRead: 'isRead',
+  createdAt: 'createdAt',
+  senderId: 'senderId',
+  receiverId: 'receiverId',
+} as const;
+
+export type MessageScalarFieldEnum =
+  (typeof MessageScalarFieldEnum)[keyof typeof MessageScalarFieldEnum];
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  content: 'content',
+  isRead: 'isRead',
+  createdAt: 'createdAt',
+  userId: 'userId',
+} as const;
+
+export type NotificationScalarFieldEnum =
+  (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum];
 
 export const SortOrder = {
   asc: 'asc',

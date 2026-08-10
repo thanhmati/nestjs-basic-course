@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 480" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+
+    <pattern id="gridPattern" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="480" fill="url(#bg)"/>
+  <rect width="1000" height="480" fill="url(#gridPattern)"/>
+
+  <!-- Title -->
+  <text x="500" y="40" text-anchor="middle" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700">
+    Quy Trình Quản Lý Phiên Bản CSDL Với Prisma Migrate &amp; Generate
+  </text>
+
+  <!-- Container Box -->
+  <rect x="40" y="65" width="920" height="385" rx="16" fill="#0f172a" stroke="#475569" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <!-- Step 1: Schema Modify -->
+  <g transform="translate(70, 100)" filter="url(#shadow)">
+    <rect width="240" height="130" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="120" y="32" text-anchor="middle" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">1. Sửa Schema</text>
+    <text x="120" y="58" text-anchor="middle" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12">prisma/schema.prisma</text>
+    <rect x="20" y="75" width="200" height="36" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="120" y="97" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">model User { ... }</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <path d="M 310 165 L 370 165" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="370,160 380,165 370,170" fill="#38bdf8"/>
+
+  <!-- Step 2: Migrate CLI Command -->
+  <g transform="translate(380, 100)" filter="url(#shadow)">
+    <rect width="250" height="130" rx="10" fill="#1e293b" stroke="#818cf8" stroke-width="1.5"/>
+    <text x="125" y="32" text-anchor="middle" fill="#818cf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">2. Run Migrate CLI</text>
+    <text x="125" y="58" text-anchor="middle" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="11">prisma migrate dev</text>
+    <rect x="20" y="75" width="210" height="36" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="125" y="97" text-anchor="middle" fill="#818cf8" font-family="JetBrains Mono, monospace" font-size="11">--name init_social_schema</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <path d="M 630 165 L 690 165" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="690,160 700,165 690,170" fill="#818cf8"/>
+
+  <!-- Step 3: SQL Migration File Created -->
+  <g transform="translate(700, 100)" filter="url(#shadow)">
+    <rect width="230" height="130" rx="10" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="115" y="32" text-anchor="middle" fill="#a855f7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">3. Sinh Tệp SQL</text>
+    <text x="115" y="56" text-anchor="middle" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="11">prisma/migrations/</text>
+    <rect x="15" y="72" width="200" height="42" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="115" y="90" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono, monospace" font-size="10">timestamp_name/</text>
+    <text x="115" y="105" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="10">migration.sql</text>
+  </g>
+
+  <!-- Bottom Row: DB Execution & Client Generate -->
+  <!-- Arrow 3 -> 4 (Down & Left) -->
+  <path d="M 815 230 L 815 290 L 530 290 L 530 310" stroke="#a855f7" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+  <polygon points="525,310 530,320 535,310" fill="#a855f7"/>
+
+  <!-- Step 4: Execute SQL on Postgres -->
+  <g transform="translate(390, 320)" filter="url(#shadow)">
+    <rect width="280" height="105" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="140" y="32" text-anchor="middle" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">4. Thực Thi SQL Vào Postgres</text>
+    <text x="140" y="56" text-anchor="middle" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="11">CREATE TABLE "users" ...</text>
+    <text x="140" y="80" text-anchor="middle" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Ghi nhận lịch sử vào _prisma_migrations</text>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <path d="M 390 372 L 310 372" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 4"/>
+  <polygon points="310,367 300,372 310,377" fill="#f59e0b"/>
+
+  <!-- Step 5: Manual Trigger Prisma Generate -->
+  <g transform="translate(70, 320)" filter="url(#shadow)">
+    <rect width="230" height="105" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="115" y="32" text-anchor="middle" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700">5. Chạy Lệnh Generate</text>
+    <text x="115" y="58" text-anchor="middle" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="11">prisma generate</text>
+    <text x="115" y="80" text-anchor="middle" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="11">Cập nhật Client Types thủ công</text>
+  </g>
+</svg>
