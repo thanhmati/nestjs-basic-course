@@ -50,14 +50,17 @@ timeline
 ### Module 2: Cơ Sở Dữ Liệu Với PostgreSQL & Prisma ORM
 
 > [!TIP]  
-> **Mục tiêu:** Thiết kế CSDL quan hệ chuẩn hóa và làm chủ Prisma ORM.
+> **Mục tiêu:** Nắm vững tư duy thiết kế CSDL quan hệ thực chiến cho Social Chat App, làm chủ Prisma ORM từ khởi tạo, seeding, type-safe queries đến xử lý Transactions và Exception Handling chuyên nghiệp.
 
-- **2.1** _Database:_ Khởi chạy PostgreSQL với Docker Compose trong 1 click.
-- **2.2** _Prisma:_ Khởi tạo Prisma ORM (`npx prisma init`).
-- **2.3** _Schema Design:_ Định nghĩa Entity `User`, `Post`, `Comment`, `Message`, `Notification`.
-- **2.4** _Migrations:_ Quản lý CSDL với `prisma migrate` & Prisma Studio.
-- **2.5** _Service:_ Tạo `PrismaService` & Lifecycle connection (`onModuleInit`, `onModuleDestroy`).
-- **2.6** _Practice:_ Viết CRUD User cơ bản với Type-safe query.
+- **2.1** _Database Environment:_ Khởi chạy PostgreSQL & GUI Client (Adminer/pgAdmin) với Docker Compose.
+- **2.2** _Prisma Overview & Setup:_ Giới thiệu Prisma ORM (Khái niệm ORM, Prisma Architecture) & Khởi tạo Prisma CLI (`prisma init`).
+- **2.3** _Schema Design & Relations:_ Thiết kế Data Models chuẩn hóa cho Social App (`User`, `Post`, `Comment`, `Message`, `Notification`) với quan hệ 1-1, 1-N, N-N & Cascade Rules.
+- **2.4** _Migrations & Prisma Studio:_ Quản lý phiên bản CSDL với `prisma migrate dev` và trực quan hóa dữ liệu bằng Prisma Studio.
+- **2.5** _Database Seeding:_ Xây dựng Script tự động tạo dữ liệu mẫu (`prisma/seed.ts`) kết hợp `@faker-js/faker`.
+- **2.6** _NestJS Integration:_ Tạo `PrismaService` quản lý Lifecycle Connection (`onModuleInit`, `onModuleDestroy`) & Đóng gói `@Global()` `PrismaModule`.
+- **2.7** _Type-Safe Queries:_ Thực thi các thao tác CRUD với Prisma Client Type-Safety (`select`, `include`, `where`, `orderBy`).
+- **2.8** _Transactions & Optimization:_ Kỹ thuật xử lý giao dịch dữ liệu với `$transaction` (Sequential & Interactive) và phòng chống N+1 Query.
+- **2.9** _Prisma Error Handling:_ Bắt và chuẩn hóa lỗi Prisma Client (Lỗi trùng lặp dữ liệu `P2002`, lỗi không tìm thấy bản ghi `P2025`) với NestJS Exception Filter.
 
 ---
 
