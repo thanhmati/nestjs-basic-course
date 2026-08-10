@@ -49,20 +49,22 @@ Mặc định, các file hooks của Git nằm trong thư mục ẩn `.git/hooks
 
 ```mermaid
 graph LR
-    subgraph Local Machine
-        Dev1[Dev A: git commit] --> Husky1[Husky: .husky/pre-commit]
+    subgraph Local ["Local Machine"]
+        Dev1["Dev A: git commit"] --> Husky1["Husky: .husky/pre-commit"]
     end
 
-    subgraph Git Remote
-        Repo[(GitHub Repository)]
+    subgraph Remote ["Git Remote"]
+        Repo[("GitHub Repository")]
     end
 
-    subgraph Team Member
-        Husky2[Husky Auto Installed via prepare] <-- git clone & pnpm install -- Dev2[Dev B]
+    subgraph Team ["Team Member"]
+        Husky2["Husky Auto Installed via prepare"]
+        Dev2["Dev B"]
+        Dev2 -->|"git clone & pnpm install"| Husky2
     end
 
-    Husky1 -->|Pushes .husky folder| Repo
-    Repo -->|Pulls .husky folder| Dev2
+    Husky1 -->|"Pushes .husky folder"| Repo
+    Repo -->|"Pulls .husky folder"| Dev2
 ```
 
 - 📂 Đưa toàn bộ kịch bản kiểm tra vào thư mục `.husky/` nằm trực tiếp ở góc dự án.
