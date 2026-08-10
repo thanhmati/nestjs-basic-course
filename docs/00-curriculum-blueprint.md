@@ -40,7 +40,7 @@ timeline
 - **1.4** [*Nest CLI & Project Structure:* Khởi tạo dự án NestJS với Nest CLI & Khám phá cấu trúc mã nguồn.](./modules/module-01/lesson-1.4/lesson-1.4.md)
 - **1.5** [*Teamwork Standards:* Vấn đề thường gặp trong teamwork (Lỗi format, lint và commit message).](./modules/module-01/lesson-1.5/lesson-1.5-slides.md)
 - **1.6** [*Git Hooks & Husky:* Giới thiệu Git Hooks & Tự động hóa kiểm tra code với Husky.](./modules/module-01/lesson-1.6/lesson-1.6.md)
-- **1.7** *Lint-staged:* Tự động lint và format code trước commit với lint-staged.
+- **1.7** [*Lint-staged:* Tự động lint và format code trước commit với lint-staged.](./modules/module-01/lesson-1.7/lesson-1.7.md)
 - **1.8** *Commitlint:* Commitlint & Conventional Commits - Giữ commit message chuẩn hóa.
 - **1.9** *Core Concepts:* Controller, Service, Module & Dependency Injection (DI) cơ bản.
 - **1.10** *Configuration:* Đọc `.env` an toàn với `@nestjs/config` & `Joi` validation.
