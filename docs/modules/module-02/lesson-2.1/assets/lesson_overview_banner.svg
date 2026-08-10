@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Docker Gradient -->
+    <linearGradient id="dockerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Postgres Gradient -->
+    <linearGradient id="postgresGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <!-- Adminer Gradient -->
+    <linearGradient id="adminerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Glowing Effects -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="glowBlue" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Grid Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.3"/>
+    </pattern>
+  </defs>
+
+  <!-- Background Layer -->
+  <rect width="1200" height="400" fill="url(#bgGradient)"/>
+  <rect width="1200" height="400" fill="url(#grid)"/>
+
+  <!-- Decorative Light Orbs -->
+  <circle cx="200" cy="100" r="150" fill="#0284c7" opacity="0.15" filter="url(#glowBlue)" />
+  <circle cx="1000" cy="300" r="180" fill="#2563eb" opacity="0.12" filter="url(#glowBlue)" />
+
+  <!-- Outer Header Card -->
+  <g filter="url(#dropShadow)">
+    <rect x="50" y="40" width="1100" height="320" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5"/>
+    
+    <!-- Top Header Bar -->
+    <path d="M 50 56 A 16 16 0 0 1 66 40 L 1134 40 A 16 16 0 0 1 1150 56 L 1150 85 L 50 85 Z" fill="#0f172a" fill-opacity="0.8"/>
+    <circle cx="80" cy="62" r="6" fill="#ef4444"/>
+    <circle cx="100" cy="62" r="6" fill="#f59e0b"/>
+    <circle cx="120" cy="62" r="6" fill="#10b981"/>
+    
+    <text x="600" y="67" text-anchor="middle" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" letter-spacing="1">
+      MODULE 2 • LESSON 2.1 — DATABASE ENVIRONMENT
+    </text>
+  </g>
+
+  <!-- Title & Subtitle -->
+  <text x="90" y="145" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="800">
+    PostgreSQL &amp; Docker Compose Setup
+  </text>
+  <text x="90" y="180" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="400">
+    Khởi tạo môi trường CSDL containerized &amp; Quản lý dữ liệu trực quan với GUI Client
+  </text>
+
+  <!-- Container Cards Group -->
+  <!-- Card 1: Docker Compose -->
+  <g transform="translate(90, 215)" filter="url(#dropShadow)">
+    <rect width="310" height="110" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- Docker Icon Badge -->
+    <rect x="20" y="25" width="60" height="60" rx="10" fill="url(#dockerGrad)"/>
+    <path d="M 35 60 h 30 v 5 h -30 z M 40 50 h 8 v 7 h -8 z M 50 50 h 8 v 7 h -8 z M 60 50 h 8 v 7 h -8 z M 50 40 h 8 v 7 h -8 z" fill="#ffffff"/>
+    <text x="95" y="52" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">Docker Compose</text>
+    <text x="95" y="75" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">docker-compose.yml</text>
+  </g>
+
+  <!-- Connection Arrow 1 -->
+  <g transform="translate(415, 260)">
+    <line x1="0" y1="0" x2="35" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="4 4"/>
+    <polygon points="35,-5 45,0 35,5" fill="#64748b"/>
+  </g>
+
+  <!-- Card 2: PostgreSQL Container -->
+  <g transform="translate(475, 215)" filter="url(#dropShadow)">
+    <rect width="310" height="110" rx="12" fill="#0f172a" stroke="#60a5fa" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- Elephant / DB Icon Badge -->
+    <rect x="20" y="25" width="60" height="60" rx="10" fill="url(#postgresGrad)"/>
+    <!-- Cylinder Icon -->
+    <path d="M 40 40 C 40 36 60 36 60 40 C 60 44 40 44 40 40 Z M 40 40 v 20 C 40 64 60 64 60 60 v -20 M 40 50 C 40 54 60 54 60 50" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="95" y="52" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">PostgreSQL 16</text>
+    <text x="95" y="75" fill="#60a5fa" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">Port 5432 • DB Engine</text>
+  </g>
+
+  <!-- Connection Arrow 2 -->
+  <g transform="translate(800, 260)">
+    <line x1="0" y1="0" x2="35" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="4 4"/>
+    <polygon points="35,-5 45,0 35,5" fill="#64748b"/>
+  </g>
+
+  <!-- Card 3: Adminer GUI Client -->
+  <g transform="translate(855, 215)" filter="url(#dropShadow)">
+    <rect width="250" height="110" rx="12" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- GUI Icon Badge -->
+    <rect x="20" y="25" width="60" height="60" rx="10" fill="url(#adminerGrad)"/>
+    <rect x="33" y="40" width="34" height="26" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <line x1="33" y1="47" x2="67" y2="47" stroke="#ffffff" stroke-width="1.5"/>
+    <text x="95" y="52" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">Adminer GUI</text>
+    <text x="95" y="75" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">http://localhost:8080</text>
+  </g>
+</svg>

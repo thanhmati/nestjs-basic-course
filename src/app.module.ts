@@ -13,7 +13,10 @@ import * as Joi from 'joi';
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3000),
-        DATABASE_URL: Joi.string().required(),
+        POSTGRES_USER: Joi.string().required(),
+        POSTGRES_PASSWORD: Joi.string().required(),
+        POSTGRES_DB: Joi.string().required(),
+        POSTGRES_PORT: Joi.number().required(),
       }),
     }),
   ],

@@ -52,7 +52,7 @@ timeline
 > [!TIP]  
 > **Mục tiêu:** Nắm vững tư duy thiết kế CSDL quan hệ thực chiến cho Social Chat App, làm chủ Prisma ORM từ khởi tạo, seeding, type-safe queries đến xử lý Transactions và Exception Handling chuyên nghiệp.
 
-- **2.1** _Database Environment:_ Khởi chạy PostgreSQL & GUI Client (Adminer/pgAdmin) với Docker Compose.
+- **2.1** [_Database Environment:_ Khởi chạy PostgreSQL & GUI Client (Adminer/pgAdmin) với Docker Compose.](./modules/module-02/lesson-2.1/lesson-2.1.md)
 - **2.2** _Prisma Overview & Setup:_ Giới thiệu Prisma ORM (Khái niệm ORM, Prisma Architecture) & Khởi tạo Prisma CLI (`prisma init`).
 - **2.3** _Schema Design & Relations:_ Thiết kế Data Models chuẩn hóa cho Social App (`User`, `Post`, `Comment`, `Message`, `Notification`) với quan hệ 1-1, 1-N, N-N & Cascade Rules.
 - **2.4** _Migrations & Prisma Studio:_ Quản lý phiên bản CSDL với `prisma migrate dev` và trực quan hóa dữ liệu bằng Prisma Studio.
