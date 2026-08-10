@@ -54,7 +54,7 @@ timeline
 
 - **2.1** [_Database Environment:_ Khởi chạy PostgreSQL & GUI Client (Adminer/pgAdmin) với Docker Compose.](./modules/module-02/lesson-2.1/lesson-2.1.md)
 - **2.2** [_Prisma Overview & Setup:_ Giới thiệu Prisma ORM (Khái niệm ORM, Prisma Architecture) & Khởi tạo Prisma CLI (`prisma init`).](./modules/module-02/lesson-2.2/lesson-2.2.md)
-- **2.3** _Schema Design & Relations:_ Thiết kế Data Models chuẩn hóa cho Social App (`User`, `Post`, `Comment`, `Message`, `Notification`) với quan hệ 1-1, 1-N, N-N & Cascade Rules.
+- **2.3** [_Schema Design & Relations:_ Thiết kế Data Models chuẩn hóa cho Social App (`User`, `Post`, `Comment`, `Message`, `Notification`) với quan hệ 1-1, 1-N, N-N & Cascade Rules.](./modules/module-02/lesson-2.3/lesson-2.3.md)
 - **2.4** _Migrations & Prisma Studio:_ Quản lý phiên bản CSDL với `prisma migrate dev` và trực quan hóa dữ liệu bằng Prisma Studio.
 - **2.5** _Database Seeding:_ Xây dựng Script tự động tạo dữ liệu mẫu (`prisma/seed.ts`) kết hợp `@faker-js/faker`.
 - **2.6** _NestJS Integration:_ Tạo `PrismaService` quản lý Lifecycle Connection (`onModuleInit`, `onModuleDestroy`) & Đóng gói `@Global()` `PrismaModule`.
