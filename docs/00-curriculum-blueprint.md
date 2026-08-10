@@ -34,12 +34,12 @@ timeline
 > [!NOTE]  
 > **Mục tiêu:** Nắm vững setup môi trường, chuẩn hóa code quality trong team (ESLint, Prettier, Husky, Commitlint) và hiểu các khái niệm cốt lõi của NestJS.
 
-- **1.1** *Overview:* Giới thiệu tổng quan về NestJS & Lý do lựa chọn kiến trúc NestJS.
+- **1.1** [*Overview:* Giới thiệu tổng quan về NestJS & Lý do lựa chọn kiến trúc NestJS.](./modules/module-01/lesson-1.1/lesson-1.1-slides.md)
 - **1.2** *Demo App:* Demo trải nghiệm ứng dụng Social Chat App hoàn chỉnh (REST API & Real-time WebSockets).
-- **1.3** *Environment Setup:* Chuẩn bị môi trường phát triển (NodeJS, pnpm, VS Code, Postman, Docker).
-- **1.4** *Nest CLI & Project Structure:* Khởi tạo dự án NestJS với Nest CLI & Khám phá cấu trúc mã nguồn.
-- **1.5** *Teamwork Standards:* Vấn đề thường gặp trong teamwork (Lỗi format, lint và commit message).
-- **1.6** *Git Hooks & Husky:* Giới thiệu Git Hooks & Tự động hóa kiểm tra code với Husky.
+- **1.3** [*Environment Setup:* Chuẩn bị môi trường phát triển (NodeJS, pnpm, VS Code, Postman, Docker).](./modules/module-01/lesson-1.3/lesson-1.3.md)
+- **1.4** [*Nest CLI & Project Structure:* Khởi tạo dự án NestJS với Nest CLI & Khám phá cấu trúc mã nguồn.](./modules/module-01/lesson-1.4/lesson-1.4.md)
+- **1.5** [*Teamwork Standards:* Vấn đề thường gặp trong teamwork (Lỗi format, lint và commit message).](./modules/module-01/lesson-1.5/lesson-1.5-slides.md)
+- **1.6** [*Git Hooks & Husky:* Giới thiệu Git Hooks & Tự động hóa kiểm tra code với Husky.](./modules/module-01/lesson-1.6/lesson-1.6.md)
 - **1.7** *Lint-staged:* Tự động lint và format code trước commit với lint-staged.
 - **1.8** *Commitlint:* Commitlint & Conventional Commits - Giữ commit message chuẩn hóa.
 - **1.9** *Core Concepts:* Controller, Service, Module & Dependency Injection (DI) cơ bản.
