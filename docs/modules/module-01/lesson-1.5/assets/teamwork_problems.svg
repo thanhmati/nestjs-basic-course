@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="bgGradP" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="600" rx="16" fill="url(#bgGradP)"/>
+  <rect width="796" height="596" x="2" y="2" rx="14" fill="none" stroke="#334155" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="400" y="50" font-family="Inter, sans-serif" font-weight="800" font-size="22" fill="#f8fafc" text-anchor="middle">TEAMWORK CODE QUALITY COMPARISON</text>
+
+  <!-- Left Card: Messy -->
+  <g transform="translate(40, 90)">
+    <rect width="340" height="460" rx="16" fill="#1e293b" stroke="#f43f5e" stroke-width="2"/>
+    <rect width="340" height="50" rx="16" fill="#f43f5e"/>
+    <text x="170" y="32" font-family="Inter, sans-serif" font-weight="800" font-size="16" fill="#ffffff" text-anchor="middle">UNSTANDARDIZED CODE</text>
+
+    <!-- Code snippet simulation bad -->
+    <rect x="20" y="70" width="300" height="150" rx="8" fill="#0f172a"/>
+    <text x="35" y="95" font-family="monospace" font-size="12" fill="#ef4444">var x = 1  // no semicolon</text>
+    <text x="35" y="120" font-family="monospace" font-size="12" fill="#ef4444">const user:any={name:"A"}</text>
+    <text x="35" y="145" font-family="monospace" font-size="12" fill="#94a3b8">console.log(user) // leftover</text>
+    <text x="35" y="170" font-family="monospace" font-size="12" fill="#ef4444">  function   test(){return}</text>
+
+    <!-- Bullet points -->
+    <text x="30" y="255" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#f43f5e">• Git Diff 500+ lines (Format noise)</text>
+    <text x="30" y="295" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#f43f5e">• Code Review tốn nỗ lực vô ích</text>
+    <text x="30" y="335" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#f43f5e">• Commit message: "fix bug", "up"</text>
+    <text x="30" y="375" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#f43f5e">• Nguy cơ cao rò rỉ bug lên Prod</text>
+  </g>
+
+  <!-- Right Card: Clean -->
+  <g transform="translate(420, 90)">
+    <rect width="340" height="460" rx="16" fill="#1e293b" stroke="#4ade80" stroke-width="2"/>
+    <rect width="340" height="50" rx="16" fill="#4ade80"/>
+    <text x="170" y="32" font-family="Inter, sans-serif" font-weight="800" font-size="16" fill="#0f172a" text-anchor="middle">NESTJS STANDARDIZED CODE</text>
+
+    <!-- Code snippet simulation good -->
+    <rect x="20" y="70" width="300" height="150" rx="8" fill="#0f172a"/>
+    <text x="35" y="95" font-family="monospace" font-size="12" fill="#4ade80">const user: UserEntity = {</text>
+    <text x="55" y="120" font-family="monospace" font-size="12" fill="#38bdf8">name: 'Alex',</text>
+    <text x="35" y="145" font-family="monospace" font-size="12" fill="#4ade80">};</text>
+    <text x="35" y="170" font-family="monospace" font-size="12" fill="#38bdf8">function test(): void {}</text>
+
+    <!-- Bullet points -->
+    <text x="30" y="255" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#4ade80">• Git Diff tập trung đúng 100% logic</text>
+    <text x="30" y="295" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#4ade80">• Auto-format khi lưu (Save)</text>
+    <text x="30" y="335" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#4ade80">• Commit chuẩn Conventional</text>
+    <text x="30" y="375" font-family="Inter, sans-serif" font-weight="700" font-size="14" fill="#4ade80">• Tự động chặn code rác với Husky</text>
+  </g>
+</svg>

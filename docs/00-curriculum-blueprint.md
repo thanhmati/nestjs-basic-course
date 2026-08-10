@@ -1,0 +1,128 @@
+# Module Curriculum Blueprint: NestJS Zero to Hero
+
+> **Khung chương trình 7 Modules tinh gọn (Pragmatic Path)**  
+> Sắp xếp chuẩn theo tiến trình phát triển ứng dụng **Real-time Social Chat App** từ zero đến production.
+
+---
+
+## 1. Lộ Trình Học Tổng Quan (Learning Roadmap)
+
+```mermaid
+timeline
+    title Tiến Trình Phát Triển Dự Án Social Chat App
+    section Phase 1 - Foundation
+        Module 1 : Setup, Code Quality & Core Concepts
+        Module 2 : PostgreSQL & Prisma ORM
+    section Phase 2 - API Standards
+        Module 3 : Versioning, DTOs & Interceptors
+        Module 4 : Auth JWT & Rate-Limiting
+    section Phase 3 - Core & Realtime
+        Module 5 : Social Features & Events
+        Module 6 : WebSockets Chat & Caching
+    section Phase 4 - Production Ready
+        Module 7 : Logging, Terminus & Deploy
+```
+
+---
+
+## 2. Chi Tiết Nội Dung Từng Module
+
+---
+
+### Module 1: Khởi Tạo Dự Án, Code Quality Tools & NestJS Core Concepts
+
+> [!NOTE]  
+> **Mục tiêu:** Nắm vững setup môi trường, chuẩn hóa code quality trong team (ESLint, Prettier, Husky, Commitlint) và hiểu các khái niệm cốt lõi của NestJS.
+
+- **1.1** *Overview:* Giới thiệu tổng quan về NestJS & Lý do lựa chọn kiến trúc NestJS.
+- **1.2** *Demo App:* Demo trải nghiệm ứng dụng Social Chat App hoàn chỉnh (REST API & Real-time WebSockets).
+- **1.3** *Environment Setup:* Chuẩn bị môi trường phát triển (NodeJS, pnpm, VS Code, Postman, Docker).
+- **1.4** *Nest CLI & Project Structure:* Khởi tạo dự án NestJS với Nest CLI & Khám phá cấu trúc mã nguồn.
+- **1.5** *Teamwork Standards:* Vấn đề thường gặp trong teamwork (Lỗi format, lint và commit message).
+- **1.6** *Git Hooks & Husky:* Giới thiệu Git Hooks & Tự động hóa kiểm tra code với Husky.
+- **1.7** *Lint-staged:* Tự động lint và format code trước commit với lint-staged.
+- **1.8** *Commitlint:* Commitlint & Conventional Commits - Giữ commit message chuẩn hóa.
+- **1.9** *Core Concepts:* Controller, Service, Module & Dependency Injection (DI) cơ bản.
+- **1.10** *Configuration:* Đọc `.env` an toàn với `@nestjs/config` & `Joi` validation.
+
+---
+
+### Module 2: Cơ Sở Dữ Liệu Với PostgreSQL & Prisma ORM
+
+> [!TIP]  
+> **Mục tiêu:** Thiết kế CSDL quan hệ chuẩn hóa và làm chủ Prisma ORM.
+
+- **2.1** _Database:_ Khởi chạy PostgreSQL với Docker Compose trong 1 click.
+- **2.2** _Prisma:_ Khởi tạo Prisma ORM (`npx prisma init`).
+- **2.3** _Schema Design:_ Định nghĩa Entity `User`, `Post`, `Comment`, `Message`, `Notification`.
+- **2.4** _Migrations:_ Quản lý CSDL với `prisma migrate` & Prisma Studio.
+- **2.5** _Service:_ Tạo `PrismaService` & Lifecycle connection (`onModuleInit`, `onModuleDestroy`).
+- **2.6** _Practice:_ Viết CRUD User cơ bản với Type-safe query.
+
+---
+
+### Module 3: Chuẩn Hóa REST API & Request Pipeline (Versioning, DTOs, Filters & Interceptors)
+
+> [!IMPORTANT]  
+> **Mục tiêu:** Xây dựng API chuyên nghiệp với Request Pipeline linh hoạt (Middleware, Validation Pipes, Filters & Interceptors).
+
+- **3.1** _Versioning:_ Cấu hình API Versioning `/api/v1/...`.
+- **3.2** _Validation:_ Sử dụng DTOs với `class-validator` & `ValidationPipe` toàn cục.
+- **3.3** _Middleware:_ Viết `LoggerMiddleware` tự động log HTTP Method, URL, IP Address.
+- **3.4** _Exception Filters:_ Viết `HttpExceptionFilter` chuẩn hóa JSON thông báo lỗi.
+- **3.5** _Interceptors:_
+  - `TransformInterceptor`: Đóng gói chuẩn response `{ success: true, data: ... }`.
+  - `LoggingInterceptor`: Đo lường chính xác execution time (ms) của API.
+
+---
+
+### Module 4: Authentication, Security & Rate-Limiting
+
+> [!CAUTION]  
+> **Mục tiêu:** Bảo mật hệ thống với JWT Access Token và chống Brute-force/Spam.
+
+- **4.1** _Hash Password:_ Mã hóa mật khẩu an toàn với `bcrypt`.
+- **4.2** _JWT Auth:_ Đăng ký, Đăng nhập & phát hành Access Token.
+- **4.3** _Guards:_ Bảo vệ API bằng `JwtAuthGuard` & Passport Strategy.
+- **4.4** _Decorators:_ Tạo Custom Decorator `@CurrentUser()` & `@Public()`.
+- **4.5** _Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.
+
+---
+
+### Module 5: Social Features, Event-Driven Architecture & OpenAPI (Swagger)
+
+> [!NOTE]  
+> **Mục tiêu:** Phát triển tính năng Social, tách rời logic bằng Events và tạo tài liệu API Swagger.
+
+- **5.1** _Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.
+- **5.2** _File Upload:_ Upload ảnh đại diện/bài viết với Multer.
+- **5.3** _Comments API:_ Thêm bình luận dưới bài viết.
+- **5.4** _Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.
+- **5.5** _OpenAPI:_ Tự động sinh Swagger UI tương tác (`@nestjs/swagger`).
+
+---
+
+### Module 6: Real-Time WebSockets Chat & Performance Caching
+
+> [!TIP]  
+> **Mục tiêu:** Tạo tính năng Chat nhóm/1-1 Real-time và tăng tốc tải trang với Caching.
+
+- **6.1** _WebSockets:_ Tạo Gateway với `@WebSocketGateway()` (Socket.io).
+- **6.2** _Socket Auth:_ Authen JWT ngay từ giai đoạn Socket Handshake.
+- **6.3** _Chat Room:_ Join Room, Broadcast message real-time & lưu DB.
+- **6.4** _Sockets + Events:_ Đẩy thông báo tức thì khi có sự kiện `comment.created`.
+- **6.5** _Caching:_ Tăng tốc API Hot Feed với `@nestjs/cache-manager`.
+- **6.6** _Frontend:_ Ghép nối Backend với Template React UI Starter.
+
+---
+
+### Module 7: Advanced Logging, Healthchecks (Terminus), Testing & Cloud Deploy
+
+> [!IMPORTANT]  
+> **Mục tiêu:** Kiểm tra sức khỏe ứng dụng, viết Unit Test và Deploy lên Cloud.
+
+- **7.1** _Logging:_ Ghi log hệ thống dạng Structured JSON cho môi trường Production.
+- **7.2** _Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.
+- **7.3** _Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.
+- **7.4** _Dockerize:_ Viết `Dockerfile` & `docker-compose.yml` tối ưu.
+- **7.5** _Cloud Deploy:_ Deploy miễn phí ứng dụng lên Render / Railway.
