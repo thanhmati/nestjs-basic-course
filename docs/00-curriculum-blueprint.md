@@ -43,7 +43,7 @@ timeline
 - **1.7** [_Lint-staged:_ Tự động lint và format code trước commit với lint-staged.](./modules/module-01/lesson-1.7/lesson-1.7.md)
 - **1.8** [_Commitlint:_ Commitlint & Conventional Commits - Giữ commit message chuẩn hóa.](./modules/module-01/lesson-1.8/lesson-1.8.md)
 - **1.9** [_Core Concepts:_ Controller, Service, Module & Dependency Injection (DI) cơ bản.](./modules/module-01/lesson-1.9/lesson-1.9.md) ([Slides](./modules/module-01/lesson-1.9/lesson-1.9-slides.md))
-- **1.10** _Configuration:_ Đọc `.env` an toàn với `@nestjs/config` & `Joi` validation.
+- **1.10** [_Configuration:_ Đọc `.env` an toàn với `@nestjs/config` & `Joi` validation.](./modules/module-01/lesson-1.10/lesson-1.10.md)
 
 ---
 
