@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 460" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="badGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+
+    <linearGradient id="goodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="460" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Main Title -->
+  <text x="550" y="45" text-anchor="middle" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700">
+    So Sánh Hiệu Năng: N+1 Query Problem vs Prisma Optimized Eager Load
+  </text>
+
+  <!-- LEFT BOX: Bad N+1 Approach -->
+  <g transform="translate(40, 75)" filter="url(#shadow)">
+    <rect width="490" height="345" rx="12" fill="#1e293b" stroke="#ef4444" stroke-width="1.5"/>
+    <path d="M 0 0 H 490 V 50 H 0 Z" fill="url(#badGrad)" clip-path="inset(0 0 0 0 round 12px 12px 0 0)"/>
+    <text x="245" y="32" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">
+      🔴 Vấn Đề N+1 Query (Loop Inefficient Query)
+    </text>
+
+    <!-- Code box -->
+    <rect x="25" y="70" width="440" height="110" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="0.8"/>
+    <text x="40" y="93" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="13">// Lấy N bài viết (1 Query)</text>
+    <text x="40" y="115" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12.5">const posts = await prisma.post.findMany();</text>
+    <text x="40" y="137" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="13">// Vòng lặp lấy author cho từng bài (N Queries!)</text>
+    <text x="40" y="159" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12.5">for (const p of posts) { p.author = await ... }</text>
+
+    <!-- Visual Queries list -->
+    <g transform="translate(25, 195)">
+      <rect x="0" y="0" width="440" height="85" rx="8" fill="#0f172a"/>
+      <text x="15" y="24" fill="#f87171" font-family="JetBrains Mono, monospace" font-size="12">1. SELECT * FROM "Post"; (Lấy 100 bài)</text>
+      <text x="15" y="44" fill="#ef4444" font-family="JetBrains Mono, monospace" font-size="12">2. SELECT * FROM "User" WHERE id = 1;</text>
+      <text x="15" y="64" fill="#ef4444" font-family="JetBrains Mono, monospace" font-size="12">... 101. SELECT * FROM "User" WHERE id = 100;</text>
+
+      <rect x="0" y="100" width="440" height="35" rx="6" fill="#450a0a" stroke="#ef4444" stroke-width="1"/>
+      <text x="220" y="122" text-anchor="middle" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">⚠️ Tổng số Queries = 1 + N = 101 requests (Rất chậm)</text>
+    </g>
+  </g>
+
+  <!-- RIGHT BOX: Good Eager Loading Approach -->
+  <g transform="translate(570, 75)" filter="url(#shadow)">
+    <rect width="490" height="345" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <path d="M 0 0 H 490 V 50 H 0 Z" fill="url(#goodGrad)" clip-path="inset(0 0 0 0 round 12px 12px 0 0)"/>
+    <text x="245" y="32" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">
+      🟢 Tối Ưu Với Prisma Relation Loading
+    </text>
+
+    <!-- Code box -->
+    <rect x="25" y="70" width="440" height="110" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="0.8"/>
+    <text x="40" y="93" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="13">// Eager loadRelation chỉ trong 1 Query JOIN</text>
+    <text x="40" y="115" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12.5">const posts = await prisma.post.findMany({</text>
+    <text x="60" y="137" fill="#6ee7b7" font-family="JetBrains Mono, monospace" font-size="12.5">include: { author: true }</text>
+    <text x="40" y="159" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12.5">});</text>
+
+    <!-- Visual Queries list -->
+    <g transform="translate(25, 195)">
+      <rect x="0" y="0" width="440" height="85" rx="8" fill="#0f172a"/>
+      <text x="15" y="24" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="12">1. SELECT "Post".*, "User".* FROM "Post"</text>
+      <text x="15" y="44" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="12">   LEFT JOIN "User" ON "Post"."authorId" = "User"."id";</text>
+      <text x="15" y="66" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-style="italic">(Hoặc Prisma DataLoader gom `WHERE id IN (...)` tự động)</text>
+
+      <rect x="0" y="100" width="440" height="35" rx="6" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
+      <text x="220" y="122" text-anchor="middle" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">⚡ Tổng số Queries = 1 Single SQL Query (Cực nhanh)</text>
+    </g>
+  </g>
+</svg>
