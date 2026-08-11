@@ -58,7 +58,7 @@ timeline
 - **2.4** [_Migrations & Prisma Studio:_ Quản lý phiên bản CSDL với `prisma migrate dev` và trực quan hóa dữ liệu bằng Prisma Studio.](./modules/module-02/lesson-2.4/lesson-2.4.md)
 - **2.5** [_Database Seeding:_ Xây dựng Script tự động tạo dữ liệu mẫu (`prisma/seed.ts`) kết hợp `@faker-js/faker`.](./modules/module-02/lesson-2.5/lesson-2.5.md)
 - **2.6** [_NestJS Integration:_ Tạo `PrismaService` quản lý Lifecycle Connection (`onModuleInit`, `onModuleDestroy`) & Đóng gói `@Global()` `PrismaModule`.](./modules/module-02/lesson-2.6/lesson-2.6.md)
-- **2.7** _Type-Safe Queries:_ Thực thi các thao tác CRUD với Prisma Client Type-Safety (`select`, `include`, `where`, `orderBy`).
+- **2.7** [_Type-Safe Queries:_ Thực thi các thao tác CRUD với Prisma Client Type-Safety (`select`, `include`, `where`, `orderBy`).](./modules/module-02/lesson-2.7/lesson-2.7.md)
 - **2.8** _Transactions & Optimization:_ Kỹ thuật xử lý giao dịch dữ liệu với `$transaction` (Sequential & Interactive) và phòng chống N+1 Query.
 - **2.9** _Prisma Error Handling:_ Bắt và chuẩn hóa lỗi Prisma Client (Lỗi trùng lặp dữ liệu `P2002`, lỗi không tìm thấy bản ghi `P2025`) với NestJS Exception Filter.
 
