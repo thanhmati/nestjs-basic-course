@@ -2,8 +2,8 @@
 marp: true
 theme: default
 paginate: true
-header: "NestJS Zero to Hero | Module 1 - Lesson 1.5: Teamwork Standards"
-footer: "© Udemy Masterclass"
+header: 'NestJS Thực Chiến | Module 1 - Lesson 1.5: Teamwork Standards'
+footer: '© Udemy Masterclass'
 style: |
   section {
     background-color: #0f172a;
@@ -77,8 +77,8 @@ style: |
 
 ### Vấn Đề Thường Gặp Trong Teamwork & Chuẩn Hóa Code Quality
 
-- **Khóa học:** NestJS Practical Masterclass: Zero to Hero
-- **Dự án thực chiến:** Real-Time Social Chat Application
+- **Khóa học:** NestJS Thực Chiến: Xây Dựng API Từ Cơ Bản Đến Nâng Cao
+- **Subtitle:** NestJS & TypeScript Thực Chiến: Xây Dựng Real-time Chat App với PostgreSQL, Prisma, WebSockets & Docker
 - **Thời lượng:** ~3 - 5 phút
 
 ---

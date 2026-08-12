@@ -1,7 +1,11 @@
-# Module Curriculum Blueprint: NestJS Zero to Hero
+# Module Curriculum Blueprint: NestJS Thực Chiến: Xây Dựng API Từ Cơ Bản Đến Nâng Cao
 
-> **Khung chương trình 7 Modules tinh gọn (Pragmatic Path)**  
-> Sắp xếp chuẩn theo tiến trình phát triển ứng dụng **Real-time Social Chat App** từ zero đến production.
+<p align="center">
+  <img src="../assets/course-thumbnail.png" alt="NestJS Course Thumbnail" width="100%" />
+</p>
+
+> **NestJS & TypeScript Thực Chiến: Xây Dựng Real-time Chat App với PostgreSQL, Prisma, WebSockets & Docker**  
+> Khung chương trình 7 Modules tinh gọn (Pragmatic Path) sắp xếp chuẩn theo tiến trình phát triển ứng dụng từ cơ bản đến nâng cao.
 
 ---
 

@@ -2,8 +2,8 @@
 marp: true
 theme: default
 paginate: true
-header: "NestJS Zero to Hero | Module 1 - Lesson 1.1: Overview"
-footer: "© Udemy Masterclass"
+header: 'NestJS Thực Chiến | Module 1 - Lesson 1.1: Overview'
+footer: '© Udemy Masterclass'
 style: |
   section {
     background-color: #0f172a;
@@ -78,8 +78,8 @@ style: |
     <h1>Lesson 1.1: Tổng Quan Về NestJS</h1>
     <h3>Kiến Trúc Enterprise & Lý Do Lựa Chọn NestJS</h3>
     <ul>
-      <li><strong>Khóa học:</strong> NestJS Practical Masterclass</li>
-      <li><strong>Dự án thực chiến:</strong> Real-Time Social Chat App</li>
+      <li><strong>Khóa học:</strong> NestJS Thực Chiến: Xây Dựng API Từ Cơ Bản Đến Nâng Cao</li>
+      <li><strong>Subtitle:</strong> NestJS & TypeScript Thực Chiến: Xây Dựng Real-time Chat App với PostgreSQL, Prisma, WebSockets & Docker</li>
       <li><strong>Thời lượng:</strong> ~3 - 5 phút</li>
     </ul>
   </div>

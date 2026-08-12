@@ -13,7 +13,7 @@
 
 🎙️ **Lời thoại Giảng viên:**
 
-> "Xin chào tất cả các bạn! Chào mừng các bạn quay trở lại với khóa học **NestJS Zero to Hero**."
+> "Xin chào tất cả các bạn! Chào mừng các bạn quay trở lại với khóa học **NestJS Thực Chiến: Xây Dựng API Từ Cơ Bản Đến Nâng Cao**."
 >
 > "Ở các bài học trước, chúng ta đã cùng nhau làm chủ bộ công cụ chuẩn hóa code quality từ ESLint, Prettier cho đến Husky và Commitlint. Đó là phần nền móng giúp team của bạn làm việc mượt mà."
 >
