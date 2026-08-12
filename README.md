@@ -76,3 +76,19 @@ graph TD
 | **02. Capstone Project Spec** | Bản thiết kế CSDL (ERD Diagram) và bảng đồ API endpoints chi tiết         |    [Xem tài liệu](./docs/02-capstone-project-spec.md)    |
 | **03. Course Resources**      | Bộ tài nguyên đi kèm (Postman Collection, React UI Kit, PDF Slides)       | [Xem tài liệu](./docs/03-course-resources-and-assets.md) |
 | **Module Materials**          | Kịch bản bài học & Slide Marp lưu theo cấu trúc chuẩn từng Module         |              [Xem Modules](./docs/modules/)              |
+
+---
+
+## 4. Kênh Hỗ Trợ & Liên Hệ Giảng Viên (Instructor Contact & Support)
+
+> [!TIP]
+> **Hỗ trợ học viên 24/7:** Trong quá trình học nếu gặp khó khăn về cài đặt môi trường, lỗi code hoặc cần giải đáp thắc mắc về kiến thức NestJS, bạn có thể liên hệ trực tiếp với Giảng viên qua các kênh bên dưới.
+
+|                                                                        Kênh liên hệ                                                                        | Thông tin / Liên kết                                                               |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------- |
+|           [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:dotanthanhvlog@gmail.com)            | `dotanthanhvlog@gmail.com`                                                         |
+|  [![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/thanh270600/)   | [Đỗ Tấn Thành (thanh270600)](https://www.linkedin.com/in/thanh270600/)             |
+|           [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/thanhmati)            | [@thanhmati](https://github.com/thanhmati)                                         |
+|   [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@laptrinhfullstack)   | [Lập Trình Fullstack](https://www.youtube.com/@laptrinhfullstack)                  |
+| [![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white)](https://www.facebook.com/groups/ltfullstack) | [Group Cộng đồng Lập Trình Fullstack](https://www.facebook.com/groups/ltfullstack) |
+|               [![Zalo](https://img.shields.io/badge/Zalo-0068FF?style=for-the-badge&logo=zalo&logoColor=white)](https://zalo.me/0762216048)                | Hotline / Zalo: `0762216048`                                                       |
