@@ -64,7 +64,7 @@ timeline
 - **2.6** [_NestJS Integration:_ Tạo `PrismaService` quản lý Lifecycle Connection (`onModuleInit`, `onModuleDestroy`) & Đóng gói `@Global()` `PrismaModule`.](./modules/module-02/lesson-2.6/lesson-2.6.md)
 - **2.7** [_Type-Safe Queries:_ Thực thi các thao tác CRUD với Prisma Client Type-Safety (`select`, `include`, `where`, `orderBy`).](./modules/module-02/lesson-2.7/lesson-2.7.md)
 - **2.8** [_Transactions & Optimization:_ Kỹ thuật xử lý giao dịch dữ liệu với `$transaction` (Sequential & Interactive) và phòng chống N+1 Query.](./modules/module-02/lesson-2.8/lesson-2.8.md)
-- **2.9** _Prisma Error Handling:_ Bắt và chuẩn hóa lỗi Prisma Client (Lỗi trùng lặp dữ liệu `P2002`, lỗi không tìm thấy bản ghi `P2025`) với NestJS Exception Filter.
+- **2.9** [_Prisma Error Handling:_ Bắt và chuẩn hóa lỗi Prisma Client (Lỗi trùng lặp dữ liệu `P2002`, lỗi không tìm thấy bản ghi `P2025`) với NestJS Exception Filter.](./modules/module-02/lesson-2.9/lesson-2.9.md)
 
 ---
 
