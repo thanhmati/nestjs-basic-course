@@ -96,7 +96,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@generated/prisma/client';
 import { Response } from 'express';
 
 @Catch(Prisma.PrismaClientKnownRequestError)
@@ -167,7 +167,7 @@ export class PrismaClientExceptionFilter implements ExceptionFilter {
 
 ### 📌 Bước 2: Đăng Ký Exception Filter Toàn Cục (Global Binding)
 
-Có 2 cách đăng ký Filter trong NestJS. Chúng ta sẽ đăng ký theo cách chuẩn Dependency Injection trong `PrismaModule` hoặc `AppModule` để Filter có thể sử dụng Logger của NestJS.
+Có 2 cách đăng ký Filter trong NestJS. Chúng ta sẽ đăng ký theo cách chuẩn Dependency Injection trong `PrismaModule` để Filter có thể sử dụng Logger của NestJS.
 
 Mở tệp `src/prisma/prisma.module.ts` và cập nhật:
 
@@ -176,7 +176,7 @@ Mở tệp `src/prisma/prisma.module.ts` và cập nhật:
 ```typescript
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
-import { PrismaClientExceptionFilter } from '../common/filters/prisma-client-exception.filter';
+import { PrismaClientExceptionFilter } from '@/common/filters';
 import { PrismaService } from './prisma.service';
 
 @Global()
@@ -200,17 +200,20 @@ export class PrismaModule {}
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Thành Công — Bắt Lỗi Trùng Email (`P2002` ➔ `409 Conflict`)
+### 🟢 Kịch Bản 1: Kiểm Thử Lỗi Trùng Email (`P2002` ➔ `409 Conflict`)
 
-Thực hiện gọi API tạo người dùng với Email đã có trong CSDL (ví dụ `admin@gmail.com` đã tạo từ Seed script):
-
-📄 **`Terminal / Postman HTTP Request`**
-
-```bash
-curl -X POST http://localhost:3000/users \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@gmail.com", "name": "Admin Trung Lap"}'
-```
+1. Tạo người dùng mới qua API `POST /users`:
+   ```bash
+   curl -X POST http://localhost:3000/users \
+     -H "Content-Type: application/json" \
+     -d '{"email": "admin@gmail.com", "name": "Admin User", "password": "123"}'
+   ```
+2. Thực hiện gọi lại API trên với **cùng Email** (`admin@gmail.com`):
+   ```bash
+   curl -X POST http://localhost:3000/users \
+     -H "Content-Type: application/json" \
+     -d '{"email": "admin@gmail.com", "name": "Admin User 2", "password": "123"}'
+   ```
 
 #### 📥 Phản hồi HTTP nhận được từ Server:
 
@@ -229,26 +232,23 @@ Content-Type: application/json
 
 ---
 
-### 🔴 Kịch Bản 2: Bắt Lỗi Tìm Bản Ghi Không Tồn Tại (`P2025` ➔ `404 Not Found`)
+### 🔴 Kịch Bản 2: Kiểm Thử Lỗi Bản Ghi Không Tồn Tại (`P2025` ➔ `404 Not Found`)
 
-Thực hiện xóa một bài viết với ID ngẫu nhiên không có trong CSDL:
+1. Mở tệp `src/modules/posts/posts.controller.ts` để thêm endpoint xóa bài viết:
 
-📄 **`src/app.controller.ts`**
+   📄 **`src/modules/posts/posts.controller.ts`**
 
-```typescript
-@Delete('posts/:id')
-async deletePost(@Param('id') id: string) {
-  return this.prismaService.post.delete({
-    where: { id },
-  });
-}
-```
+   ```typescript
+   @Delete(':id')
+   async deletePost(@Param('id') id: string) {
+     return await this.postsService.deletePost(parseInt(id, 10));
+   }
+   ```
 
-Thực thi câu lệnh cURL kiểm thử:
-
-```bash
-curl -X DELETE http://localhost:3000/posts/non-existent-id-123
-```
+2. Thực thi câu lệnh cURL xóa một bài viết với ID không tồn tại (ví dụ `999999`):
+   ```bash
+   curl -X DELETE http://localhost:3000/posts/999999
+   ```
 
 #### 📥 Phản hồi HTTP nhận được từ Server:
 
@@ -259,7 +259,7 @@ Content-Type: application/json
 {
   "statusCode": 404,
   "error": "Not Found",
-  "message": "Record to delete does not exist."
+  "message": "Không tìm thấy bản ghi yêu cầu."
 }
 ```
 

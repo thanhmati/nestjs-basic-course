@@ -1,5 +1,5 @@
+import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class PostsService {
@@ -77,6 +77,17 @@ export class PostsService {
           select: { comments: true },
         },
       },
+    });
+  }
+
+  /**
+   * LESSON 2.9 DEMO: Xóa bài viết theo ID
+   * Nếu ID không tồn tại trong CSDL, Prisma sẽ ném lỗi P2025 (Record to delete does not exist).
+   * PrismaClientExceptionFilter sẽ tự động bắt và trả về HTTP 404 Not Found.
+   */
+  async deletePost(id: number) {
+    return await this.prisma.post.delete({
+      where: { id },
     });
   }
 }

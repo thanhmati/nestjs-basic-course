@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { PostsService } from './posts.service';
 
 @Controller('posts')
@@ -21,5 +29,10 @@ export class PostsController {
     return await this.postsService.getOptimizedFeed(
       limit ? parseInt(limit, 10) : 10,
     );
+  }
+
+  @Delete(':id')
+  async deletePost(@Param('id') id: string) {
+    return await this.postsService.deletePost(parseInt(id, 10));
   }
 }
