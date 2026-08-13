@@ -86,7 +86,7 @@ timeline
 > [!CAUTION]  
 > **Mục tiêu:** Bảo mật hệ thống với JWT Access Token và chống Brute-force/Spam.
 
-- **4.1** _Hash Password:_ Mã hóa mật khẩu an toàn với `bcrypt`.
+- **4.1** [_Hash Password:_ Mã hóa mật khẩu an toàn với `bcrypt`.](./modules/module-04/lesson-4.1/lesson-4.1.md)
 - **4.2** _JWT Auth:_ Đăng ký, Đăng nhập & phát hành Access Token.
 - **4.3** _Guards:_ Bảo vệ API bằng `JwtAuthGuard` & Passport Strategy.
 - **4.4** _Decorators:_ Tạo Custom Decorator `@CurrentUser()` & `@Public()`.
