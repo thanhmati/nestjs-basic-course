@@ -88,8 +88,8 @@ timeline
 
 - **4.1** [_Hash Password:_ Mã hóa mật khẩu an toàn với `bcrypt`.](./modules/module-04/lesson-4.1/lesson-4.1.md)
 - **4.2** [_JWT Auth:_ Đăng ký, Đăng nhập & phát hành Access Token.](./modules/module-04/lesson-4.2/lesson-4.2.md)
-- **4.3** _Guards:_ Bảo vệ API bằng `JwtAuthGuard` & Passport Strategy.
-- **4.4** _Decorators:_ Tạo Custom Decorator `@CurrentUser()` & `@Public()`.
+- **4.3** [_Guards:_ Bảo vệ API bằng `JwtAuthGuard` & Passport Strategy.](./modules/module-04/lesson-4.3/lesson-4.3.md)
+- **4.4** [_Decorators:_ Tạo Custom Decorator `@CurrentUser()` & `@Public()`.](./modules/module-04/lesson-4.4/lesson-4.4.md)
 - **4.5** _Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.
 
 ---
