@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import * as Joi from 'joi';
+import { PostsModule } from './modules/posts/posts.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import * as Joi from 'joi';
         POSTGRES_PORT: Joi.number().required(),
       }),
     }),
+    PostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

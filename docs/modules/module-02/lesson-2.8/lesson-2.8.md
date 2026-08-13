@@ -293,25 +293,72 @@ export class PostsService {
 }
 ```
 
+📄 **`src/posts/posts.controller.ts`**
+
+```typescript
+import { Controller, Post, Get, Body, Query } from '@nestjs/common';
+import { PostsService } from './posts.service';
+
+@Controller('posts')
+export class PostsController {
+  constructor(private readonly postsService: PostsService) {}
+
+  @Post()
+  async createPost(
+    @Body() body: { authorId: string; title: string; content: string },
+  ) {
+    return await this.postsService.createPostWithNotification(
+      body.authorId,
+      body.title,
+      body.content,
+    );
+  }
+
+  @Get('feed')
+  async getFeed(@Query('limit') limit?: string) {
+    return await this.postsService.getOptimizedFeed(
+      limit ? parseInt(limit, 10) : 10,
+    );
+  }
+}
+```
+
 ---
 
 ## 🧪 PHẦN IV: Kịch Bản Thử Nghiệm & Kiểm Thử (Hands-on Lab)
 
 ### 🟢 Kịch Bản 1: Kiểm Thử Transaction & Eager Load Thành Công (Success Flow)
 
-1. Mở terminal và gọi hàm `createPostWithNotification('user-uuid-123', 'Bài viết test', 'Nội dung')`.
-2. Mở **Prisma Studio** để kiểm tra dữ liệu:
+1. Khởi động ứng dụng NestJS:
    ```bash
-   npx prisma studio
+   pnpm run start:dev
    ```
-3. Khám phá 2 bảng `Post` và `Notification` -> Cả 2 bản ghi đều được chèn chính xác đồng thời.
-4. Chạy hàm `getOptimizedFeed()` -> Kết quả trả về chứa đủ thông tin `author` và số lượng `comments` chỉ với **01 câu lệnh SQL duy nhất**.
+2. Mở Terminal mới và gửi lệnh HTTP POST bằng **cURL** (hoặc sử dụng Postman / Thunder Client):
+   ```bash
+   curl -X POST http://localhost:3000/posts \
+     -H "Content-Type: application/json" \
+     -d '{"authorId": "user-uuid-123", "title": "Bài viết test Transaction", "content": "Nội dung bài viết..."}'
+   ```
+3. Mở **Prisma Studio** để kiểm tra kết quả lưu trữ CSDL:
+   ```bash
+   pnpm exec prisma studio
+   ```
+4. Khám phá 2 bảng `Post` và `Notification` -> Cả 2 bản ghi đều được chèn chính xác đồng thời (Transaction Commit thành công ✅).
+5. Gọi API `GET http://localhost:3000/posts/feed` -> Kết quả trả về chứa đủ thông tin `author` và số lượng `comments` chỉ với **01 câu lệnh SQL duy nhất**:
+   ```bash
+   curl http://localhost:3000/posts/feed
+   ```
 
 ---
 
 ### 🔴 Kịch Bản 2: Kiểm Thử Rollback Tự Động Khi Có Exception (Error Flow)
 
-1. Gọi hàm `createPostWithNotification('invalid-user-id', 'Bài viết rác', 'Nội dung')`.
+1. Gửi lệnh cURL tạo bài viết với `authorId` không tồn tại trên CSDL (`invalid-user-id`):
+   ```bash
+   curl -X POST http://localhost:3000/posts \
+     -H "Content-Type: application/json" \
+     -d '{"authorId": "invalid-user-id", "title": "Bài viết rác", "content": "Nội dung..."}'
+   ```
 2. Hàm dừng lại tại Step 1 do không tìm thấy tác giả và ném ra `BadRequestException`.
 3. Kiểm tra lại CSDL trên **Prisma Studio**:
    - **Bảng `Post`:** KHÔNG CÓ bài viết mới nào bị tạo dở dang!
