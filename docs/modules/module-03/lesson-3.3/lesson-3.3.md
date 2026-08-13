@@ -288,4 +288,4 @@ mindmap
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 3.4: Exception Filters — Viết HttpExceptionFilter Chuẩn Hóa JSON Thông Báo Lỗi](../lesson-3.4/lesson-3.4.md)
+👉 **Bài tiếp theo:** [Lesson 3.4: Exception Filters — Viết HttpExceptionFilter Chuẩn Hóa JSON Thông Báo Lỗi Toàn Cục](../lesson-3.4/lesson-3.4.md)
