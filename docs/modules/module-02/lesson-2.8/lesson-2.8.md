@@ -203,15 +203,15 @@ const authors = await Promise.all(
 
 ---
 
-## 🛠️ PHẦN III: Hướng Dẫn Thực Hành Viết Service Trong NestJS
+## 🛠️ PHẦN III: Hướng Dẫn Thực Hành Viết Module Trong NestJS
 
-Dưới đây là mã nguồn thực chiến triển khai cả **Interactive Transaction** và **Eager Loading Optimization** trong NestJS.
+Dưới đây là mã nguồn thực chiến triển khai cả **Interactive Transaction** và **Eager Loading Optimization** được tổ chức chuẩn theo cấu trúc Module của NestJS.
 
-📄 **`src/posts/posts.service.ts`**
+📄 **`src/modules/posts/posts.service.ts`**
 
 ```typescript
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class PostsService {
@@ -221,7 +221,7 @@ export class PostsService {
    * PHẦN I DEMO: Interactive Transaction tạo bài viết kèm thông báo nguyên tử
    */
   async createPostWithNotification(
-    authorId: string,
+    authorId: number,
     title: string,
     content: string,
   ) {
@@ -251,6 +251,7 @@ export class PostsService {
           data: {
             userId: authorId,
             content: `Bài viết "${post.title}" của bạn đã được phát hành thành công.`,
+            title: 'Thông báo tạo bài viết thành công',
           },
         });
 
@@ -293,7 +294,7 @@ export class PostsService {
 }
 ```
 
-📄 **`src/posts/posts.controller.ts`**
+📄 **`src/modules/posts/posts.controller.ts`**
 
 ```typescript
 import { Controller, Post, Get, Body, Query } from '@nestjs/common';
@@ -305,7 +306,7 @@ export class PostsController {
 
   @Post()
   async createPost(
-    @Body() body: { authorId: string; title: string; content: string },
+    @Body() body: { authorId: number; title: string; content: string },
   ) {
     return await this.postsService.createPostWithNotification(
       body.authorId,
@@ -323,6 +324,36 @@ export class PostsController {
 }
 ```
 
+📄 **`src/modules/posts/posts.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { PostsController } from './posts.controller';
+import { PostsService } from './posts.service';
+
+@Module({
+  imports: [],
+  controllers: [PostsController],
+  providers: [PostsService],
+})
+export class PostsModule {}
+```
+
+📄 **`src/app.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { PostsModule } from './modules/posts/posts.module';
+
+@Module({
+  imports: [
+    // ... các module khác (ConfigModule, PrismaModule, ...)
+    PostsModule,
+  ],
+})
+export class AppModule {}
+```
+
 ---
 
 ## 🧪 PHẦN IV: Kịch Bản Thử Nghiệm & Kiểm Thử (Hands-on Lab)
@@ -333,11 +364,11 @@ export class PostsController {
    ```bash
    pnpm run start:dev
    ```
-2. Mở Terminal mới và gửi lệnh HTTP POST bằng **cURL** (hoặc sử dụng Postman / Thunder Client):
+2. Mở Terminal mới và gửi lệnh HTTP POST bằng **cURL** (truyền `authorId` dạng number của User sẵn có trong DB, ví dụ `1`):
    ```bash
    curl -X POST http://localhost:3000/posts \
      -H "Content-Type: application/json" \
-     -d '{"authorId": "user-uuid-123", "title": "Bài viết test Transaction", "content": "Nội dung bài viết..."}'
+     -d '{"authorId": 1, "title": "Bài viết test Transaction", "content": "Nội dung bài viết..."}'
    ```
 3. Mở **Prisma Studio** để kiểm tra kết quả lưu trữ CSDL:
    ```bash
@@ -353,11 +384,11 @@ export class PostsController {
 
 ### 🔴 Kịch Bản 2: Kiểm Thử Rollback Tự Động Khi Có Exception (Error Flow)
 
-1. Gửi lệnh cURL tạo bài viết với `authorId` không tồn tại trên CSDL (`invalid-user-id`):
+1. Gửi lệnh cURL tạo bài viết với `authorId` không tồn tại trên CSDL (ví dụ `999999`):
    ```bash
    curl -X POST http://localhost:3000/posts \
      -H "Content-Type: application/json" \
-     -d '{"authorId": "invalid-user-id", "title": "Bài viết rác", "content": "Nội dung..."}'
+     -d '{"authorId": 999999, "title": "Bài viết rác", "content": "Nội dung..."}'
    ```
 2. Hàm dừng lại tại Step 1 do không tìm thấy tác giả và ném ra `BadRequestException`.
 3. Kiểm tra lại CSDL trên **Prisma Studio**:
