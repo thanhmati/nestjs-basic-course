@@ -75,7 +75,7 @@ timeline
 
 - **3.1** [_Versioning:_ Cấu hình API Versioning `/api/v1/...`.](./modules/module-03/lesson-3.1/lesson-3.1.md)
 - **3.2** [_Validation:_ Sử dụng DTOs với `class-validator` & `ValidationPipe` toàn cục.](./modules/module-03/lesson-3.2/lesson-3.2.md)
-- **3.3** _Middleware:_ Viết `LoggerMiddleware` tự động log HTTP Method, URL, IP Address.
+- **3.3** [_Middleware:_ Viết `LoggerMiddleware` tự động log HTTP Method, URL, IP Address.](./modules/module-03/lesson-3.3/lesson-3.3.md)
 - **3.4** _Exception Filters:_ Viết `HttpExceptionFilter` chuẩn hóa JSON thông báo lỗi.
 - **3.5** _Interceptors:_
   - `TransformInterceptor`: Đóng gói chuẩn response `{ success: true, data: ... }`.
