@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Header Accent (Red/Pink) -->
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+
+    <!-- Payload Accent (Purple/Violet) -->
+    <linearGradient id="payloadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7e22ce"/>
+    </linearGradient>
+
+    <!-- Signature Accent (Cyan/Emerald) -->
+    <linearGradient id="sigGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Glow & Shadow Filters -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Background Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.3"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bgGrad)"/>
+  <rect width="1200" height="400" fill="url(#grid)"/>
+
+  <!-- Glowing Orbs -->
+  <circle cx="250" cy="120" r="140" fill="#c084fc" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="950" cy="280" r="150" fill="#38bdf8" opacity="0.12" filter="url(#glow)"/>
+
+  <!-- Outer Card Container -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="40" width="1100" height="320" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5"/>
+    
+    <!-- Top Header Bar -->
+    <path d="M 50 56 A 16 16 0 0 1 66 40 L 1134 40 A 16 16 0 0 1 1150 56 L 1150 85 L 50 85 Z" fill="#0f172a" fill-opacity="0.8"/>
+    <circle cx="80" cy="62" r="6" fill="#ef4444"/>
+    <circle cx="100" cy="62" r="6" fill="#f59e0b"/>
+    <circle cx="120" cy="62" r="6" fill="#10b981"/>
+    
+    <text x="600" y="67" text-anchor="middle" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="600">
+      Lesson 4.2: NestJS JWT Authentication Architecture (Register, Login &amp; Token Issuance)
+    </text>
+  </g>
+
+  <!-- 1. Client Credentials Node -->
+  <g transform="translate(80, 115)" filter="url(#shadow)">
+    <rect width="250" height="210" rx="12" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
+    <rect width="250" height="32" rx="12" fill="#1d4ed8" fill-opacity="0.3"/>
+    <text x="15" y="21" fill="#93c5fd" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      📱 CLIENT AUTH REQUEST
+    </text>
+    <text x="15" y="55" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+      POST /api/v1/auth/login
+    </text>
+    <text x="15" y="80" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11">
+      Payload Body:
+    </text>
+
+    <rect x="15" y="95" width="220" height="95" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="23" y="115" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">{</text>
+    <text x="33" y="135" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="10">"email": "alex@app.com",</text>
+    <text x="33" y="155" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="10">"password": "*****"</text>
+    <text x="23" y="175" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">}</text>
+  </g>
+
+  <!-- Arrow 1: Client -> AuthService -->
+  <g transform="translate(330, 205)">
+    <path d="M 0 0 L 55 0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="4 3"/>
+    <polygon points="55,-5 65,0 55,5" fill="#3b82f6"/>
+  </g>
+
+  <!-- 2. NestJS AuthService & JwtService Node -->
+  <g transform="translate(395, 115)" filter="url(#shadow)">
+    <rect width="360" height="210" rx="12" fill="#0f172a" stroke="#c084fc" stroke-width="1.5"/>
+    <rect width="360" height="32" rx="12" fill="#6b21a8" fill-opacity="0.4"/>
+    <text x="15" y="21" fill="#e9d5ff" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      ⚡ AUTH SERVICE &amp; JWT ENGINE
+    </text>
+    <text x="15" y="55" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+      1. Validate: comparePassword()
+    </text>
+    <text x="15" y="78" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11">
+      2. Construct Payload: { sub, email }
+    </text>
+    <text x="15" y="101" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="11">
+      3. Sign Token: jwtService.signAsync()
+    </text>
+
+    <!-- Sub-card: Secret Key & Expiration -->
+    <rect x="15" y="120" width="330" height="65" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="23" y="140" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="600">ConfigService Integration:</text>
+    <text x="23" y="158" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9">JWT_SECRET = "super_secret_key_123"</text>
+    <text x="23" y="173" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9">JWT_EXPIRES_IN = "1d" (24 hours)</text>
+  </g>
+
+  <!-- Arrow 2: Engine -> JWT Token Structure -->
+  <g transform="translate(755, 205)">
+    <path d="M 0 0 L 55 0" fill="none" stroke="#c084fc" stroke-width="3"/>
+    <polygon points="55,-5 65,0 55,5" fill="#c084fc"/>
+  </g>
+
+  <!-- 3. Signed JWT Token Output Node -->
+  <g transform="translate(820, 115)" filter="url(#shadow)">
+    <rect width="300" height="210" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect width="300" height="32" rx="12" fill="#0369a1" fill-opacity="0.4"/>
+    <text x="15" y="21" fill="#bae6fd" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      🔑 ISSUED JWT ACCESS TOKEN
+    </text>
+    
+    <!-- Token Part 1: Header -->
+    <rect x="15" y="48" width="270" height="42" rx="6" fill="#1e293b" stroke="#fb7185" stroke-width="1"/>
+    <text x="23" y="65" fill="#fb7185" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700">HEADER (Algorithm &amp; Type)</text>
+    <text x="23" y="80" fill="#fda4af" font-family="'JetBrains Mono', monospace" font-size="9">eyJhbGciOiJIUzI1NiIsInR5cCI6...</text>
+
+    <!-- Token Part 2: Payload -->
+    <rect x="15" y="98" width="270" height="42" rx="6" fill="#1e293b" stroke="#c084fc" stroke-width="1"/>
+    <text x="23" y="115" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700">PAYLOAD (User Claims &amp; Exp)</text>
+    <text x="23" y="130" fill="#e9d5ff" font-family="'JetBrains Mono', monospace" font-size="9">eyJzdWIiOiJ1c2VyXzEyMyIsImVt...</text>
+
+    <!-- Token Part 3: Signature -->
+    <rect x="15" y="148" width="270" height="42" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+    <text x="23" y="165" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700">VERIFY SIGNATURE (HMACSHA256)</text>
+    <text x="23" y="180" fill="#bae6fd" font-family="'JetBrains Mono', monospace" font-size="9">SflKxwRJSMeKKF2QT4fwpMeJf36P...</text>
+  </g>
+</svg>
