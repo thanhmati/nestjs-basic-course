@@ -73,7 +73,7 @@ timeline
 > [!IMPORTANT]  
 > **Mục tiêu:** Xây dựng API chuyên nghiệp với Request Pipeline linh hoạt (Middleware, Validation Pipes, Filters & Interceptors).
 
-- **3.1** _Versioning:_ Cấu hình API Versioning `/api/v1/...`.
+- **3.1** [_Versioning:_ Cấu hình API Versioning `/api/v1/...`.](./modules/module-03/lesson-3.1/lesson-3.1.md)
 - **3.2** _Validation:_ Sử dụng DTOs với `class-validator` & `ValidationPipe` toàn cục.
 - **3.3** _Middleware:_ Viết `LoggerMiddleware` tự động log HTTP Method, URL, IP Address.
 - **3.4** _Exception Filters:_ Viết `HttpExceptionFilter` chuẩn hóa JSON thông báo lỗi.
