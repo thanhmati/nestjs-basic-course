@@ -99,7 +99,7 @@ timeline
 > [!NOTE]  
 > **Mục tiêu:** Phát triển tính năng Social, tách rời logic bằng Events và tạo tài liệu API Swagger.
 
-- **5.1** _Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.
+- **5.1** [_Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.](./modules/module-05/lesson-5.1/lesson-5.1.md)
 - **5.2** _File Upload:_ Upload ảnh đại diện/bài viết với Multer.
 - **5.3** _Comments API:_ Thêm bình luận dưới bài viết.
 - **5.4** _Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.
