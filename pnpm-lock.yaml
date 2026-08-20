@@ -1002,12 +1002,6 @@ packages:
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
 
-  '@faker-js/faker@10.6.0':
-    resolution:
-      {
-        integrity: sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ==,
-      }
-    engines: { node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10' }
   '@hapi/address@5.1.1':
     resolution:
       {
@@ -3743,6 +3737,14 @@ packages:
     hasBin: true
 =======
 >>>>>>> e03b14b (feat: implement environment variable validation with @nestjs/config and Joi)
+
+  esbuild@0.28.2:
+    resolution:
+      {
+        integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==,
+      }
+    engines: { node: '>=18' }
+    hasBin: true
 
   escalade@3.2.0:
     resolution:
@@ -7270,9 +7272,6 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-<<<<<<< HEAD
-  '@faker-js/faker@10.6.0': {}
-=======
   '@hapi/address@5.1.1':
     dependencies:
       '@hapi/hoek': 11.0.7
@@ -7288,7 +7287,6 @@ snapshots:
   '@hapi/topo@6.0.2':
     dependencies:
       '@hapi/hoek': 11.0.7
->>>>>>> e03b14b (feat: implement environment variable validation with @nestjs/config and Joi)
 
   '@humanfs/core@0.19.2':
     dependencies:
