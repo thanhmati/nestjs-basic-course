@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Welcome to NestJS Social Chat App API!';
+  constructor(private readonly prismaService: PrismaService) {}
+
+  async getHello(): Promise<string> {
+    const userCount = await this.prismaService.user.count();
+    return `Xin chào! Social Chat App có tổng cộng ${userCount} người dùng trong CSDL.`;
   }
 }
