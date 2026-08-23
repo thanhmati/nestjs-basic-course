@@ -77,35 +77,28 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/chat_db?schema=public
 
 ---
 
-### 📌 Bước 3: Cấu Hình `ConfigModule` Tại `AppModule`
-
-Mở tệp `src/app.module.ts` và đăng ký `ConfigModule.forRoot` cùng mảng quy tắc validation:
-
-📄 **`src/app.module.ts`**
-
-```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import * as Joi from 'joi';
-
-@Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true, // Cho phép dùng ConfigService ở mọi nơi
-      validationSchema: Joi.object({
-        NODE_ENV: Joi.string()
-          .valid('development', 'production', 'test')
-          .default('development'),
-        PORT: Joi.number().default(3000),
-        DATABASE_URL: Joi.string().required(),
-      }),
-    }),
-  ],
-})
-export class AppModule {}
-```
+### 📌 Bước 3: Định Nghĩa Schema Validation Trong Tệp Riêng (`src/config/env.validation.ts`)
 
 > [!TIP]
+> **Best Practice (Single Responsibility Principle):** Không nên viết trực tiếp `Joi.object({...})` inline bên trong `AppModule` vì sẽ làm file Module bị phình to và rối rậm khi dự án phát triển. Hãy tách Schema xác thực ra một tệp riêng `src/config/env.validation.ts`.
+
+Tạo tệp `src/config/env.validation.ts` để định nghĩa quy tắc kiểm tra biến môi trường:
+
+📄 **`src/config/env.validation.ts`**
+
+```typescript
+import * as Joi from 'joi';
+
+export const envValidationSchema = Joi.object({
+  NODE_ENV: Joi.string()
+    .valid('development', 'production', 'test')
+    .default('development'),
+  PORT: Joi.number().default(3000),
+  DATABASE_URL: Joi.string().required(),
+});
+```
+
+> [!NOTE]
 >
 > - `Joi.string().valid(...)`: Bắt buộc `NODE_ENV` chỉ được nhận 1 trong các giá trị quy định.
 > - `Joi.number().default(3000)`: Tự động chuyển chuỗi từ `.env` thành kiểu số `number`.
@@ -113,7 +106,31 @@ export class AppModule {}
 
 ---
 
-### 📌 Bước 4: Tiêm & Đọc Biến Môi Trường Trong Service / Controller
+### 📌 Bước 4: Cấu Hình `ConfigModule` Tại `AppModule`
+
+Mở tệp `src/app.module.ts`, import `envValidationSchema` và đăng ký vào `ConfigModule.forRoot`:
+
+📄 **`src/app.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { envValidationSchema } from './config/env.validation';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Cho phép dùng ConfigService ở mọi nơi
+      validationSchema: envValidationSchema,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+---
+
+### 📌 Bước 5: Tiêm & Đọc Biến Môi Trường Trong Service / Controller
 
 Sử dụng **ConfigService** thông qua Constructor Injection để đọc biến môi trường một cách Type-Safe:
 
@@ -227,7 +244,8 @@ mindmap
 
 - [x] Hiểu lý do tại sao không nên truy cập trực tiếp `process.env`.
 - [x] Đã cài đặt `@nestjs/config` và `joi` bằng pnpm.
-- [x] Cấu hình thành công `ConfigModule.forRoot` với `validationSchema` của Joi tại `AppModule`.
+- [x] Tách biệt Joi `validationSchema` ra tệp riêng `src/config/env.validation.ts` chuẩn Best Practice.
+- [x] Cấu hình gọn gàng `ConfigModule.forRoot` với `envValidationSchema` tại `AppModule`.
 - [x] Đọc biến môi trường an toàn thông qua `ConfigService`.
 - [x] Kiểm chứng được tính năng Boot Crash khi thiếu biến môi trường bắt buộc.
 
