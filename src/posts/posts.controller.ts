@@ -27,6 +27,15 @@ export class PostsController {
     );
   }
 
+  @Post('with-notification')
+  async createPostWithNotification(@Body() body: CreatePostDto) {
+    return await this.postsService.createPostWithNotification(
+      body.authorId,
+      body.title,
+      body.content,
+    );
+  }
+
   @Get()
   findAllPosts(
     @Query('search') search?: string,
