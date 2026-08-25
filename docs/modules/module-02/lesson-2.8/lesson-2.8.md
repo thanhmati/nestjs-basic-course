@@ -207,7 +207,7 @@ const authors = await Promise.all(
 
 Dưới đây là mã nguồn thực chiến triển khai cả **Interactive Transaction** và **Eager Loading Optimization** được tổ chức chuẩn theo cấu trúc Module của NestJS.
 
-📄 **`src/modules/posts/posts.service.ts`**
+📄 **`src/posts/posts.service.ts`**
 
 ```typescript
 import { Injectable, BadRequestException } from '@nestjs/common';
@@ -294,7 +294,7 @@ export class PostsService {
 }
 ```
 
-📄 **`src/modules/posts/posts.controller.ts`**
+📄 **`src/posts/posts.controller.ts`**
 
 ```typescript
 import { Controller, Post, Get, Body, Query } from '@nestjs/common';
@@ -324,7 +324,7 @@ export class PostsController {
 }
 ```
 
-📄 **`src/modules/posts/posts.module.ts`**
+📄 **`src/posts/posts.module.ts`**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -343,7 +343,7 @@ export class PostsModule {}
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { PostsModule } from './modules/posts/posts.module';
+import { PostsModule } from './posts/posts.module';
 
 @Module({
   imports: [

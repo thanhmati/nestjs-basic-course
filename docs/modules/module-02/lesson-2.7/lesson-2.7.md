@@ -175,7 +175,7 @@ export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // 1. CREATE: Tạo bài viết mới kèm tác giả
-  async createPost(authorId: string, title: string, content: string) {
+  async createPost(authorId: number, title: string, content: string) {
     return await this.prisma.post.create({
       data: {
         title,
@@ -243,7 +243,7 @@ export class PostsService {
   }
 
   // 3. UPDATE: Cập nhật bài viết theo ID
-  async updatePost(id: string, title?: string, content?: string) {
+  async updatePost(id: number, title?: string, content?: string) {
     try {
       return await this.prisma.post.update({
         where: { id },
@@ -258,7 +258,7 @@ export class PostsService {
   }
 
   // 4. DELETE: Xóa bài viết
-  async deletePost(id: string) {
+  async deletePost(id: number) {
     try {
       return await this.prisma.post.delete({
         where: { id },
