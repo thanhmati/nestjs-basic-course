@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../generated/prisma/client';
 
 @Injectable()
 export class PostsService {
+  private readonly logger = new Logger(PostsService.name);
   constructor(private readonly prisma: PrismaService) {}
 
   // 1. CREATE: Tạo bài viết mới kèm tác giả
@@ -27,6 +33,55 @@ export class PostsService {
         },
       },
     });
+  }
+
+  /**
+   * PHẦN I DEMO: Interactive Transaction tạo bài viết kèm thông báo nguyên tử
+   */
+  async createPostWithNotification(
+    authorId: number,
+    title: string,
+    content: string,
+  ) {
+    return await this.prisma.$transaction(
+      async (tx) => {
+        // Step 1: Bắt buộc kiểm tra tác giả tồn tại qua Transactional Client (tx)
+        const author = await tx.user.findUnique({ where: { id: authorId } });
+
+        if (!author) {
+          throw new BadRequestException('Tác giả không tồn tại trên hệ thống!');
+        }
+
+        // Step 2: Tạo bài viết mới
+        const post = await tx.post.create({
+          data: {
+            title,
+            content,
+            published: true,
+            authorId,
+          },
+        });
+
+        this.logger.debug({ post });
+
+        // Step 3: Tạo notification thông báo
+        const notification = await tx.notification.create({
+          data: {
+            userId: authorId,
+            content: `Bài viết "${post.title}" của bạn đã được phát hành thành công.`,
+            title: 'Thông báo tạo bài viết thành công',
+          },
+        });
+
+        this.logger.debug({ notification });
+
+        return post;
+      },
+      {
+        maxWait: 5000, // Thời gian chờ tối đa Connection Pool (5s)
+        timeout: 10000, // Thời gian thực thi tối đa Transaction (10s)
+      },
+    );
   }
 
   // 2. READ: Truy vấn danh sách bài viết phân trang & tìm kiếm từ khóa
