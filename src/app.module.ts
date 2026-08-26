@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { APP_FILTER } from '@nestjs/core';
 import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
 import { LoggerMiddleware } from './shared/middleware/logger.middleware';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 
 @Module({
   imports: [
@@ -26,6 +27,10 @@ import { LoggerMiddleware } from './shared/middleware/logger.middleware';
     {
       provide: APP_FILTER,
       useClass: PrismaClientExceptionFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
   exports: [],
