@@ -115,9 +115,9 @@ pnpm add -D @types/bcrypt
 
 ### 📌 Bước 1: Xây Dựng `HashService` Reusable Component
 
-Tạo tệp `src/common/services/hash.service.ts` đóng gói các phương thức băm và so sánh mật khẩu:
+Tạo tệp `src/shared/services/hash.service.ts` đóng gói các phương thức băm và so sánh mật khẩu:
 
-📄 **`src/common/services/hash.service.ts`**
+📄 **`src/shared/services/hash.service.ts`**
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -153,9 +153,9 @@ export class HashService {
 
 ### 📌 Bước 2: Đóng Gói `HashModule` Để Dùng Chung Trong Toàn Ứng Dụng
 
-Tạo tệp `src/common/services/hash.module.ts` và export `HashService`:
+Tạo tệp `src/shared/services/hash.module.ts` và export `HashService`:
 
-📄 **`src/common/services/hash.module.ts`**
+📄 **`src/shared/services/hash.module.ts`**
 
 ```typescript
 import { Global, Module } from '@nestjs/common';

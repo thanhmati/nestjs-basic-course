@@ -89,7 +89,7 @@ sequenceDiagram
 
 #### 1. Custom Decorator `@ResponseMessage()`:
 
-📄 **`src/common/decorators/response-message.decorator.ts`**
+📄 **`src/shared/decorators/response-message.decorator.ts`**
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
@@ -103,7 +103,7 @@ export const ResponseMessage = (message: string) =>
 
 #### 2. Custom Decorator `@BypassTransform()`:
 
-📄 **`src/common/decorators/bypass-transform.decorator.ts`**
+📄 **`src/shared/decorators/bypass-transform.decorator.ts`**
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
@@ -118,9 +118,9 @@ export const BypassTransform = () => SetMetadata(BYPASS_TRANSFORM_KEY, true);
 
 ### 📌 Bước 2: Triển Khai `TransformInterceptor` Chuẩn Hóa Success Response
 
-Tạo tệp `src/common/interceptors/transform.interceptor.ts`:
+Tạo tệp `src/shared/interceptors/transform.interceptor.ts`:
 
-📄 **`src/common/interceptors/transform.interceptor.ts`**
+📄 **`src/shared/interceptors/transform.interceptor.ts`**
 
 ```typescript
 import {
@@ -193,9 +193,9 @@ export class TransformInterceptor<T> implements NestInterceptor<
 
 ### 📌 Bước 3: Triển Khai `LoggingInterceptor` Đo Thời Gian Thực Thi (Execution Time)
 
-Tạo tệp `src/common/interceptors/logging.interceptor.ts`:
+Tạo tệp `src/shared/interceptors/logging.interceptor.ts`:
 
-📄 **`src/common/interceptors/logging.interceptor.ts`**
+📄 **`src/shared/interceptors/logging.interceptor.ts`**
 
 ```typescript
 import {

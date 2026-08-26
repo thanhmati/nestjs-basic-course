@@ -97,9 +97,9 @@ sequenceDiagram
 
 ### 📌 Bước 1: Triển Khai Custom Param Decorator `@CurrentUser()`
 
-Tạo tệp `src/common/decorators/current-user.decorator.ts` sử dụng hàm `createParamDecorator`:
+Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng hàm `createParamDecorator`:
 
-📄 **`src/common/decorators/current-user.decorator.ts`**
+📄 **`src/shared/decorators/current-user.decorator.ts`**
 
 ```typescript
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
@@ -131,9 +131,9 @@ export const CurrentUser = createParamDecorator(
 
 ### 📌 Bước 2: Triển Khai Custom Route Decorator `@Public()`
 
-Tạo tệp `src/common/decorators/public.decorator.ts` sử dụng `SetMetadata`:
+Tạo tệp `src/shared/decorators/public.decorator.ts` sử dụng `SetMetadata`:
 
-📄 **`src/common/decorators/public.decorator.ts`**
+📄 **`src/shared/decorators/public.decorator.ts`**
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';

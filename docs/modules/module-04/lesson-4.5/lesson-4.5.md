@@ -159,9 +159,9 @@ export class AppModule {}
 
 Mặc định `@nestjs/throttler` trả về thông báo lỗi bằng tiếng Anh (`ThrottlerException: Throttler limit exceeded`). Chúng ta sẽ tạo `CustomThrottlerGuard` kế thừa `ThrottlerGuard` để tùy chỉnh phản hồi JSON tiếng Việt chuyên nghiệp:
 
-Tạo tệp `src/common/guards/custom-throttler.guard.ts`:
+Tạo tệp `src/shared/guards/custom-throttler.guard.ts`:
 
-📄 **`src/common/guards/custom-throttler.guard.ts`**
+📄 **`src/shared/guards/custom-throttler.guard.ts`**
 
 ```typescript
 import { Injectable, ThrottlerException } from '@nestjs/common';

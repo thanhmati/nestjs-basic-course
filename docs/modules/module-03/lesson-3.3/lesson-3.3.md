@@ -84,9 +84,9 @@ sequenceDiagram
 
 ### 📌 Bước 1: Xây Dựng `LoggerMiddleware` Class
 
-Tạo tệp `src/common/middleware/logger.middleware.ts` và triển khai interface `NestMiddleware`:
+Tạo tệp `src/shared/middleware/logger.middleware.ts` và triển khai interface `NestMiddleware`:
 
-📄 **`src/common/middleware/logger.middleware.ts`**
+📄 **`src/shared/middleware/logger.middleware.ts`**
 
 ```typescript
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
@@ -174,7 +174,7 @@ export class AppModule implements NestModule {
 
 Nếu Middleware của bạn cực kỳ đơn giản, không phụ thuộc vào bất kỳ Service nào (Dependency Injection), bạn có thể viết dạng **Functional Middleware** ngắn gọn hơn:
 
-📄 **`src/common/middleware/simple-logger.middleware.ts`**
+📄 **`src/shared/middleware/simple-logger.middleware.ts`**
 
 ```typescript
 import { NextFunction, Request, Response } from 'express';

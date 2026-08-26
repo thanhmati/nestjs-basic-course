@@ -84,9 +84,9 @@ Khi truy vấn CSDL thất bại, Prisma ORM sẽ throw một ngoại lệ thu�
 
 ### 📌 Bước 1: Tạo Tệp Exception Filter
 
-Tạo tệp mới tại đường dẫn `src/common/filters/prisma-client-exception.filter.ts`:
+Tạo tệp mới tại đường dẫn `src/shared/filters/prisma-client-exception.filter.ts`:
 
-📄 **`src/common/filters/prisma-client-exception.filter.ts`**
+📄 **`src/shared/filters/prisma-client-exception.filter.ts`**
 
 ```typescript
 import {

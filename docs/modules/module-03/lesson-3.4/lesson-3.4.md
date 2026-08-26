@@ -109,9 +109,9 @@ NestJS cung cấp sẵn các Class kế thừa từ `HttpException` nằm trong 
 
 ### 📌 Bước 2: Xây Dựng Class `HttpExceptionFilter`
 
-Tạo tệp `src/common/filters/http-exception.filter.ts` và triển khai `ExceptionFilter`:
+Tạo tệp `src/shared/filters/http-exception.filter.ts` và triển khai `ExceptionFilter`:
 
-📄 **`src/common/filters/http-exception.filter.ts`**
+📄 **`src/shared/filters/http-exception.filter.ts`**
 
 ```typescript
 import {
