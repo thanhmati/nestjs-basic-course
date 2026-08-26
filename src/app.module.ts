@@ -6,6 +6,8 @@ import { PostsModule } from './posts/posts.module';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
+import { APP_FILTER } from '@nestjs/core';
+import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
 
 @Module({
   imports: [
@@ -18,7 +20,13 @@ import { PrismaModule } from './prisma/prisma.module';
     PostsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: PrismaClientExceptionFilter,
+    },
+  ],
   exports: [],
 })
 export class AppModule {}
