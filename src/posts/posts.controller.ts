@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  Version,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -36,13 +37,20 @@ export class PostsController {
     );
   }
 
+  @Version('2')
   @Get()
-  findAllPosts(
+  findAllPostsV2(
     @Query('search') search?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit?: number,
   ) {
-    return this.postsService.findAllPosts(search, page, limit);
+    return this.postsService.findAllPostsV2(search, page, limit);
+  }
+
+  @Version('1')
+  @Get()
+  findAllPosts() {
+    return this.postsService.findAllPostsV1();
   }
 
   @Patch(':id')
