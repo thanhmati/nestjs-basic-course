@@ -85,7 +85,7 @@ export class PostsService {
   }
 
   // 2. READ: Truy vấn danh sách bài viết phân trang & tìm kiếm từ khóa
-  async findAllPosts(search?: string, page = 1, limit = 10) {
+  async findAllPostsV2(search?: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const whereCondition: Prisma.PostWhereInput = {
@@ -127,6 +127,10 @@ export class PostsService {
         lastPage: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findAllPostsV1() {
+    return this.prisma.post.findMany();
   }
 
   // 3. UPDATE: Cập nhật bài viết theo ID
