@@ -146,14 +146,8 @@ export class PostsService {
 
   // 4. DELETE: Xóa bài viết
   async deletePost(id: number) {
-    try {
-      return await this.prisma.post.delete({
-        where: { id },
-      });
-    } catch {
-      throw new NotFoundException(
-        `Không thể xóa! Bài viết ID ${id} không tồn tại.`,
-      );
-    }
+    return await this.prisma.post.delete({
+      where: { id },
+    });
   }
 }
