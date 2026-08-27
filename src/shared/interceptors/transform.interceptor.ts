@@ -42,11 +42,10 @@ export class TransformInterceptor<T> implements NestInterceptor<
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const customMessage =
-      this.reflector.getAllAndOverride<string>(RESPONSE_MESSAGE_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]) || 'Thao tác thực hiện thành công!';
+    const customMessage = this.reflector.getAllAndOverride<string>(
+      RESPONSE_MESSAGE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     return next.handle().pipe(
       map((data: T): ApiResponse<T> => {
