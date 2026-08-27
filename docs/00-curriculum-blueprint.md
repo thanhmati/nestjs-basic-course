@@ -18,7 +18,7 @@ timeline
         Module 1 : Setup, Code Quality & Core Concepts
         Module 2 : PostgreSQL & Prisma ORM
     section Phase 2 - API Standards
-        Module 3 : Versioning, DTOs & Interceptors
+        Module 3 : Versioning, DTOs, Decorators & Interceptors
         Module 4 : Auth JWT & Rate-Limiting
     section Phase 3 - Core & Realtime
         Module 5 : Social Features & Events
@@ -68,16 +68,17 @@ timeline
 
 ---
 
-### Module 3: Chuẩn Hóa REST API & Request Pipeline (Versioning, DTOs, Filters & Interceptors)
+### Module 3: Chuẩn Hóa REST API & Request Pipeline (Versioning, DTOs, Filters, Decorators & Interceptors)
 
 > [!IMPORTANT]  
-> **Mục tiêu:** Xây dựng API chuyên nghiệp với Request Pipeline linh hoạt (Middleware, Validation Pipes, Filters & Interceptors).
+> **Mục tiêu:** Xây dựng API chuyên nghiệp với Request Pipeline linh hoạt (Middleware, Validation Pipes, Filters, Custom Decorators & Interceptors).
 
 - **3.1** [_Versioning:_ Cấu hình API Versioning `/api/v1/...`.](./modules/module-03/lesson-3.1/lesson-3.1.md)
 - **3.2** [_Validation:_ Sử dụng DTOs với `class-validator` & `ValidationPipe` toàn cục.](./modules/module-03/lesson-3.2/lesson-3.2.md)
 - **3.3** [_Middleware:_ Viết `LoggerMiddleware` tự động log HTTP Method, URL, IP Address.](./modules/module-03/lesson-3.3/lesson-3.3.md)
 - **3.4** [_Exception Filters:_ Viết `HttpExceptionFilter` chuẩn hóa JSON thông báo lỗi toàn cục.](./modules/module-03/lesson-3.4/lesson-3.4.md)
-- **3.5** [_Interceptors:_ `TransformInterceptor` (chuẩn hóa success response) & `LoggingInterceptor` (đo execution time).](./modules/module-03/lesson-3.5/lesson-3.5.md)
+- **3.5** [_Custom Decorators:_ Xây dựng Param Decorators (`createParamDecorator`), Passing Data, kết hợp Pipes & Decorator Composition (`applyDecorators`).](./modules/module-03/lesson-3.5/lesson-3.5.md)
+- **3.6** [_Interceptors:_ `TransformInterceptor` (chuẩn hóa success response) & `LoggingInterceptor` (đo execution time).](./modules/module-03/lesson-3.6/lesson-3.6.md)
 
 ---
 
@@ -89,7 +90,7 @@ timeline
 - **4.1** [_Hash Password:_ Mã hóa mật khẩu an toàn với `bcrypt`.](./modules/module-04/lesson-4.1/lesson-4.1.md)
 - **4.2** [_JWT Auth:_ Đăng ký, Đăng nhập & phát hành Access Token.](./modules/module-04/lesson-4.2/lesson-4.2.md)
 - **4.3** [_Guards:_ Bảo vệ API bằng `JwtAuthGuard` & Passport Strategy.](./modules/module-04/lesson-4.3/lesson-4.3.md)
-- **4.4** [_Decorators:_ Tạo Custom Decorator `@CurrentUser()` & `@Public()`.](./modules/module-04/lesson-4.4/lesson-4.4.md)
+- **4.4** [_Auth Decorators:_ Vận dụng Custom Decorators tạo `@CurrentUser()` & `@Public()` kết hợp `Reflector` thiết lập Global `JwtAuthGuard`.](./modules/module-04/lesson-4.4/lesson-4.4.md)
 - **4.5** [_Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.](./modules/module-04/lesson-4.5/lesson-4.5.md)
 
 ---

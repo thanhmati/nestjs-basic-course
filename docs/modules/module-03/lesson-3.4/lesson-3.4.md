@@ -362,4 +362,4 @@ mindmap
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 3.5: Interceptors — TransformInterceptor (Chuẩn Hóa Success Response) & Logging Performance](../lesson-3.5/lesson-3.5.md)
+👉 **Bài tiếp theo:** [Lesson 3.5: Custom Decorators — Sáng Tạo Param & Route Metadata Decorators](../lesson-3.5/lesson-3.5.md)
