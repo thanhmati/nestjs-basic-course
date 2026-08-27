@@ -14,12 +14,15 @@ import {
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
+import { BypassTransform } from 'src/shared/decorators/bypass-transform.decorator';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
+  @ResponseMessage('Tạo bài viết mới thành công')
   createPost(@Body() createPostDto: CreatePostDto) {
     return this.postsService.createPost(
       createPostDto.authorId,
@@ -48,6 +51,7 @@ export class PostsController {
   }
 
   @Version('1')
+  @BypassTransform()
   @Get()
   findAllPosts() {
     return this.postsService.findAllPostsV1();
