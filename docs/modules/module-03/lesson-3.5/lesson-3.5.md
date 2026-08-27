@@ -15,29 +15,67 @@
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng dự kiến:** 10 – 12 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững bản chất Decorator trong TypeScript và NestJS; tự tay xây dựng Custom Param Decorator bằng hàm `createParamDecorator()`; làm chủ kỹ thuật truyền tham số `data` (Property Selector) để trích xuất dữ liệu thực tế từ Request; hiểu cách kết hợp Pipes và gộp Decorators với `applyDecorators()`.
+> ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
+> 🎯 **Mục tiêu bài học:** Nắm vững bản chất Decorator trong TypeScript và cách NestJS ứng dụng Decorators làm nền tảng kiến trúc; tự tay xây dựng Custom Param Decorators bằng hàm `createParamDecorator()`; làm chủ kỹ thuật truyền tham số `data` (Property Selector) để trích xuất dữ liệu thực tế từ Request; hiểu cách kết hợp Pipes và gộp Decorators với `applyDecorators()` theo chuẩn tài liệu chính thức của NestJS.
 
 ---
 
-## 1. Tại Sao Cần Tự Định Nghĩa Custom Decorators?
+## 1. Bản Chất Decorators Trong NestJS & Built-in Param Decorators
 
-### 💡 Ẩn Dụ Thực Tế: Chiếc Tay Gắp Dữ Liệu Tự Động Từ Request
+### 💡 Decorator Trong TypeScript Là Gì?
 
-Trong ứng dụng Backend, Request gửi lên chứa rất nhiều thông tin cần khai thác như Headers, IP Client, Host, Cookies:
+NestJS được thiết kế xoay quanh tính năng ngôn ngữ **Decorators** của ES2016 / TypeScript.
 
-- **Cách làm cũ:** Phải tiêm cả Request object `@Req() req: Request`, sau đó bóc tách thủ công `const userAgent = req.get('user-agent'); const ip = req.ip;`. Cách này làm Controller bị phụ thuộc vào Express và lặp lại code ở nhiều nơi.
-- **Giải pháp của NestJS:** Cung cấp hàm `createParamDecorator()` giúp bạn tạo ra **Chiếc Tay Gắp Tự Động** để trích xuất trực tiếp dữ liệu thực tế từ Request vào tham số của Controller một cách gọn gàng, Type-Safe.
+Về bản chất, **Decorator là một hàm (function)** nhận vào định nghĩa của class, method, accessor, property hoặc parameter để gán thêm siêu dữ liệu (metadata) hoặc can thiệp/thay đổi hành vi thực thi mà không làm xáo trộn mã nguồn gốc.
+
+```typescript
+// Cú pháp Decorator: Đặt trước khai báo với tiền tố @
+@Controller('users')
+export class UsersController {
+  @Get(':id')
+  findOne(@Param('id') id: string) { ... }
+}
+```
+
+---
+
+### 🔹 Bảng Ánh Xạ Các Built-in Param Decorators Với Express Request Object
+
+Để giúp lập trình viên không phải thao tác trực tiếp với đối tượng `req` thô của Express, NestJS cung cấp sẵn một hệ thống các **Built-in Param Decorators**:
+
+| Built-in Decorator        | Đối tượng tương đương trong Express    | Mục đích sử dụng                                   |
+| :------------------------ | :------------------------------------- | :------------------------------------------------- |
+| `@Request()`, `@Req()`    | `req`                                  | Truy cập toàn bộ Request Object                    |
+| `@Response()`, `@Res()`   | `res`                                  | Truy cập Response Object (thao tác trực tiếp HTTP) |
+| `@Next()`                 | `next`                                 | Chuyển tiếp Middleware tiếp theo                   |
+| `@Session()`              | `req.session`                          | Đọc thông tin Session                              |
+| `@Param(key?: string)`    | `req.params` hoặc `req.params[key]`    | Lấy Path Parameters trên URL (`/users/:id`)        |
+| `@Body(key?: string)`     | `req.body` hoặc `req.body[key]`        | Lấy Request Payload (JSON Body)                    |
+| `@Query(key?: string)`    | `req.query` hoặc `req.query[key]`      | Lấy URL Query String (`?page=1&limit=10`)          |
+| `@Headers(name?: string)` | `req.headers` hoặc `req.headers[name]` | Lấy HTTP Request Headers                           |
+| `@Ip()`                   | `req.ip`                               | Lấy địa chỉ IP của Client                          |
+| `@HostParam()`            | `req.hosts`                            | Lấy tham số Hostname khi định tuyến đa miền        |
+
+---
+
+### 💡 Vấn Đề Khi Chỉ Sử Dụng Built-in Decorators
+
+Trong thực tế phát triển phần mềm, dữ liệu nghiệp vụ thường được các Middleware hoặc Guards gán động vào Request Object (ví dụ: `req.user`, `req.clientInfo`, `req.tenantId`):
+
+- **Cách làm cũ (Code Smell):** Phải tiêm `@Req() req: Request`, sau đó bóc tách thủ công `const user = req['user']`. Cách này gây lặp code ở mọi Controller, làm mất gợi ý kiểu (Type-Safety) của TypeScript và khiến Controller bị phụ thuộc chặt vào nền tảng HTTP bên dưới.
+- **Giải pháp của NestJS:** Sử dụng hàm tiện ích `createParamDecorator()` để tự tạo ra các **Custom Param Decorators** chuyên biệt, có thể tái sử dụng ở bất kỳ đâu trong toàn bộ hệ thống.
 
 ```mermaid
 flowchart LR
-    subgraph Traditional ["🔴 Cách Cũ (Thủ Công)"]
+    subgraph Traditional ["🔴 Cách Làm Cũ (Thủ Công & Dễ Lỗi)"]
         Req["@Req() req: Request"] --> Read["const agent = req.get('user-agent')"]
+        Read --> Smell["⚠️ Mất Type-Safety, lặp code, phụ thuộc Express"]
     end
 
-    subgraph CustomDec ["🟢 Custom Param Decorator"]
-        Dec["@ClientInfo() info: ClientInfoData"] --> Clean["Trích xuất toàn bộ { ip, agent, host }"]
-        DecProp["@ClientInfo('userAgent') agent: string"] --> CleanProp["Trích xuất trực tiếp trường 'userAgent'"]
+    subgraph CustomDec ["🟢 Custom Param Decorators (Clean Code)"]
+        Dec["@ClientInfo() info: ClientInfoData"] --> Clean["Trích xuất toàn bộ { ip, userAgent, host }"]
+        DecProp["@ClientInfo('userAgent') agent: string"] --> CleanProp["Trích xuất trực tiếp field 'userAgent'"]
+        Clean & CleanProp --> Benefit["✨ Gọn gàng, Type-Safe 100%, độc lập giao thức"]
     end
 ```
 
@@ -47,10 +85,10 @@ flowchart LR
 
 ### 🔹 1. Tạo Param Decorator Với `createParamDecorator()`
 
-Factory function nhận vào 2 tham số:
+Hàm `createParamDecorator()` nhận vào một **Factory Function** với 2 tham số:
 
-- `data`: Tham số truyền vào decorator (ví dụ `'userAgent'` trong `@ClientInfo('userAgent')`).
-- `ctx`: `ExecutionContext` chứa toàn bộ ngữ cảnh của request (HTTP, WebSockets, Microservices).
+1. `data`: Dữ liệu/tham số truyền vào decorator khi được gọi trong Controller (ví dụ `'userAgent'` trong `@ClientInfo('userAgent')`).
+2. `ctx`: Đối tượng `ExecutionContext` cung cấp quyền truy cập vào vòng đời của Request.
 
 ```typescript
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
@@ -58,39 +96,96 @@ import { Request } from 'express';
 
 export const ClientInfo = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext) => {
+    // 1. Chuyển đổi context sang HTTP Request
     const request = ctx.switchToHttp().getRequest<Request>();
+
     const clientData = {
-      ip: request.ip || '127.0.0.1',
+      ip: request.ip || request.socket.remoteAddress || '127.0.0.1',
       userAgent: request.get('user-agent') || 'Unknown Agent',
       host: request.get('host') || 'localhost',
     };
 
-    // Nếu truyền data (vd: @ClientInfo('userAgent')), trả về đúng trường đó
+    // 2. Nếu có truyền tham số data (Property Selector), trả về đúng thuộc tính đó
     return data ? clientData[data] : clientData;
   },
 );
 ```
 
+> [!TIP]
+> **Sức mạnh của `ExecutionContext`:** Không chỉ hỗ trợ HTTP thông thường (`ctx.switchToHttp()`), `ExecutionContext` còn hỗ trợ đa giao thức như WebSockets (`ctx.switchToWs()`) và Microservices (`ctx.switchToRpc()`), giúp Decorator có thể tái sử dụng xuyên suốt toàn bộ ứng dụng.
+
 ---
 
-### 🔹 2. Kết Hợp Custom Decorators Với Pipes (Working with Pipes)
+### 🔹 2. Cơ Chế Truyền Tham Số Cho Decorator (Passing Data / Property Selector)
 
-Custom Param Decorators tương thích hoàn toàn với các Pipes của NestJS để validate hoặc transform dữ liệu:
+Một Custom Decorator có thể hoạt động linh hoạt ở 2 chế độ:
+
+- **Lấy toàn bộ đối tượng:** Khi không truyền tham số `data`:
+  ```typescript
+  @Get('profile')
+  getProfile(@ClientInfo() info: ClientInfoData) {
+    // info nhận đầy đủ: { ip, userAgent, host }
+    return info;
+  }
+  ```
+- **Lấy một trường cụ thể (Property Selector):** Khi truyền tham số `data`:
+  ```typescript
+  @Get('agent')
+  getAgent(@ClientInfo('userAgent') userAgent: string) {
+    // userAgent nhận trực tiếp chuỗi User-Agent
+    return { userAgent };
+  }
+  ```
+
+---
+
+### 🔹 3. Kết Hợp Custom Decorators Với Pipes (Working With Pipes)
+
+NestJS đối xử với Custom Param Decorators **bình đẳng 100%** như các built-in decorators (`@Body()`, `@Query()`). Bạn hoàn toàn có thể gắn các Pipes trực tiếp vào Custom Decorator để biến đổi (Transform) hoặc kiểm tra tính hợp lệ (Validation):
 
 ```typescript
-@Get('info')
-getInfo(
-  @ClientInfo('port', ParseIntPipe) port: number, // Tự động convert sang number
+// 1. Áp dụng Pipe để ép kiểu dữ liệu
+@Get('port')
+getPort(
+  @ClientInfo('port', ParseIntPipe) port: number, // Tự động transform string -> number
 ) {
   return { port };
+}
+
+// 2. Áp dụng ValidationPipe để validate dữ liệu từ Custom Decorator
+@Get('account')
+getAccount(
+  @ClientInfo(new ValidationPipe({ validateCustomDecorators: true }))
+  info: ClientInfoDto,
+) {
+  return info;
 }
 ```
 
 ---
 
-### 🔹 3. Gộp Nhiều Decorators Với `applyDecorators()` (Decorator Composition)
+### 🔹 4. Kỹ Thuật Gộp Nhiều Decorators (Decorator Composition Với `applyDecorators`)
 
-Khi một Route cần gắn nhiều cấu hình, bạn có thể gộp chúng lại thành 1 nhãn duy nhất:
+#### 💡 Vấn Nạn "Decorator Hell"
+
+Trong các dự án Enterprise, một Route Handler thường phải gắn liên tiếp 4-5 Decorators khác nhau để cấu hình phân quyền, tài liệu Swagger và xác thực:
+
+```typescript
+// 🔴 Bị rối mắt bởi quá nhiều Decorators xếp chồng lên nhau
+@Get('admin/dashboard')
+@SetMetadata('roles', ['admin'])
+@UseGuards(AuthGuard, RolesGuard)
+@ApiBearerAuth()
+@ApiResponse({ status: 200, description: 'Lấy dữ liệu thành công' })
+@ApiResponse({ status: 403, description: 'Không có quyền truy cập' })
+getDashboard() {
+  return { status: 'ok' };
+}
+```
+
+#### 🟢 Giải Pháp: `applyDecorators()`
+
+NestJS cung cấp hàm tiện ích `applyDecorators()` giúp gom tất cả các Decorators trên thành một **Composite Decorator** duy nhất:
 
 ```typescript
 import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common';
@@ -98,14 +193,32 @@ import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common';
 export function Auth(...roles: string[]) {
   return applyDecorators(
     SetMetadata('roles', roles),
-    UseGuards(AuthGuard),
+    UseGuards(AuthGuard, RolesGuard),
   );
 }
+```
 
-// Sử dụng gọn gàng trong Controller:
-@Get('admin')
-@Auth('admin')
-getAdminData() { ... }
+Khi sử dụng trong Controller, mã nguồn trở nên siêu ngắn gọn và có tính khai báo (Declarative) cực kỳ rõ ràng:
+
+```typescript
+@Get('admin/dashboard')
+@Auth('admin') // 👈 Gom toàn bộ AuthGuard, RolesGuard và Metadata vào 1 dòng duy nhất!
+getDashboard() {
+  return { status: 'ok' };
+}
+```
+
+```mermaid
+flowchart TD
+    subgraph Stack ["Hàng Loạt Decorators Riêng Lẻ"]
+        D1["@SetMetadata('roles', roles)"]
+        D2["@UseGuards(AuthGuard, RolesGuard)"]
+        D3["@ApiBearerAuth()"]
+        D4["@ApiResponse(...)"]
+    end
+
+    Stack ==>|"applyDecorators(...)"| Composite["✨ @Auth('admin')"]
+    Composite ==>|"Áp dụng trên Controller"| Route["@Get('users')<br/><b>@Auth('admin')</b><br/>findAll()"]
 ```
 
 ---
@@ -248,18 +361,20 @@ mindmap
       "Hỗ trợ Property Selector data"
     "Working with Pipes"
       "Áp dụng ParseIntPipe, ValidationPipe"
+      "validateCustomDecorators: true"
     "applyDecorators()"
       "Gộp nhiều decorators thành 1 nhãn"
+      "Xóa bỏ Decorator Hell"
       "Clean Code & Declarative"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu bản chất và lợi ích của Custom Decorators trong NestJS.
+- [x] Nắm vững bản chất Decorator trong TypeScript và bảng ánh xạ Built-in Param Decorators của NestJS.
 - [x] Tạo thành công Custom Param Decorator `@ClientInfo()` bằng `createParamDecorator()`.
 - [x] Trích xuất trực tiếp dữ liệu thực tế từ HTTP Request (`ip`, `userAgent`, `host`).
 - [x] Sử dụng thành thạo tham số `data` (Property Selector) để trích xuất từng field dữ liệu.
-- [x] Nắm được cách áp dụng Pipes lên Custom Decorators và kỹ thuật gộp với `applyDecorators()`.
+- [x] Hiểu cách kết hợp Pipes với Custom Decorators và kỹ thuật gộp Decorator Composition với `applyDecorators()`.
 - [x] Thử nghiệm thành công cURL với các Header thực tế từ Client.
 
 ---
