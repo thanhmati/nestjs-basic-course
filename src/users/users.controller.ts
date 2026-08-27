@@ -17,10 +17,7 @@ export class UsersController {
 
   @Post()
   createUser(@Body() createUserDto: CreateUserDto) {
-    return {
-      message: 'Tạo người dùng thành công!',
-      data: createUserDto,
-    };
+    return this.usersService.createUser(createUserDto);
   }
 
   @Get('client-info')

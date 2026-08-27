@@ -12,6 +12,7 @@ import { LoggerMiddleware } from './shared/middleware/logger.middleware';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
 import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+import { HashModule } from './shared/services/hash.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
       isGlobal: true,
     }),
     PrismaModule,
+    HashModule,
     UsersModule,
     PostsModule,
   ],

@@ -1,28 +1,22 @@
-import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Max,
-  Min,
   MinLength,
-  ValidateNested,
 } from 'class-validator';
-import { AddressDto } from './address.dto';
 
 export enum UserRole {
   USER = 'USER',
-  MODERATOR = 'MODERATOR',
+  ADMIN = 'ADMIN',
 }
 
 export class CreateUserDto {
-  @IsString({ message: 'Username phải là chuỗi ký tự!' })
-  @IsNotEmpty({ message: 'Username không được để trống!' })
-  @MinLength(3, { message: 'Username phải có ít nhất 3 ký tự!' })
-  username: string;
+  @IsString({ message: 'Tên phải là chuỗi ký tự!' })
+  @IsNotEmpty({ message: 'Tên không được để trống!' })
+  @MinLength(3, { message: 'Tên phải có ít nhất 3 ký tự!' })
+  name: string;
 
   @IsEmail(
     {},
@@ -31,17 +25,12 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
 
-  @IsInt({ message: 'Tuổi phải là số nguyên!' })
-  @Min(18, { message: 'Người dùng phải từ 18 tuổi trở lên!' })
-  @Max(100, { message: 'Tuổi không hợp lệ (tối đa 100)!' })
-  age: number;
-
   @IsEnum(UserRole, { message: 'Role phải là USER hoặc MODERATOR!' })
   @IsOptional()
   role?: UserRole = UserRole.USER;
 
-  @ValidateNested()
-  @Type(() => AddressDto)
-  @IsOptional()
-  address?: AddressDto;
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6, { message: 'Password phải có ít nhất 6 ký tự!' })
+  password: string;
 }
