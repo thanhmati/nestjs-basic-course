@@ -17,7 +17,7 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 15 – 18 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững tư duy Aspect-Oriented Programming (AOP) và sức mạnh xử lý luồng dữ liệu của RxJS trong NestJS; tự tay xây dựng `TransformInterceptor` bọc dữ liệu thành công (HTTP 2xx) thành định dạng JSON chuẩn Enterprise đối xứng với `HttpExceptionFilter`; làm chủ kỹ thuật tạo Route Decorators `@ResponseMessage()` & `@BypassTransform()` điều khiển Interceptor; triển khai `LoggingInterceptor` xử lý an toàn đa giao thức (Transport-Agnostic), bắt trọn thời gian thực thi cả khi Success lẫn Error với RxJS `tap({ next, error })`; làm chủ kỹ thuật đăng ký Interceptor toàn cục qua Dependency Injection (`APP_INTERCEPTOR`).
+> 🎯 **Mục tiêu bài học:** Nắm vững tư duy Aspect-Oriented Programming (AOP) và sức mạnh xử lý luồng dữ liệu của RxJS trong NestJS; thiết kế kiến trúc chuẩn Enterprise tách bạch giữa Metadata Constants, Type Contracts (Interfaces), Custom Decorators và Interceptors; tự tay xây dựng `TransformInterceptor` bọc dữ liệu thành công (HTTP 2xx) thành định dạng JSON chuẩn Enterprise đối xứng với `HttpExceptionFilter`; làm chủ kỹ thuật tạo Route Decorators `@ResponseMessage()` & `@BypassTransform()` điều khiển Interceptor; triển khai `LoggingInterceptor` xử lý an toàn đa giao thức (Transport-Agnostic), bắt trọn thời gian thực thi cả khi Success lẫn Error với RxJS `tap({ next, error })`; làm chủ kỹ thuật đăng ký Interceptor toàn cục qua Dependency Injection (`APP_INTERCEPTOR`).
 
 ---
 
@@ -131,9 +131,55 @@ sequenceDiagram
 
 ## 4. Hướng Dẫn Thực Hành Step-by-Step
 
-### 📌 Bước 1: Tạo Custom Decorators (`@ResponseMessage` & `@BypassTransform`)
+### 🏛️ Tư Duy Thiết Kế: Separation of Concerns (SoC) Cho Constants & Interfaces
 
-Để linh hoạt tùy chỉnh thông báo hoặc bỏ qua việc bọc data (đối với các API xuất file Excel/PDF, SSE stream), chúng ta tạo 2 Decorator chuyên dụng bằng `SetMetadata()`:
+> [!IMPORTANT]
+> **Tại sao không nên khai báo `interface` và `constant` chung trong file Decorator hay Interceptor?**
+>
+> 1. **Tránh Phụ Thuộc Chéo (Decoupling & Circular Dependencies):** Nếu một Controller, Swagger DTO hoặc Unit Test chỉ cần định dạng kiểu `ApiResponse<T>`, việc import từ `transform.interceptor.ts` sẽ kéo theo toàn bộ NestJS `@Injectable()`, `Reflector` và các toán tử RxJS không cần thiết.
+> 2. **Tái Sử Dụng Type Contract (Reusability):** `ApiResponse<T>` là bản hợp đồng dữ liệu dùng chung cho toàn bộ dự án (Swagger Docs, Exception Filters đối xứng, Frontend Client SDK). Tách vào `interfaces/` giúp tái sử dụng sạch sẽ 100%.
+> 3. **Quản Lý Tập Trung Hằng Số Metadata (Centralized Metadata Keys):** Tập trung các Metadata Key (`RESPONSE_MESSAGE_KEY`, `BYPASS_TRANSFORM_KEY`) vào `constants/metadata.constant.ts` giúp tránh trùng lặp chuỗi ngầm (Magic Strings), ngăn ngừa lỗi gõ sai chính tả (typo) và dễ dàng rà soát toàn bộ Decorator Keys trong hệ thống.
+
+---
+
+### 📌 Bước 1: Khởi Tạo Hằng Số Metadata & Hợp Đồng Dữ Liệu (Constants & Interfaces)
+
+#### 1. Định nghĩa Metadata Constants:
+
+📄 **`src/shared/constants/metadata.constant.ts`**
+
+```typescript
+/**
+ * Danh mục các Metadata Key dùng cho Custom Decorators, Interceptors và Guards
+ * Giúp quản lý tập trung toàn bộ Metadata Keys trong dự án, tránh xung đột chuỗi (magic strings).
+ */
+export const RESPONSE_MESSAGE_KEY = 'RESPONSE_MESSAGE_KEY';
+export const BYPASS_TRANSFORM_KEY = 'BYPASS_TRANSFORM_KEY';
+```
+
+#### 2. Định nghĩa Data Contract `ApiResponse<T>`:
+
+📄 **`src/shared/interfaces/api-response.interface.ts`**
+
+```typescript
+/**
+ * Chuẩn hóa cấu trúc JSON phản hồi thành công (HTTP 2xx) toàn hệ thống
+ * Đảm bảo tính nhất quán đối xứng với HttpExceptionFilter và hỗ trợ Generics Type-Safe.
+ */
+export interface ApiResponse<T> {
+  statusCode: number;
+  message: string;
+  data: T;
+  timestamp: string;
+  path: string;
+}
+```
+
+---
+
+### 📌 Bước 2: Tạo Custom Decorators (`@ResponseMessage` & `@BypassTransform`)
+
+Để linh hoạt tùy chỉnh thông báo hoặc bỏ qua việc bọc data (đối với các API xuất file Excel/PDF, SSE stream), chúng ta tạo 2 Decorator chuyên dụng bằng `SetMetadata()`, import trực tiếp hằng số từ `metadata.constant.ts`:
 
 #### 1. Custom Decorator `@ResponseMessage()`:
 
@@ -141,8 +187,7 @@ sequenceDiagram
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
-
-export const RESPONSE_MESSAGE_KEY = 'RESPONSE_MESSAGE_KEY';
+import { RESPONSE_MESSAGE_KEY } from '../constants/metadata.constant';
 
 /**
  * Custom Decorator dùng để gán thông báo thành công tùy chỉnh ở cấp độ Route Handler
@@ -158,8 +203,7 @@ export const ResponseMessage = (message: string) =>
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
-
-export const BYPASS_TRANSFORM_KEY = 'BYPASS_TRANSFORM_KEY';
+import { BYPASS_TRANSFORM_KEY } from '../constants/metadata.constant';
 
 /**
  * Custom Decorator dùng khi muốn trả về dữ liệu thô (Raw Response, Binary File, Export Excel/CSV)
@@ -170,14 +214,14 @@ export const BypassTransform = () => SetMetadata(BYPASS_TRANSFORM_KEY, true);
 
 ---
 
-### 📌 Bước 2: Triển Khai `TransformInterceptor` Chuẩn Hóa Success Response
+### 📌 Bước 3: Triển Khai `TransformInterceptor` Chuẩn Hóa Success Response
 
 > [!TIP]
 > **Lưu ý khi triển khai:**
 >
-> 1. Định nghĩa interface `ApiResponse<T>` mang tính tổng quát (Generics Type-safe).
-> 2. Luôn kiểm tra `response.headersSent` để tránh xung đột khi controller đã tự stream dữ liệu hoặc gửi headers.
-> 3. Cấu trúc response đối xứng với `HttpExceptionFilter` (có `statusCode`, `message`, `data`, `timestamp`, `path`).
+> 1. Import `ApiResponse<T>` từ `interfaces/` và các metadata keys từ `constants/` giúp code sáng rõ, chuẩn kiến trúc Enterprise.
+> 2. Luôn kiểm tra ngữ cảnh giao thức (`context.getType() === 'http'`) để an toàn đa giao thức.
+> 3. Cấu trúc response đối xứng hoàn hảo với `HttpExceptionFilter` (có `statusCode`, `message`, `data`, `timestamp`, `path`).
 
 📄 **`src/shared/interceptors/transform.interceptor.ts`**
 
@@ -192,16 +236,11 @@ import { Reflector } from '@nestjs/core';
 import { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { BYPASS_TRANSFORM_KEY } from '../decorators/bypass-transform.decorator';
-import { RESPONSE_MESSAGE_KEY } from '../decorators/response-message.decorator';
-
-export interface ApiResponse<T> {
-  statusCode: number;
-  message: string;
-  data: T;
-  timestamp: string;
-  path: string;
-}
+import {
+  BYPASS_TRANSFORM_KEY,
+  RESPONSE_MESSAGE_KEY,
+} from '../constants/metadata.constant';
+import { ApiResponse } from '../interfaces/api-response.interface';
 
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<
@@ -258,7 +297,7 @@ export class TransformInterceptor<T> implements NestInterceptor<
 
 ---
 
-### 📌 Bước 3: Triển Khai `LoggingInterceptor` Đo Thời Gian Thực Thi (Execution Time)
+### 📌 Bước 4: Triển Khai `LoggingInterceptor` Đo Thời Gian Thực Thi (Execution Time)
 
 > [!IMPORTANT]
 > **Điểm cốt lõi:**
@@ -329,7 +368,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
 ---
 
-### 📌 Bước 4: Đăng Ký Interceptors Toàn Cục Trong `AppModule`
+### 📌 Bước 5: Đăng Ký Interceptors Toàn Cục Trong `AppModule`
 
 > [!TIP]
 > **Khuyến nghị thiết kế:** Thay vì dùng `app.useGlobalInterceptors(new ...)` trong `main.ts`, đăng ký qua token `APP_INTERCEPTOR` trong `AppModule` là cách làm chuẩn vì:
@@ -511,7 +550,11 @@ RAW_CSV_DATA_LINE1,LINE2
 
 ```mermaid
 mindmap
-  root(("NestJS Interceptors"))
+  root(("NestJS Interceptors & Enterprise Architecture"))
+    "Kiến Trúc Tách Bạch (SoC)"
+      "Constants: metadata.constant.ts"
+      "Interfaces: api-response.interface.ts"
+      "Decoupled & Reusable 100%"
     "Tư duy AOP"
       "Can thiệp Before & After Handler"
       "Sử dụng RxJS Observables"
@@ -534,6 +577,7 @@ mindmap
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
 - [x] Thấu hiểu tư duy Aspect-Oriented Programming (AOP) và vai trò của Interceptors trong NestJS.
+- [x] Nắm vững nguyên lý **Separation of Concerns (SoC)**: Tách riêng `constants/metadata.constant.ts` và `interfaces/api-response.interface.ts` để tái sử dụng tối đa và tránh circular dependency.
 - [x] Phân biệt rõ bản chất giữa `LoggerMiddleware` (HTTP Level, Total Roundtrip) và `LoggingInterceptor` (Application AOP Level, Handler Performance Profiling).
 - [x] Triển khai thành công `@ResponseMessage()` và `@BypassTransform()` Route Decorators.
 - [x] Triển khai `TransformInterceptor` bọc chuẩn JSON type-safe `ApiResponse<T>` đối xứng hoàn hảo với `HttpExceptionFilter`.
