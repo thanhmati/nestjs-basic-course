@@ -140,14 +140,15 @@ Tạo thư mục `src/auth/dto/` và triển khai các DTO validation:
 📄 **`src/auth/dto/register.dto.ts`**
 
 ```typescript
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
-  @IsString({ message: 'Username phải là chuỗi ký tự!' })
-  @IsNotEmpty({ message: 'Username không được để trống!' })
-  @MinLength(3, { message: 'Username phải có ít nhất 3 ký tự!' })
-  username: string;
-
   @IsEmail({}, { message: 'Email không đúng định dạng chuẩn!' })
   @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
@@ -156,6 +157,10 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Mật khẩu không được để trống!' })
   @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự!' })
   password: string;
+
+  @IsOptional()
+  @IsString({ message: 'Họ và tên phải là chuỗi ký tự!' })
+  name?: string;
 }
 ```
 
@@ -229,7 +234,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { HashService } from '../common/services/hash.service';
+import { HashService } from '../shared/services/hash.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -246,7 +251,7 @@ export class AuthService {
    * Xử lý đăng ký tài khoản mới
    */
   async register(registerDto: RegisterDto) {
-    const { username, email, password } = registerDto;
+    const { email, password, name } = registerDto;
 
     // 1. Kiểm tra email đã tồn tại trong CSDL chưa
     const existingUser = await this.prisma.user.findUnique({
@@ -259,12 +264,12 @@ export class AuthService {
     // 2. Băm mật khẩu bằng HashService
     const hashedPassword = await this.hashService.hashPassword(password);
 
-    // 3. Lưu người dùng vào CSDL
+    // 3. Lưu người dùng vào CSDL (Khớp với User Model trong schema.prisma)
     const user = await this.prisma.user.create({
       data: {
-        username,
         email,
         password: hashedPassword,
+        name,
       },
     });
 
@@ -315,7 +320,7 @@ export class AuthService {
    * Helper phát hành JWT Access Token
    */
   private async generateAccessToken(
-    userId: string,
+    userId: number,
     email: string,
   ): Promise<string> {
     const payload = { sub: userId, email };
@@ -381,9 +386,9 @@ Khởi động ứng dụng NestJS và mở Terminal gửi lệnh cURL:
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "alex_johnson",
     "email": "alex@example.com",
-    "password": "Password123!"
+    "password": "Password123!",
+    "name": "Alex Johnson"
   }'
 ```
 
@@ -395,11 +400,14 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
   "message": "Đăng ký tài khoản thành công!",
   "data": {
     "user": {
-      "id": "clx890xyz123",
-      "username": "alex_johnson",
-      "email": "alex@example.com"
+      "id": 1,
+      "email": "alex@example.com",
+      "name": "Alex Johnson",
+      "role": "USER",
+      "createdAt": "2026-08-13T15:35:00.000Z",
+      "updatedAt": "2026-08-13T15:35:00.000Z"
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4OTA..."
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSI..."
   },
   "timestamp": "2026-08-13T15:35:00.000Z",
   "path": "/api/v1/auth/register"
@@ -424,7 +432,14 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   "statusCode": 200,
   "message": "Đăng nhập thành công!",
   "data": {
-    "user": { "id": "clx890xyz123", "email": "alex@example.com" },
+    "user": {
+      "id": 1,
+      "email": "alex@example.com",
+      "name": "Alex Johnson",
+      "role": "USER",
+      "createdAt": "2026-08-13T15:35:00.000Z",
+      "updatedAt": "2026-08-13T15:35:00.000Z"
+    },
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
@@ -436,7 +451,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 - **Payload nhận được:**
   ```json
   {
-    "sub": "clx890xyz123",
+    "sub": 1,
     "email": "alex@example.com",
     "iat": 1770910500,
     "exp": 1770996900
