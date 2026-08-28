@@ -20,6 +20,14 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/*": ["src/*"],
+      "@generated/*": ["src/generated/*"],
+      "@config/*": ["src/config/*"],
+      "@users/*": ["src/users/*"],
+      "@posts/*": ["src/posts/*"],
+      "@prisma/*": ["src/prisma/*"]
+    }
   }
 }
