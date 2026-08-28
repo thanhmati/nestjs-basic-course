@@ -23,6 +23,11 @@ export class PostsController {
     return this.postsService.createPost(body);
   }
 
+  @Post('with-notification')
+  createPostWithNotification(@Body() body: CreatePostDto) {
+    return this.postsService.createPostWithNotification(body);
+  }
+
   @Get()
   findAllPosts(
     @Query('search') search?: string,
