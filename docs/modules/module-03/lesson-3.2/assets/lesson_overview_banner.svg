@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Emerald / Success Accent -->
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Red / Error Accent -->
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+
+    <!-- Glow & Shadow Filters -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Background Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.3"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bgGrad)"/>
+  <rect width="1200" height="400" fill="url(#grid)"/>
+
+  <!-- Glowing Orbs -->
+  <circle cx="250" cy="120" r="140" fill="#3b82f6" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="950" cy="280" r="150" fill="#10b981" opacity="0.12" filter="url(#glow)"/>
+
+  <!-- Outer Card Container -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="40" width="1100" height="320" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5"/>
+    
+    <!-- Top Header Bar -->
+    <path d="M 50 56 A 16 16 0 0 1 66 40 L 1134 40 A 16 16 0 0 1 1150 56 L 1150 85 L 50 85 Z" fill="#0f172a" fill-opacity="0.8"/>
+    <circle cx="80" cy="62" r="6" fill="#ef4444"/>
+    <circle cx="100" cy="62" r="6" fill="#f59e0b"/>
+    <circle cx="120" cy="62" r="6" fill="#10b981"/>
+    
+    <text x="600" y="67" text-anchor="middle" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="600">
+      Lesson 3.2: NestJS Data Validation Pipeline (DTOs, class-validator &amp; ValidationPipe)
+    </text>
+  </g>
+
+  <!-- 1. Incoming Request -->
+  <g transform="translate(80, 115)" filter="url(#shadow)">
+    <rect width="260" height="210" rx="12" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+    <rect width="260" height="32" rx="12" fill="#1e293b"/>
+    <text x="15" y="21" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      📥 INCOMING HTTP REQUEST
+    </text>
+    <text x="15" y="55" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+      POST /api/v1/users
+    </text>
+    <text x="15" y="78" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11">
+      Content-Type: json
+    </text>
+    <text x="15" y="105" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">
+      {
+    </text>
+    <text x="25" y="125" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="11">
+      "email": "invalid-email",
+    </text>
+    <text x="25" y="145" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="11">
+      "age": "25",
+    </text>
+    <text x="25" y="165" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="11">
+      "hackRole": "admin"
+    </text>
+    <text x="15" y="185" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">
+      }
+    </text>
+  </g>
+
+  <!-- Arrow 1: Request -> ValidationPipe -->
+  <g transform="translate(345, 205)">
+    <path d="M 0 0 L 45 0" fill="none" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4 3"/>
+    <polygon points="45,-5 55,0 45,5" fill="#38bdf8"/>
+  </g>
+
+  <!-- 2. NestJS Global ValidationPipe -->
+  <g transform="translate(410, 115)" filter="url(#shadow)">
+    <rect width="360" height="210" rx="12" fill="#0f172a" stroke="#eab308" stroke-width="1.5"/>
+    <rect width="360" height="32" rx="12" fill="#854d0e" fill-opacity="0.3"/>
+    <text x="15" y="21" fill="#fde047" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      ⚡ GLOBAL VALIDATION PIPE
+    </text>
+    <text x="15" y="55" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+      app.useGlobalPipes(new ValidationPipe({
+    </text>
+    <text x="28" y="78" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="11">
+      whitelist: true, <tspan fill="#94a3b8">// Strip unmapped fields</tspan>
+    </text>
+    <text x="28" y="98" fill="#ef4444" font-family="'JetBrains Mono', monospace" font-size="11">
+      forbidNonWhitelisted: true, <tspan fill="#94a3b8">// Throw error</tspan>
+    </text>
+    <text x="28" y="118" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+      transform: true <tspan fill="#94a3b8">// Auto-cast primitives</tspan>
+    </text>
+    <text x="15" y="138" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+      }))
+    </text>
+
+    <!-- Inner validation badges -->
+    <rect x="15" y="152" width="155" height="42" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="23" y="168" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10" font-weight="600">class-validator</text>
+    <text x="23" y="184" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="9">@IsEmail(), @MinLength()</text>
+
+    <rect x="185" y="152" width="160" height="42" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="193" y="168" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10" font-weight="600">class-transformer</text>
+    <text x="193" y="184" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="9">plainToInstance()</text>
+  </g>
+
+  <!-- Arrow Top: Pipe -> Error Response -->
+  <g transform="translate(775, 160)">
+    <path d="M 0 35 L 50 -20" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="4 3"/>
+    <polygon points="48,-26 58,-22 51,-12" fill="#ef4444"/>
+  </g>
+
+  <!-- Arrow Bottom: Pipe -> Controller DTO -->
+  <g transform="translate(775, 235)">
+    <path d="M 0 -15 L 50 35" fill="none" stroke="#10b981" stroke-width="2.5"/>
+    <polygon points="51,37 58,27 47,23" fill="#10b981"/>
+  </g>
+
+  <!-- 3A. Invalid Payload Error -->
+  <g transform="translate(835, 105)" filter="url(#shadow)">
+    <rect width="305" height="95" rx="10" fill="#0f172a" stroke="#ef4444" stroke-width="1.5"/>
+    <rect width="305" height="26" rx="10" fill="#991b1b" fill-opacity="0.4"/>
+    <text x="12" y="18" fill="#fca5a5" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">
+      🔴 400 BAD REQUEST (AUTOMATIC)
+    </text>
+    <text x="12" y="44" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="10">
+      "message": [
+    </text>
+    <text x="22" y="60" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10">
+      "email must be an email",
+    </text>
+    <text x="22" y="76" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10">
+      "property hackRole should not exist"
+    </text>
+  </g>
+
+  <!-- 3B. Validated Transformed DTO -->
+  <g transform="translate(835, 220)" filter="url(#shadow)">
+    <rect width="305" height="105" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
+    <rect width="305" height="26" rx="10" fill="#065f46" fill-opacity="0.4"/>
+    <text x="12" y="18" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">
+      🟢 TYPE-SAFE DTO INSTANCE (CONTROLLER)
+    </text>
+    <text x="12" y="45" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10">
+      CreateUserDto {
+    </text>
+    <text x="22" y="63" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">
+      email: "alex@gmail.com",
+    </text>
+    <text x="22" y="81" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">
+      age: 25 <tspan fill="#38bdf8">// Transformed to Number!</tspan>
+    </text>
+    <text x="12" y="96" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10">
+      }
+    </text>
+  </g>
+</svg>

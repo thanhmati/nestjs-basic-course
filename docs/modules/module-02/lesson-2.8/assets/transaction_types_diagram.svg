@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 460" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="seqGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="interactiveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="460" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Main Title -->
+  <text x="550" y="45" text-anchor="middle" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700">
+    Phân Loại 2 Mô Hình $transaction Trong Prisma Client
+  </text>
+
+  <!-- LEFT BOX: Sequential Transactions -->
+  <g transform="translate(40, 75)" filter="url(#shadow)">
+    <rect width="490" height="345" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <path d="M 0 0 H 490 V 50 H 0 Z" fill="url(#seqGrad)" clip-path="inset(0 0 0 0 round 12px 12px 0 0)"/>
+    <text x="245" y="32" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">
+      1. Sequential Transaction (Mảng Query)
+    </text>
+
+    <!-- Code box -->
+    <rect x="25" y="70" width="440" height="110" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="40" y="98" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="13" font-weight="600">await prisma.$transaction([</text>
+    <text x="60" y="122" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="13">prisma.user.update({ ... }),</text>
+    <text x="60" y="144" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="13">prisma.auditLog.create({ ... }),</text>
+    <text x="40" y="166" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="13" font-weight="600">]);</text>
+
+    <!-- Details -->
+    <g transform="translate(25, 200)">
+      <circle cx="10" cy="15" r="5" fill="#38bdf8"/>
+      <text x="25" y="19" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600">Thực thi đồng loạt các lệnh độc lập</text>
+
+      <circle cx="10" cy="45" r="5" fill="#38bdf8"/>
+      <text x="25" y="49" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14">Không thể lấy kết quả query 1 dùng làm đầu vào query 2</text>
+
+      <circle cx="10" cy="75" r="5" fill="#38bdf8"/>
+      <text x="25" y="79" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14">Hiệu năng cực nhanh (Tối ưu kết nối CSDL)</text>
+
+      <rect x="0" y="102" width="440" height="30" rx="6" fill="#0f172a"/>
+      <text x="220" y="122" text-anchor="middle" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">⚡ Phù hợp: Cập nhật batch độc lập, Batch logs</text>
+    </g>
+  </g>
+
+  <!-- RIGHT BOX: Interactive Transactions -->
+  <g transform="translate(570, 75)" filter="url(#shadow)">
+    <rect width="490" height="345" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <path d="M 0 0 H 490 V 50 H 0 Z" fill="url(#interactiveGrad)" clip-path="inset(0 0 0 0 round 12px 12px 0 0)"/>
+    <text x="245" y="32" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">
+      2. Interactive Transaction (Callback Function)
+    </text>
+
+    <!-- Code box -->
+    <rect x="25" y="70" width="440" height="110" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="40" y="95" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="13" font-weight="600">await prisma.$transaction(async (tx) => {</text>
+    <text x="60" y="117" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="13">const post = await tx.post.create({ ... });</text>
+    <text x="60" y="139" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="13">if (!post) throw new Error(...);</text>
+    <text x="60" y="161" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="13">await tx.notification.create({ postId: post.id });</text>
+    <text x="40" y="174" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="13" font-weight="600">});</text>
+
+    <!-- Details -->
+    <g transform="translate(25, 200)">
+      <circle cx="10" cy="15" r="5" fill="#10b981"/>
+      <text x="25" y="19" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600">Cho phép lồng logic JS (if/else, throw error)</text>
+
+      <circle cx="10" cy="45" r="5" fill="#10b981"/>
+      <text x="25" y="49" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14">Dữ liệu từ bước trước có thể dùng ngay cho bước sau</text>
+
+      <circle cx="10" cy="75" r="5" fill="#10b981"/>
+      <text x="25" y="79" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14">Tự động Rollback toàn bộ nếu phát sinh Exception</text>
+
+      <rect x="0" y="102" width="440" height="30" rx="6" fill="#0f172a"/>
+      <text x="220" y="122" text-anchor="middle" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">🛡️ Phù hợp: Đơn hàng, Ví tiền, Đăng bài kèm thông báo</text>
+    </g>
+  </g>
+</svg>

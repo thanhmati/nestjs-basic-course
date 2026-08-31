@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad19" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="nestjsRedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea2845"/>
+      <stop offset="50%" stop-color="#e0234e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+    <linearGradient id="controllerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="moduleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <filter id="glow19" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" opacity="0.4"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="800" height="450" rx="16" fill="url(#bgGrad19)"/>
+  <rect width="796" height="446" x="2" y="2" rx="14" fill="none" stroke="#334155" stroke-width="2"/>
+
+  <!-- Grid Pattern Overlay -->
+  <g opacity="0.05">
+    <path d="M 0 50 L 800 50 M 0 100 L 800 100 M 0 150 L 800 150 M 0 200 L 800 200 M 0 250 L 800 250 M 0 300 L 800 300 M 0 350 L 800 350 M 0 400 L 800 400" stroke="#ffffff" stroke-width="1"/>
+    <path d="M 100 0 L 100 450 M 200 0 L 200 450 M 300 0 L 300 450 M 400 0 L 400 450 M 500 0 L 500 450 M 600 0 L 600 450 M 700 0 L 700 450" stroke="#ffffff" stroke-width="1"/>
+  </g>
+
+  <!-- Central Glow -->
+  <circle cx="400" cy="160" r="95" fill="#e0234e" opacity="0.12" filter="url(#glow19)"/>
+
+  <!-- Central Badge: NestJS Cat / Core Icon -->
+  <g transform="translate(340, 95) scale(1.2)">
+    <polygon points="50,0 93.3,25 93.3,75 50,100 6.7,75 6.7,25" fill="url(#nestjsRedGrad)"/>
+    <polygon points="50,5 89,27 89,73 50,95 11,73 11,27" fill="#0f172a"/>
+    <!-- Cube / Injection Symbol -->
+    <path d="M 50 24 L 75 38 L 50 52 L 25 38 Z" fill="none" stroke="#e0234e" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 25 38 V 64 L 50 78 V 52 Z" fill="none" stroke="#ea2845" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M 75 38 V 64 L 50 78 V 52 Z" fill="none" stroke="#be123c" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="50" cy="52" r="4" fill="#38bdf8"/>
+  </g>
+
+  <!-- Left Card: Controller -->
+  <g transform="translate(60, 135)">
+    <rect width="210" height="150" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect width="210" height="34" rx="12" fill="#0369a1"/>
+    <text x="105" y="22" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">@Controller()</text>
+    
+    <g transform="translate(15, 48)">
+      <rect width="180" height="26" rx="6" fill="#0f172a"/>
+      <text x="12" y="17" font-family="JetBrains Mono, monospace" font-size="11" fill="#38bdf8">HTTP Request Handler</text>
+    </g>
+    <g transform="translate(15, 82)">
+      <rect width="180" height="26" rx="6" fill="#0f172a"/>
+      <text x="12" y="17" font-family="JetBrains Mono, monospace" font-size="11" fill="#94a3b8">@Get(), @Post(), DTOs</text>
+    </g>
+    <text x="105" y="132" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#cbd5e1" text-anchor="middle">Nhận request &amp; trả response</text>
+  </g>
+
+  <!-- Right Card: Service & Providers -->
+  <g transform="translate(530, 135)">
+    <rect width="210" height="150" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <rect width="210" height="34" rx="12" fill="#047857"/>
+    <text x="105" y="22" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">@Injectable() Service</text>
+
+    <g transform="translate(15, 48)">
+      <rect width="180" height="26" rx="6" fill="#0f172a"/>
+      <text x="12" y="17" font-family="JetBrains Mono, monospace" font-size="11" fill="#34d399">Business Logic Layer</text>
+    </g>
+    <g transform="translate(15, 82)">
+      <rect width="180" height="26" rx="6" fill="#0f172a"/>
+      <text x="12" y="17" font-family="JetBrains Mono, monospace" font-size="11" fill="#94a3b8">DB Query &amp; Services</text>
+    </g>
+    <text x="105" y="132" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#cbd5e1" text-anchor="middle">Xử lý nghiệp vụ logic</text>
+  </g>
+
+  <!-- Connection Lines (DI Link) -->
+  <path d="M 270 210 L 330 210" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4,4"/>
+  <path d="M 470 210 L 530 210" fill="none" stroke="#34d399" stroke-width="2.5"/>
+
+  <!-- Titles -->
+  <text x="400" y="335" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="800" fill="#ffffff" text-anchor="middle">
+    NestJS Core Concepts &amp; DI
+  </text>
+  <text x="400" y="370" font-family="Inter, system-ui, sans-serif" font-size="15" fill="#94a3b8" text-anchor="middle">
+    Làm chủ Controller, Service, Module và cơ chế Dependency Injection (DI)
+  </text>
+
+  <!-- Bottom Feature Pills -->
+  <g transform="translate(170, 395)">
+    <rect width="140" height="28" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+    <text x="70" y="18" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#38bdf8" text-anchor="middle">@Controller</text>
+
+    <rect width="140" height="28" x="160" y="0" rx="14" fill="#1e293b" stroke="#34d399" stroke-width="1"/>
+    <text x="230" y="18" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#34d399" text-anchor="middle">@Injectable</text>
+
+    <rect width="140" height="28" x="320" y="0" rx="14" fill="#1e293b" stroke="#fbbf24" stroke-width="1"/>
+    <text x="390" y="18" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#fbbf24" text-anchor="middle">@Module</text>
+  </g>
+</svg>

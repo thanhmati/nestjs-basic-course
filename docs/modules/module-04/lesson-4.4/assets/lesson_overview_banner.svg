@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#141829"/>
+      <stop offset="100%" stop-color="#0b0f19"/>
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e2438" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#111625" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <!-- Code Block Background -->
+    <linearGradient id="codeBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0c111d"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="400" fill="url(#bgGrad)" />
+
+  <!-- Subtle Tech Grid -->
+  <g opacity="0.05" stroke="#ffffff" stroke-width="1">
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40"/>
+    </pattern>
+    <rect width="1200" height="400" fill="url(#grid)"/>
+  </g>
+
+  <!-- Header Section -->
+  <g transform="translate(50, 38)">
+    <rect x="0" y="0" width="140" height="26" rx="13" fill="#6366f1" fill-opacity="0.2" stroke="#818cf8" stroke-width="1"/>
+    <text x="70" y="17" fill="#c7d2fe" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">
+      MODULE 04 • LESSON 4.4
+    </text>
+    <text x="0" y="56" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="800">
+      Auth Decorators &amp; Global Guard: @CurrentUser() &amp; @Public()
+    </text>
+  </g>
+
+  <!-- ==================== CARD 1: @Public() ROUTE DECORATOR ==================== -->
+  <g transform="translate(50, 115)" filter="url(#shadow)">
+    <rect width="520" height="250" rx="12" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5"/>
+    <rect width="520" height="34" rx="12" fill="#047857" fill-opacity="0.4"/>
+    <text x="16" y="22" fill="#a7f3d0" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      🔓 1. CUSTOM ROUTE DECORATOR: @Public()
+    </text>
+    
+    <text x="16" y="54" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="11">
+      Gán cờ bypass kiểm tra JWT cho các Route công khai (Login, Register):
+    </text>
+
+    <!-- Code Box: Definition & Controller Usage -->
+    <rect x="14" y="64" width="492" height="135" rx="6" fill="url(#codeBg)" stroke="#28324a" stroke-width="1"/>
+    <text x="22" y="84" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 1. Khai báo decorator</text>
+    <text x="22" y="100" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="9.5">export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);</text>
+    <text x="22" y="122" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 2. Sử dụng trong AuthController</text>
+    <text x="22" y="138" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9.5">@Public()</text>
+    <text x="22" y="154" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">@Post('login')</text>
+    <text x="22" y="170" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9.5">login(@Body() loginDto: LoginDto) { ... }</text>
+
+    <text x="16" y="222" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="10.5">
+      ➔ Global JwtAuthGuard dùng Reflector đọc metadata để mở luồng xanh!
+    </text>
+  </g>
+
+  <!-- ==================== CARD 2: @CurrentUser() PARAM DECORATOR ==================== -->
+  <g transform="translate(630, 115)" filter="url(#shadow)">
+    <rect width="520" height="250" rx="12" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect width="520" height="34" rx="12" fill="#0284c7" fill-opacity="0.4"/>
+    <text x="16" y="22" fill="#bae6fd" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
+      👤 2. CUSTOM PARAM DECORATOR: @CurrentUser()
+    </text>
+    
+    <text x="16" y="54" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="11">
+      Trích xuất thông tin User từ req.user sạch sẽ &amp; Type-Safe 100%:
+    </text>
+
+    <!-- Code Box: Definition & Controller Usage -->
+    <rect x="14" y="64" width="492" height="135" rx="6" fill="url(#codeBg)" stroke="#28324a" stroke-width="1"/>
+    <text x="22" y="84" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 1. Khai báo param decorator</text>
+    <text x="22" y="100" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9.5">export const CurrentUser = createParamDecorator((data, ctx) => { ... });</text>
+    <text x="22" y="122" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 2. Sử dụng trong UsersController</text>
+    <text x="22" y="138" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9.5">@Get('profile')</text>
+    <text x="22" y="154" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">getProfile(<tspan fill="#34d399">@CurrentUser()</tspan> user: JwtPayload) { ... }</text>
+    <text x="22" y="170" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">getId(<tspan fill="#38bdf8">@CurrentUser('userId')</tspan> userId: string) { ... }</text>
+
+    <text x="16" y="222" fill="#7dd3fc" font-family="-apple-system, sans-serif" font-size="10.5">
+      ➔ Loại bỏ hoàn toàn @Request() req: any, autocomplete đầy đủ TypeScript!
+    </text>
+  </g>
+</svg>

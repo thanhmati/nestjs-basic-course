@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- FakerJS Pink-Orange Gradient -->
+    <linearGradient id="fakerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="50%" stop-color="#f06595"/>
+      <stop offset="100%" stop-color="#cc5de8"/>
+    </linearGradient>
+
+    <!-- Seed Green Gradient -->
+    <linearGradient id="seedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <!-- Glow & Shadow Filters -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Background Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.3"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bgGrad)"/>
+  <rect width="1200" height="400" fill="url(#grid)"/>
+
+  <!-- Orbs -->
+  <circle cx="250" cy="120" r="160" fill="#ff6b6b" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="950" cy="280" r="170" fill="#34d399" opacity="0.1" filter="url(#glow)"/>
+
+  <!-- Outer Card -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="40" width="1100" height="320" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5"/>
+    
+    <!-- Top Header Bar -->
+    <path d="M 50 56 A 16 16 0 0 1 66 40 L 1134 40 A 16 16 0 0 1 1150 56 L 1150 85 L 50 85 Z" fill="#0f172a" fill-opacity="0.8"/>
+    <circle cx="80" cy="62" r="6" fill="#ef4444"/>
+    <circle cx="100" cy="62" r="6" fill="#f59e0b"/>
+    <circle cx="120" cy="62" r="6" fill="#10b981"/>
+    
+    <text x="600" y="67" text-anchor="middle" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" letter-spacing="1">
+      MODULE 2 • LESSON 2.5 — DATABASE SEEDING
+    </text>
+  </g>
+
+  <!-- Title & Subtitle -->
+  <text x="90" y="145" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="800">
+    Database Seeding With FakerJS
+  </text>
+  <text x="90" y="180" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="400">
+    Xây dựng Script tự động tạo hàng loạt dữ liệu mẫu (Mock Data) sinh động bằng @faker-js/faker
+  </text>
+
+  <!-- Feature Cards -->
+  <!-- Card 1: FakerJS -->
+  <g transform="translate(90, 215)" filter="url(#shadow)">
+    <rect width="310" height="110" rx="12" fill="#0f172a" stroke="#ff6b6b" stroke-width="1.5" stroke-opacity="0.7"/>
+    <rect x="20" y="25" width="60" height="60" rx="10" fill="url(#fakerGrad)"/>
+    <!-- Dice / Magic Wand Icon -->
+    <circle cx="40" cy="45" r="4" fill="#ffffff"/>
+    <circle cx="60" cy="45" r="4" fill="#ffffff"/>
+    <circle cx="50" cy="55" r="4" fill="#ffffff"/>
+    <circle cx="40" cy="65" r="4" fill="#ffffff"/>
+    <circle cx="60" cy="65" r="4" fill="#ffffff"/>
+    <text x="95" y="52" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">@faker-js/faker</text>
+    <text x="95" y="75" fill="#ff6b6b" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">Realistic Mock Generator</text>
+  </g>
+
+  <!-- Connection 1 -->
+  <g transform="translate(415, 260)">
+    <line x1="0" y1="0" x2="35" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="4 4"/>
+    <polygon points="35,-5 45,0 35,5" fill="#64748b"/>
+  </g>
+
+  <!-- Card 2: Prisma Seed Script -->
+  <g transform="translate(475, 215)" filter="url(#shadow)">
+    <rect width="310" height="110" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.8"/>
+    <rect x="20" y="25" width="60" height="60" rx="10" fill="#0284c7"/>
+    <!-- Code File Icon -->
+    <rect x="33" y="38" width="34" height="34" rx="4" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <path d="M 40 48 L 46 55 L 40 62 M 54 62 L 60 62" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="95" y="52" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">prisma/seed.ts</text>
+    <text x="95" y="75" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">Prisma Client Batching</text>
+  </g>
+
+  <!-- Connection 2 -->
+  <g transform="translate(800, 260)">
+    <line x1="0" y1="0" x2="35" y2="0" stroke="#64748b" stroke-width="2" stroke-dasharray="4 4"/>
+    <polygon points="35,-5 45,0 35,5" fill="#64748b"/>
+  </g>
+
+  <!-- Card 3: Populated Database -->
+  <g transform="translate(855, 215)" filter="url(#shadow)">
+    <rect width="250" height="110" rx="12" fill="#0f172a" stroke="#34d399" stroke-width="1.5" stroke-opacity="0.7"/>
+    <rect x="20" y="25" width="60" height="60" rx="10" fill="url(#seedGrad)"/>
+    <!-- Database Sprout Icon -->
+    <path d="M 50 38 C 42 38 42 50 50 55 C 58 50 58 38 50 38 Z" fill="#ffffff"/>
+    <path d="M 50 55 v 15 M 42 62 h 16" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+    <text x="95" y="52" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">100+ Records</text>
+    <text x="95" y="75" fill="#34d399" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">prisma db seed</text>
+  </g>
+</svg>

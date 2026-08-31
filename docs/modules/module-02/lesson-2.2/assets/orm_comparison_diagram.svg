@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <rect width="1000" height="380" fill="url(#bg)"/>
+  <rect width="1000" height="380" fill="url(#grid)"/>
+
+  <!-- Title -->
+  <text x="500" y="35" text-anchor="middle" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">
+    So Sánh Trực Quan Phương Pháp Thao Tác CSDL trong Node.js
+  </text>
+
+  <!-- Card 1: Raw SQL -->
+  <g transform="translate(40, 70)" filter="url(#shadow)">
+    <rect width="280" height="270" rx="14" fill="#1e293b" stroke="#ef4444" stroke-width="1.5" stroke-opacity="0.6"/>
+    <rect x="20" y="20" width="45" height="45" rx="8" fill="#ef4444" fill-opacity="0.2"/>
+    <text x="42" y="48" text-anchor="middle" fill="#ef4444" font-size="22">⚠️</text>
+    <text x="80" y="48" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">Raw SQL</text>
+
+    <rect x="20" y="80" width="240" height="70" rx="8" fill="#0f172a"/>
+    <text x="30" y="102" fill="#ef4444" font-family="JetBrains Mono, monospace" font-size="11">query("SELECT * FROM u")</text>
+    <text x="30" y="122" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">// No autocomplete</text>
+    <text x="30" y="138" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">// Manual type casting</text>
+
+    <text x="20" y="175" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">❌ Không Type-Safety</text>
+    <text x="20" y="200" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">❌ Dễ gõ sai tên bảng/cột</text>
+    <text x="20" y="225" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">❌ Quản lý SQL migration khó</text>
+  </g>
+
+  <!-- Card 2: Traditional Heavy ORM (TypeORM) -->
+  <g transform="translate(360, 70)" filter="url(#shadow)">
+    <rect width="280" height="270" rx="14" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.6"/>
+    <rect x="20" y="20" width="45" height="45" rx="8" fill="#f59e0b" fill-opacity="0.2"/>
+    <text x="42" y="48" text-anchor="middle" fill="#f59e0b" font-size="22">📦</text>
+    <text x="80" y="48" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">TypeORM</text>
+
+    <rect x="20" y="80" width="240" height="70" rx="8" fill="#0f172a"/>
+    <text x="30" y="102" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="11">@Entity() class User {</text>
+    <text x="30" y="122" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">  @Column() name: string;</text>
+    <text x="30" y="138" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="11">}</text>
+
+    <text x="20" y="175" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">⚠️ Decorator lặp đi lặp lại</text>
+    <text x="20" y="200" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">⚠️ Dễ lệch giữa Entity &amp; DB</text>
+    <text x="20" y="225" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">⚠️ Lỗi Lazy/Eager Loading</text>
+  </g>
+
+  <!-- Card 3: Prisma ORM -->
+  <g transform="translate(680, 70)" filter="url(#shadow)">
+    <rect width="280" height="270" rx="14" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+    <rect x="20" y="20" width="45" height="45" rx="8" fill="#38bdf8" fill-opacity="0.2"/>
+    <text x="42" y="48" text-anchor="middle" fill="#38bdf8" font-size="22">⚡</text>
+    <text x="80" y="48" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700">Prisma ORM</text>
+
+    <rect x="20" y="80" width="240" height="70" rx="8" fill="#1e293b"/>
+    <text x="30" y="102" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="11">prisma.user.findMany({</text>
+    <text x="30" y="122" fill="#818cf8" font-family="JetBrains Mono, monospace" font-size="11">  select: { id: true, name: true }</text>
+    <text x="30" y="138" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="11">})</text>
+
+    <text x="20" y="175" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">✅ 100% Autogenerated Types</text>
+    <text x="20" y="200" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">✅ Schema-First Single Source</text>
+    <text x="20" y="225" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">✅ Autocomplete siêu nhạy</text>
+  </g>
+</svg>

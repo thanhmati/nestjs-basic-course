@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 400" width="840" height="400">
+  <defs>
+    <linearGradient id="bgGradDi" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <filter id="shadowDi" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="840" height="400" rx="16" fill="url(#bgGradDi)"/>
+  <rect width="836" height="396" x="2" y="2" rx="14" fill="none" stroke="#334155" stroke-width="2"/>
+
+  <!-- Module Boundary (Root Container) -->
+  <rect width="780" height="280" x="30" y="40" rx="14" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6,6"/>
+  <rect width="140" height="26" x="50" y="28" rx="6" fill="#fbbf24"/>
+  <text x="120" y="45" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="800" fill="#0f172a" text-anchor="middle">@Module UsersModule</text>
+
+  <!-- Step 1: UsersService Provider -->
+  <g transform="translate(60, 90)" filter="url(#shadowDi)">
+    <rect width="210" height="190" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <rect width="210" height="34" rx="12" fill="#065f46"/>
+    <text x="105" y="22" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">1. Provider Service</text>
+
+    <g transform="translate(15, 48)">
+      <rect width="180" height="30" rx="6" fill="#0f172a"/>
+      <text x="12" y="19" font-family="JetBrains Mono, monospace" font-size="11" fill="#34d399">@Injectable()</text>
+    </g>
+    <g transform="translate(15, 88)">
+      <rect width="180" height="30" rx="6" fill="#0f172a"/>
+      <text x="12" y="19" font-family="JetBrains Mono, monospace" font-size="11" fill="#a7f3d0">export class UsersService</text>
+    </g>
+    <text x="105" y="145" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Được khai báo trong</text>
+    <text x="105" y="162" font-family="JetBrains Mono, monospace" font-size="10" fill="#fbbf24" text-anchor="middle">providers: [UsersService]</text>
+  </g>
+
+  <!-- Step 2: NestJS IoC Container -->
+  <g transform="translate(315, 90)" filter="url(#shadowDi)">
+    <rect width="210" height="190" rx="12" fill="#1e293b" stroke="#e0234e" stroke-width="2"/>
+    <rect width="210" height="34" rx="12" fill="#9f1239"/>
+    <text x="105" y="22" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">2. NestJS IoC Container</text>
+
+    <circle cx="105" cy="85" r="30" fill="#e0234e" opacity="0.2"/>
+    <path d="M 95 85 L 102 92 L 117 77" fill="none" stroke="#e0234e" stroke-width="3" stroke-linecap="round"/>
+    
+    <text x="105" y="135" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#f8fafc" text-anchor="middle">Tự động khởi tạo (Singleton)</text>
+    <text x="105" y="154" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Quản lý vòng đời Instance</text>
+  </g>
+
+  <!-- Step 3: UsersController Injection -->
+  <g transform="translate(570, 90)" filter="url(#shadowDi)">
+    <rect width="210" height="190" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <rect width="210" height="34" rx="12" fill="#075985"/>
+    <text x="105" y="22" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">3. Inject Controller</text>
+
+    <g transform="translate(15, 48)">
+      <rect width="180" height="30" rx="6" fill="#0f172a"/>
+      <text x="12" y="19" font-family="JetBrains Mono, monospace" font-size="10" fill="#38bdf8">constructor(private readonly</text>
+    </g>
+    <g transform="translate(15, 88)">
+      <rect width="180" height="30" rx="6" fill="#0f172a"/>
+      <text x="12" y="19" font-family="JetBrains Mono, monospace" font-size="10" fill="#34d399">  usersService: UsersService)</text>
+    </g>
+    <text x="105" y="145" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Được khai báo trong</text>
+    <text x="105" y="162" font-family="JetBrains Mono, monospace" font-size="10" fill="#fbbf24" text-anchor="middle">controllers: [UsersController]</text>
+  </g>
+
+  <!-- Connecting Arrows -->
+  <path d="M 270 185 L 315 185" fill="none" stroke="#34d399" stroke-width="2.5" stroke-dasharray="4,4"/>
+  <path d="M 525 185 L 570 185" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+
+  <!-- Bottom Banner Legend -->
+  <rect width="760" height="34" x="40" y="345" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="420" y="367" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">
+    💡 <tspan font-weight="700" fill="#fbbf24">Nguyên lý DI:</tspan> Controller không bao giờ tự tạo Service bằng <tspan fill="#f43f5e">new UsersService()</tspan> mà nhận qua <tspan fill="#38bdf8">Constructor Injection</tspan> từ IoC Container!
+  </text>
+</svg>

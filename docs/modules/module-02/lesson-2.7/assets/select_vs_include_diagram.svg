@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 460" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+
+    <pattern id="gridPattern" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="460" fill="url(#bg)"/>
+  <rect width="1000" height="460" fill="url(#gridPattern)"/>
+
+  <!-- Title -->
+  <text x="500" y="38" text-anchor="middle" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">
+    ⚖️ So Sánh Kỹ Thuật Query: select (Field Filtering) vs include (Relation Fetching)
+  </text>
+
+  <!-- Left Box: SELECT Option -->
+  <g transform="translate(60, 65)" filter="url(#shadow)">
+    <rect width="410" height="320" rx="14" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect x="20" y="20" width="370" height="36" rx="8" fill="#0284c7" fill-opacity="0.2"/>
+    <text x="205" y="44" text-anchor="middle" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800">1. SELECT (Field Projection)</text>
+    
+    <!-- Code Box -->
+    <rect x="20" y="70" width="370" height="110" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="35" y="95" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="12">select: {</text>
+    <text x="55" y="115" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12">id: true, email: true, name: true</text>
+    <text x="55" y="135" fill="#ef4444" font-family="JetBrains Mono, monospace" font-size="12">// password bị ẩn hoàn toàn!</text>
+    <text x="35" y="158" fill="#38bdf8" font-family="JetBrains Mono, monospace" font-size="12">}</text>
+
+    <!-- Bullet Features -->
+    <text x="35" y="205" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">✓ Tối ưu dung lượng Payload gửi qua mạng</text>
+    <text x="35" y="230" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">✓ Tự động giấu mật khẩu (password hash)</text>
+    <text x="35" y="255" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">✓ TypeScript Type Narrowing chuẩn 100%</text>
+    <text x="35" y="280" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">SQL: SELECT id, email, name FROM users</text>
+  </g>
+
+  <!-- Right Box: INCLUDE Option -->
+  <g transform="translate(530, 65)" filter="url(#shadow)">
+    <rect width="410" height="320" rx="14" fill="#0f172a" stroke="#a855f7" stroke-width="1.5"/>
+    <rect x="20" y="20" width="370" height="36" rx="8" fill="#9333ea" fill-opacity="0.2"/>
+    <text x="205" y="44" text-anchor="middle" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800">2. INCLUDE (Relation Eager Load)</text>
+    
+    <!-- Code Box -->
+    <rect x="20" y="70" width="370" height="110" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="35" y="95" fill="#c084fc" font-family="JetBrains Mono, monospace" font-size="12">include: {</text>
+    <text x="55" y="115" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12">profile: true,</text>
+    <text x="55" y="135" fill="#f8fafc" font-family="JetBrains Mono, monospace" font-size="12">posts: { take: 5 }</text>
+    <text x="35" y="158" fill="#c084fc" font-family="JetBrains Mono, monospace" font-size="12">}</text>
+
+    <!-- Bullet Features -->
+    <text x="35" y="205" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">✓ Lấy toàn bộ trường User + Bảng quan hệ</text>
+    <text x="35" y="230" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">✓ Nạp tự động Profile 1-1 &amp; Posts 1-N</text>
+    <text x="35" y="255" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600">⚠ Trả về cả trường password (cần cẩn thận!)</text>
+    <text x="35" y="280" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="11">SQL: SELECT * FROM users LEFT JOIN ...</text>
+  </g>
+
+  <!-- Bottom Warning Banner -->
+  <g transform="translate(60, 400)" filter="url(#shadow)">
+    <rect width="880" height="42" rx="8" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/>
+    <text x="440" y="26" text-anchor="middle" fill="#fef2f2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">
+      🚫 QUY TẮC BẤT BIẾN: KHÔNG THỂ vừa dùng `select` vừa dùng `include` ở cùng 1 cấp độ trong Prisma Query!
+    </text>
+  </g>
+</svg>
