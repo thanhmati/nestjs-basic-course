@@ -1,0 +1,10 @@
+import * as Prisma from './internal/prismaNamespaceBrowser.js';
+export { Prisma };
+export * as $Enums from './enums.js';
+export * from './enums.js';
+export type User = Prisma.UserModel;
+export type Profile = Prisma.ProfileModel;
+export type Post = Prisma.PostModel;
+export type Comment = Prisma.CommentModel;
+export type Message = Prisma.MessageModel;
+export type Notification = Prisma.NotificationModel;
