@@ -25,7 +25,7 @@
 | Chỉ số                 | Chi tiết                                                            |
 | :--------------------- | :------------------------------------------------------------------ |
 | **Đối tượng mục tiêu** | Người mới bắt đầu làm Backend (Đã biết cơ bản JS/TS)                |
-| **Thời lượng dự kiến** | 10 – 14 Giờ học (7 Modules tinh gọn)                                |
+| **Thời lượng dự kiến** | 15 – 20 Giờ học (7 Modules tinh gọn)                                |
 | **Dự án tốt nghiệp**   | Real-Time Social Media & Chat Room Application                      |
 | **Chuẩn Kiến Thức**    | RESTful API, OWASP Security, Event-Driven, WebSockets, Healthchecks |
 
