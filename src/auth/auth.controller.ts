@@ -4,12 +4,14 @@ import { RegisterDto } from './dto/register.dto';
 import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
 import { AuthService } from './auth.service';
 import { Public } from 'src/shared/decorators/public.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
   @Post('register')
   @ResponseMessage('Đăng ký tài khoản thành công!')
   async register(@Body() registerDto: RegisterDto) {
@@ -17,6 +19,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Đăng nhập thành công!')
