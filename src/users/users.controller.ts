@@ -1,10 +1,19 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import {
   ClientInfo,
   type ClientInfoData,
 } from 'src/shared/decorators/client-info.decorator';
+import { JwtAuthGuard } from 'src/shared/guards/jwt-auth.guard';
+import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -32,6 +41,16 @@ export class UsersController {
   getUserAgent(@ClientInfo('userAgent') agent: string) {
     return {
       userAgent: agent,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  @ResponseMessage('Lấy thông tin cá nhân thành công!')
+  getProfile(@Request() req: Express.Request) {
+    return {
+      message: 'Thông tin tài khoản xác thực từ Token',
+      user: req.user,
     };
   }
 }
