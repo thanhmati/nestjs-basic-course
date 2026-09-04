@@ -103,26 +103,19 @@ Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng hàm `
 
 ```typescript
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { Request } from 'express';
-
-export interface JwtPayload {
-  userId: string;
-  email: string;
-  role?: string;
-  [key: string]: any;
-}
+import { UserData } from '../interfaces/auth.interface';
 
 /**
  * Custom Param Decorator trích xuất thông tin User từ Request Object (do JwtStrategy gán vào)
  *
  * Cách sử dụng:
- * 1. Lấy toàn bộ đối tượng: getProfile(@CurrentUser() user: JwtPayload)
+ * 1. Lấy toàn bộ đối tượng: getProfile(@CurrentUser() user: UserData)
  * 2. Lấy 1 trường cụ thể: getUserId(@CurrentUser('userId') userId: string)
  */
 export const CurrentUser = createParamDecorator(
-  (data: keyof JwtPayload | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<Request>();
-    const user = request.user as JwtPayload;
+  (data: keyof UserData | undefined, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest<Express.Request>();
+    const user = request.user as UserData;
 
     if (!user) {
       return null;
