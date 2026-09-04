@@ -159,17 +159,38 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { UserData } from '../interfaces/auth.interface';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  // Có thể override handleRequest để tùy chỉnh thông báo lỗi 401 tiếng Việt
-  handleRequest(err: any, user: any, info: any) {
+  canActivate(context: ExecutionContext) {
+    // Add your custom authentication logic here
+    // for example, call super.logIn(request) to establish a session.
+    return super.canActivate(context);
+  }
+
+  handleRequest<TUser = UserData>(
+    err: unknown,
+    user: TUser | false | null | undefined,
+    info: unknown,
+  ): TUser {
     if (err || !user) {
-      throw (
-        err ||
-        new UnauthorizedException(
-          'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
-        )
+      if (info instanceof Error && info.name === 'TokenExpiredError') {
+        throw new UnauthorizedException(
+          'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!',
+        );
+      }
+
+      if (info instanceof Error && info.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Mã xác thực (Token) không hợp lệ!');
+      }
+
+      if (err instanceof Error) {
+        throw err;
+      }
+
+      throw new UnauthorizedException(
+        'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
       );
     }
     return user;
@@ -210,7 +231,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy], // 👈 Đăng ký JwtStrategy làm provider
-  exports: [AuthService, PassportModule],
 })
 export class AuthModule {}
 ```
@@ -231,15 +251,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('users')
 export class UsersController {
   // 🛡️ Bảo vệ Endpoint này: Yêu cầu phải gửi kèm Bearer JWT Token hợp lệ
-  @Version('1')
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ResponseMessage('Lấy thông tin cá nhân thành công!')
-  getProfile(@Request() req: any) {
-    // req.user được JwtStrategy.validate() gán tự động vào
+  getProfile(@Request() req: Express.Request) {
     return {
       message: 'Thông tin tài khoản xác thực từ Token',
-      user: req.user, // Trả về { userId: "...", email: "..." }
+      user: req.user,
     };
   }
 }
