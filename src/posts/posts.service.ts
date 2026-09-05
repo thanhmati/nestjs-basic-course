@@ -1,11 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class PostsService {
@@ -73,17 +68,13 @@ export class PostsService {
           },
         });
 
-        const notification = await tx.notification.create({
+        await tx.notification.create({
           data: {
             userId: authorId,
             content: `Bài viết "${post.title}" của bạn đã được phát hành thành công.`,
             title: 'Bài viết được phát hành thành công',
           },
         });
-
-        this.logger.debug({ post, notification });
-
-        throw new BadRequestException('TEST transaction');
 
         return post;
       },
@@ -160,14 +151,8 @@ export class PostsService {
 
   // 4. DELETE: Xóa bài viết
   async deletePost(id: number) {
-    try {
-      return await this.prisma.post.delete({
-        where: { id },
-      });
-    } catch {
-      throw new NotFoundException(
-        `Không thể xóa! Bài viết ID ${id} không tồn tại.`,
-      );
-    }
+    return await this.prisma.post.delete({
+      where: { id },
+    });
   }
 }
