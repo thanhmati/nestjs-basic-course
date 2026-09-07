@@ -1,10 +1,11 @@
-# Lesson 5.1: Posts API — CRUD Bài Viết & Phân Trang Cursor/Offset Trong NestJS
+# Lesson 5.1: OpenAPI (Swagger) — Tự Động Sinh Swagger UI Tương Tác (@nestjs/swagger) Trong NestJS
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Framework-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" />
-  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma ORM" />
-  <img src="https://img.shields.io/badge/REST_API-Posts_CRUD-3178C6?style=for-the-badge&logo=express&logoColor=white" alt="REST API" />
-  <img src="https://img.shields.io/badge/Pagination-Offset_vs_Cursor-06B6D4?style=for-the-badge&logo=fastapi&logoColor=white" alt="Pagination" />
+  <img src="https://img.shields.io/badge/OpenAPI-OAS_3.0-85EA2D?style=for-the-badge&logo=openapiinitiative&logoColor=black" alt="OpenAPI" />
+  <img src="https://img.shields.io/badge/Swagger-Swagger_UI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" alt="Swagger UI" />
+  <img src="https://img.shields.io/badge/TypeScript-Language-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Security-Bearer_JWT-F59E0B?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT Bearer" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,675 +17,499 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững cách xây dựng bộ API CRUD quản lý Bài viết (`Post`) liên kết với Tác giả (`User`); phân tích chuyên sâu kỹ thuật **Offset-based Pagination** (Trang/Giới hạn) và **Cursor-based Pagination** (Con trỏ/Cuộn vô tận); làm chủ cách viết Prisma Queries tối ưu, chuẩn hóa DTOs Validation với `class-validator`, đồng bộ các chuẩn mực Request Pipeline đã học: URI Versioning (`@Version('1')`), Chuẩn hóa JSON Response (`@ResponseMessage()`), bypass bảo mật (`@Public()`) và trích xuất thông tin người dùng Type-Safe bằng (`@CurrentUser('userId')`).
+> 🎯 **Mục tiêu bài học:** Nắm vững tiêu chuẩn OpenAPI 3.0 (OAS) và giải pháp tự động hóa sinh tài liệu API trong NestJS bằng thư viện chính chủ `@nestjs/swagger` & `swagger-ui-express`; hiểu rõ sự khác biệt giữa Code-First vs Schema-First; tự tay cấu hình `DocumentBuilder` trong `main.ts`, đồng bộ với Global Prefix (`/api`) và API Versioning (`/api/v1`); tích hợp cơ chế bảo mật JWT Bearer Authentication (`addBearerAuth()`) trực tiếp lên giao diện Swagger UI; làm chủ các Decorators cốt lõi: `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()`, `@ApiProperty()`, `@ApiPropertyOptional()`, và sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` so với `@nestjs/mapped-types`; thực hành kịch bản kiểm thử tương tác (Interactive Testing): Đăng ký/Đăng nhập lấy Token, Authorize ổ khóa và gọi các API được bảo vệ ngay trên trình duyệt mà không cần Postman.
 
 ---
 
-## 1. Tổng Quan CRUD Posts & Chiến Lược Phân Trang (Pagination Strategy)
+## 1. Tổng Quan OpenAPI (OAS 3.0) & Giải Pháp Tự Động Sinh Swagger UI
 
-### 💡 Ẩn Dụ Thực Tế: Danh Sách Bài Đăng Trên Mạng Xã Hội (Social Feed)
+### 💡 Ẩn Dụ Thực Tế: Bản Đồ Thực Đơn Điện Tử vs Tờ Rơi Giấy Photocopy
 
-Trong các ứng dụng như Facebook, LinkedIn hay Twitter/X, mỗi ngày có hàng triệu bài đăng mới được xuất bản. Nếu backend trả về toàn bộ danh sách bài viết trong một câu lệnh `SELECT * FROM posts`, hệ thống sẽ gặp các vấn đề nghiêm trọng:
+Hãy so sánh hai cách cung cấp thực đơn trong nhà hàng:
 
-1. **Tràn bộ nhớ (Out of Memory - OOM):** Truy vấn hàng trăm nghìn bản ghi ngốn băng thông và RAM của Server.
-2. **Trải nghiệm người dùng kém (Slow Latency):** Mobile App hoặc Frontend phải đợi vài giây chỉ để hiển thị 10 bài viết đầu tiên.
+1. **Tờ rơi giấy photocopy (Tài liệu API viết thủ công / Export Postman JSON):**
+   - Khi nhà bếp thay đổi nguyên liệu hoặc thêm món mới, nhân viên quên in lại tờ rơi. Khách gọi món trên giấy nhưng nhà bếp thông báo: _"Món này đổi giá từ tuần trước rồi!"_ hoặc _"Món này không còn làm nữa!"_.
+   - 🔴 **Vấn đề thực tế:** Khi viết tài liệu API bằng Google Docs, Notion hoặc file Postman Collection xuất thủ công, code backend vừa cập nhật tham số mới thì tài liệu đã lập tức **lỗi thời (Out-of-date)** và **sai lệch cấu trúc (Schema Drift)**.
 
-Để giải quyết vấn đề này, chúng ta bắt buộc phải áp dụng **Kỹ thuật Phân trang (Pagination)**. Có 2 chiến lược phân trang phổ biến nhất trong phát triển ứng dụng hiện đại:
-
----
-
-### 🔹 So Sánh Chi Tiết: Offset-based vs Cursor-based Pagination
-
-| Tiêu chí                    | Offset-based Pagination (Phân Trang Trang)                                                                           | Cursor-based Pagination (Phân Trang Con Trỏ)                                                |
-| :-------------------------- | :------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
-| **Cú pháp Query**           | `page=3&limit=10` (`skip: 20, take: 10`)                                                                             | `cursor=105&take=10` (`cursor: { id: 105 }, take: 10`)                                      |
-| **Câu lệnh SQL**            | `SELECT * FROM posts OFFSET 20 LIMIT 10;`                                                                            | `SELECT * FROM posts WHERE id < 105 ORDER BY id DESC LIMIT 10;`                             |
-| **Hiệu năng (Performance)** | **Chậm O(N)** khi `OFFSET` lớn (Database phải quét qua tất cả bản ghi trước đó).                                     | **Siêu nhanh O(1)** nhờ tận dụng Index B-Tree (`WHERE id < cursor`).                        |
-| **Vấn đề Data Drift**       | **Dễ bị trùng hoặc bỏ sót:** Nếu có ai đó đăng bài mới ở Page 1, toàn bộ dữ liệu ở Page 2 sẽ bị đẩy lùi sang Page 3. | **Nhất quán 100%:** Con trỏ (`cursor`) đánh dấu chính xác vị trí bài viết cuối cùng đã xem. |
-| **Trường hợp sử dụng**      | Trang Quản trị (Admin Dashboard), Danh sách có nút chuyển trang (`1, 2, 3... N`).                                    | Bảng tin Mạng xã hội (Newsfeed), Cuộn vô tận (Infinite Scroll), Real-time Chat.             |
+2. **Màn hình cảm ứng Tablet tại bàn (OpenAPI & Swagger UI Code-First):**
+   - Thực đơn trên máy tính bảng kết nối thẳng vào kho dữ liệu nhà bếp (TypeScript Code). Nhà bếp thêm món, đổi giá hay yêu cầu ghi chú gì, màn hình tại bàn **tự động cập nhật ngay lập tức theo thời gian thực**. Khách hàng còn có thể bấm nút _"Gọi thử món này"_ ngay trên màn hình (Interactive Testing - `Try it out`).
+   - 🟢 **Giải pháp OpenAPI trong NestJS:** Bản đặc tả OpenAPI được sinh trực tiếp từ chính DTOs và Controllers của bạn. Code thay đổi đến đâu, tài liệu Swagger UI tự động đồng bộ đến đó, loại bỏ hoàn toàn nguy cơ tài liệu một đằng, code một nẻo!
 
 ```mermaid
 flowchart TD
-    subgraph Offset ["📑 Offset-based Pagination (Page 3)"]
-        direction TB
-        O1["Client: GET /api/v1/posts?page=3&limit=10"] --> O2["Prisma: skip = (3-1)*10 = 20, take = 10"]
-        O2 --> O3["SQL: SELECT * FROM posts OFFSET 20 LIMIT 10"]
-        O3 --> O4["⚠️ DB quét 20 bản ghi đầu rồi mới lấy 10 bản ghi tiếp theo"]
+    subgraph Manual ["🔴 TÀI LIỆU THỦ CÔNG (DỄ SAI LỆCH)"]
+        Dev1["👨‍💻 Backend Dev"] -->|"Code API mới"| API1["🚀 REST API Code"]
+        Dev1 -.->|"Quên cập nhật"| DocOld["📄 Postman / Google Docs cũ"]
+        ClientBad["📱 Frontend / QA"] -->|"Đọc tài liệu sai"| Bug["💥 Gọi API lỗi 400 Bad Request"]
     end
 
-    subgraph Cursor ["🚀 Cursor-based Pagination (Infinite Scroll)"]
-        direction TB
-        C1["Client: GET /api/v1/posts/feed?cursor=105&take=10"] --> C2["Prisma: cursor = { id: 105 }, skip = 1, take = 10"]
-        C3["SQL: SELECT * FROM posts WHERE id < 105 ORDER BY id DESC LIMIT 10"] --> C4["⚡ DB dùng B-Tree Index nhảy thẳng tới id=105"]
-        C2 --> C3
+    subgraph Auto ["🟢 CODE-FIRST SWAGGER VỚI NESTJS"]
+        Dev2["👨‍💻 Backend Dev"] -->|"Viết DTOs & Decorators"| NestCode["🚀 NestJS Controllers & DTOs"]
+        NestCode -->|"TypeScript Reflection Metadata"| SwaggerGen["⚙️ @nestjs/swagger"]
+        SwaggerGen -->|"Tự động sinh"| OAS["📜 OpenAPI Specification JSON"]
+        OAS -->|"Render trực quan"| SwaggerUI["🖥️ Swagger UI Interactive Portal"]
+        ClientGood["📱 Frontend / QA"] -->|"Xem Schema chuẩn & Test trực tiếp"| Success["✅ Tích hợp mượt mà O(1)"]
     end
 ```
 
 ---
 
-## 2. Đồng Bộ Kiến Trúc Request Pipeline & Standard Response Format
+### 🔹 So Sánh Chi Tiết: Schema-First vs Code-First
 
-Để bài viết kế thừa toàn bộ các công cụ chuẩn hóa đã xây dựng từ **Module 3 & Module 4**, luồng xử lý bài viết tuân theo Request Pipeline thống nhất:
+Trong phát triển API hiện đại, có hai trường phái thiết kế tài liệu chính:
 
-1. **Global `JwtAuthGuard` (Module 4):** Mặc định bảo vệ tất cả API. Các API xem danh sách (`GET /posts`, `GET /posts/feed`, `GET /posts/:id`) dùng trang trí `@Public()` để cho phép truy cập công khai.
-2. **Custom Decorator `@CurrentUser('userId')` (Module 4):** Trích xuất trực tiếp `userId` dạng số nguyên từ `req.user` mà không cần dùng `@Request() req: any`.
-3. **API Versioning `@Version('1')` (Module 3):** Định tuyến URL theo chuẩn `/api/v1/posts`.
-4. **Custom Decorator `@ResponseMessage()` & `TransformInterceptor` (Module 3):** Đóng gói thành công thành định dạng JSON Enterprise: `{ statusCode, message, data, timestamp, path }`.
+| Tiêu Chí Đánh Giá                          | Schema-First (Thiết Kế Trước Bằng YAML/JSON)                 | Code-First (NestJS + TypeScript Reflection)                       |
+| :----------------------------------------- | :----------------------------------------------------------- | :---------------------------------------------------------------- |
+| **Nguồn Chân Lý (Single Source of Truth)** | File YAML / JSON riêng biệt bên ngoài.                       | **Mã nguồn TypeScript (DTOs & Controller)**.                      |
+| **Độ Trễ Đồng Bộ**                         | **Chậm**: Sửa code xong phải nhớ cập nhật lại file YAML.     | **Tức thì (0 giây)**: Vừa lưu file code là Swagger UI tự làm mới. |
+| **Chi Phí Bảo Trì**                        | **Rất cao**: Cần duy trì song song cả code lẫn tệp tài liệu. | **Cực thấp**: Chỉ cần trang trí thêm decorators lên DTOs sẵn có.  |
+| **Type-Safety**                            | Phụ thuộc vào công cụ sinh code (Code Generator).            | **Tối đa 100%**: Tận dụng triệt để static type của TypeScript.    |
+| **Tính Năng Thử Nghiệm**                   | Cần công cụ thứ ba (Postman, Insomnia).                      | **Tích hợp sẵn Swagger UI tương tác (`Try it out`)**.             |
+
+---
+
+## 2. Kiến Trúc Tích Hợp @nestjs/swagger Trong NestJS Pipeline
+
+Gói `@nestjs/swagger` hoạt động dựa trên cơ chế **Metadata Reflection** của TypeScript. Khi ứng dụng NestJS khởi động (`bootstrap`), `SwaggerModule` sẽ duyệt qua toàn bộ các Module, Controllers và DTOs đã đăng ký trong `AppModule` để tổng hợp thành một cây tài liệu OpenAPI JSON hoàn chỉnh.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as 📱 HTTP Client
+    actor Dev as 👨‍💻 Frontend / QA / Developer
+    participant Browser as 🌐 Browser (Swagger UI)
+    participant Main as 📄 main.ts (Bootstrap)
+    participant SwaggerMod as ⚙️ SwaggerModule
+    participant Controller as 📄 AuthController & PostsController
     participant Guard as 🛡️ Global JwtAuthGuard
-    participant Reflector as 🔍 Reflector Metadata
-    participant Controller as 📄 PostsController (@Version('1'))
-    participant Service as ⚙️ PostsService
-    participant DB as 🗄️ PostgreSQL (Prisma)
-    participant Interceptor as 🟢 TransformInterceptor
 
-    Client->>Guard: POST /api/v1/posts (Header: Bearer Token + Body)
-    Guard->>Reflector: Lấy metadata 'isPublic'
-    Reflector-->>Guard: isPublic = false (Route riêng tư)
-    Guard->>Guard: Verify JWT Token & Gán user vào req.user
+    Main->>SwaggerMod: DocumentBuilder: Khởi tạo Config (Title, BearerAuth)
+    SwaggerMod->>Controller: Quét @ApiTags, @ApiOperation, @ApiProperty
+    Controller-->>SwaggerMod: Trả về Metadata cấu trúc Request / Response
+    SwaggerMod->>Main: Biên dịch thành OpenAPI Document (JSON)
+    Main->>Browser: Mount Swagger UI tại endpoint /api/docs
 
-    Guard->>Controller: Gọi create(@CurrentUser('userId') userId, dto)
-    Controller->>Service: create(userId, createPostDto)
-    Service->>DB: prisma.post.create({ data: { ...dto, authorId: userId } })
-    DB-->>Service: Trả về Post record mới
-    Service-->>Controller: Trả về đối tượng Post
-    Controller-->>Interceptor: Trả về kết quả
-    Note over Interceptor: Trích xuất @ResponseMessage()<br/>Đóng gói JSON Enterprise { statusCode, message, data, ... }
-    Interceptor-->>Client: 201 Created (Clean Response)
+    Dev->>Browser: Mở http://localhost:3000/api/docs
+    Browser->>Dev: Hiển thị bảng điều khiển tương tác (Interactive Portal)
+
+    Note over Dev,Browser: Bước xác thực bảo mật Bearer Token
+    Dev->>Browser: Bấm nút "Authorize 🔓" & Nhập Bearer Token
+    Browser->>Dev: Khóa ổ khóa "Authorize 🔒" thành công!
+
+    Dev->>Browser: Chọn API & Bấm "Try it out" -> "Execute"
+    Browser->>Guard: Gửi HTTP Request (Header: Authorization Bearer ...)
+    Guard->>Controller: Token hợp lệ -> Chuyển vào Controller
+    Controller-->>Browser: Trả về dữ liệu JSON kèm HTTP Status
+    Browser-->>Dev: Hiển thị trực quan Response Body, Headers & Curl Command
 ```
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Triển Khai Posts Module
+## 3. Hướng Dẫn Thực Hành Step-by-Step — Triển Khai OpenAPI & Swagger UI
 
-### 📌 Bước 1: Khởi Tạo DTOs Cho Posts Module
+### 📌 Bước 1: Cài Đặt Gói Phụ Thuộc Cần Thiết
 
-Tạo các tệp DTO quy định dữ liệu đầu vào trong thư mục `src/posts/dto/`:
+Cài đặt hai thư viện chính hãng:
 
-📄 **`src/posts/dto/create-post.dto.ts`**
+- `@nestjs/swagger`: Thư viện lõi cung cấp các decorators và `SwaggerModule`.
+- `swagger-ui-express`: Giao diện web trực quan để duyệt và thử nghiệm API.
+
+Mở terminal tại thư mục gốc của dự án và chạy lệnh:
+
+```bash
+pnpm add @nestjs/swagger swagger-ui-express
+```
+
+> [!TIP]
+> Nếu bạn muốn Swagger tự động phân tích các thuộc tính trong DTO mà không cần khai báo quá nhiều `@ApiProperty()`, bạn có thể kích hoạt Swagger CLI Plugin trong `nest-cli.json`. Tuy nhiên, trong môi trường Enterprise, việc **tự khai báo tường minh `@ApiProperty()`** vẫn là tiêu chuẩn vàng giúp kiểm soát chính xác ví dụ mẫu (`example`), mô tả (`description`) và kiểu dữ liệu hiển thị.
+
+---
+
+### 📌 Bước 2: Cấu Hình `DocumentBuilder` Trong `src/main.ts`
+
+Mở tệp `src/main.ts` và thiết lập `SwaggerModule`. Lưu ý rằng hệ thống của chúng ta đã có **Global Prefix `/api`** và **URI Versioning `/api/v1`** từ Module 3, nên đường dẫn Swagger UI sẽ được mount tại `/api/docs`.
+
+📄 **`src/main.ts`**
 
 ```typescript
+import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // 1. Cấu hình Global Prefix chuẩn RESTful
+  app.setGlobalPrefix('api');
+
+  // 2. Cấu hình URI Versioning (/api/v1/...)
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+
+  // 3. Kích hoạt ValidationPipe toàn cục
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // 4. Thiết lập OpenAPI Specification (Swagger)
+  const config = new DocumentBuilder()
+    .setTitle('Social Chat App API')
+    .setDescription(
+      'Hệ thống REST API cho ứng dụng Mạng xã hội & Chat Realtime - Xây dựng với NestJS, PostgreSQL & Prisma ORM',
+    )
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description:
+          'Nhập JWT Access Token vào đây theo cú pháp: Bearer <token>',
+        in: 'header',
+      },
+      'JWT-auth', // Tên định danh Security Scheme dùng xuyên suốt các Controller
+    )
+    .addTag('auth', 'Các API xác thực: Đăng ký, Đăng nhập & Quản lý Token')
+    .addTag('users', 'Quản lý thông tin hồ sơ người dùng')
+    .addTag('posts', 'Quản lý bài viết & phân trang Offset/Cursor')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+
+  // 5. Khởi tạo giao diện Swagger UI tại đường dẫn /api/docs
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true, // Giữ nguyên trạng thái Bearer Token khi refresh F5 trang web!
+    },
+  });
+
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`🚀 Ứng dụng đang chạy tại: http://localhost:${port}`);
+  console.log(`📚 Swagger UI Document: http://localhost:${port}/api/docs`);
+}
+bootstrap();
+```
+
+> [!IMPORTANT]
+> Tùy chọn `persistAuthorization: true` trong `swaggerOptions` là một mẹo cực kỳ hữu ích trong thực tế! Nó giúp trình duyệt lưu token vào `localStorage`, tránh việc bạn phải copy/paste lại chuỗi token mỗi khi F5 reload trang trong quá trình dev và kiểm thử.
+
+---
+
+### 📌 Bước 3: Chuẩn Hóa Schema DTOs Với `@ApiProperty()` & `@ApiPropertyOptional()`
+
+Để Swagger UI hiển thị chính xác kiểu dữ liệu, các trường bắt buộc, giá trị mặc định và dữ liệu JSON mẫu (`example`), chúng ta sử dụng các decorators của `@nestjs/swagger`.
+
+Cập nhật các tệp DTO của Module Auth:
+
+📄 **`src/auth/dto/register.dto.ts`**
+
+```typescript
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsBoolean,
+  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
 
-export class CreatePostDto {
-  @IsString({ message: 'Tiêu đề bài viết phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Tiêu đề bài viết không được để trống' })
-  @MinLength(5, { message: 'Tiêu đề bài viết phải có ít nhất 5 ký tự' })
-  title: string;
+export class RegisterDto {
+  @ApiProperty({
+    description: 'Địa chỉ email người dùng (duy nhất trong hệ thống)',
+    example: 'alice@example.com',
+  })
+  @IsEmail({}, { message: 'Email không đúng định dạng' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  email: string;
 
-  @IsString({ message: 'Nội dung bài viết phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Nội dung bài viết không được để trống' })
-  content: string;
+  @ApiProperty({
+    description: 'Mật khẩu đăng nhập (tối thiểu 6 ký tự)',
+    example: 'Password@123',
+    minLength: 6,
+  })
+  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự' })
+  @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
+  password: string;
 
+  @ApiPropertyOptional({
+    description: 'Họ và tên hiển thị của người dùng',
+    example: 'Alice Nguyen',
+  })
   @IsOptional()
-  @IsBoolean({ message: 'Trạng thái xuất bản phải là kiểu boolean' })
-  published?: boolean;
+  @IsString({ message: 'Họ tên phải là chuỗi ký tự' })
+  name?: string;
 }
 ```
 
-📄 **`src/posts/dto/update-post.dto.ts`**
+📄 **`src/auth/dto/login.dto.ts`**
 
 ```typescript
-import { PartialType } from '@nestjs/mapped-types';
-import { CreatePostDto } from './create-post.dto';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
-export class UpdatePostDto extends PartialType(CreatePostDto) {}
-```
+export class LoginDto {
+  @ApiProperty({
+    description: 'Địa chỉ email đã đăng ký',
+    example: 'alice@example.com',
+  })
+  @IsEmail({}, { message: 'Email không đúng định dạng' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  email: string;
 
-📄 **`src/posts/dto/query-post.dto.ts`**
-
-```typescript
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-
-export class QueryPostDto {
-  // --- Offset-based Pagination Params ---
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'Số trang page phải là số nguyên' })
-  @Min(1, { message: 'Số trang tối thiểu là 1' })
-  page?: number = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'Số lượng bản ghi limit phải là số nguyên' })
-  @Min(1, { message: 'Số lượng bản ghi tối thiểu là 1' })
-  @Max(100, { message: 'Tối đa 100 bản ghi trên 1 trang' })
-  limit?: number = 10;
-
-  // --- Cursor-based Pagination Params ---
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'Cursor phải là ID của bài viết dạng số nguyên' })
-  cursor?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'Take phải là số nguyên' })
-  @Min(1)
-  @Max(100)
-  take?: number = 10;
-
-  // --- Search & Filter ---
-  @IsOptional()
-  @IsString()
-  search?: string;
+  @ApiProperty({
+    description: 'Mật khẩu đăng nhập',
+    example: 'Password@123',
+  })
+  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự' })
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
+  password: string;
 }
 ```
 
 ---
 
-### 📌 Bước 2: Triển Khai `PostsService` Tương Tác CSDL Qua Prisma
+### 💡 Điểm Khác Biệt Then Chốt: `PartialType` Của `@nestjs/swagger` vs `@nestjs/mapped-types`
 
-Tạo tệp service xử lý toàn bộ nghiệp vụ CRUD và hai thuật toán phân trang:
-
-📄 **`src/posts/posts.service.ts`**
+Khi xây dựng các DTO cập nhật (ví dụ: `UpdateProfileDto` hoặc `UpdatePostDto`), ở Module 3 chúng ta đã làm quen với `PartialType`:
 
 ```typescript
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreatePostDto } from './dto/create-post.dto';
-import { QueryPostDto } from './dto/query-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
+// ❌ CÁCH CŨ (Chỉ hỗ trợ class-validator runtime, BỊ MẤT METADATA TRÊN SWAGGER UI):
+// import { PartialType } from '@nestjs/mapped-types';
 
-@Injectable()
-export class PostsService {
-  constructor(private readonly prisma: PrismaService) {}
+// ✅ CÁCH CHUẨN KHI CÓ SWAGGER:
+import { PartialType } from '@nestjs/swagger';
+import { RegisterDto } from './register.dto';
 
-  // 1. Tạo bài viết mới
-  async create(authorId: number, createPostDto: CreatePostDto) {
-    return this.prisma.post.create({
-      data: {
-        ...createPostDto,
-        authorId,
-      },
-      include: {
-        author: {
-          select: { id: true, email: true, name: true },
-        },
-      },
-    });
-  }
-
-  // 2. Phân trang dạng Offset-based (Dùng cho Trang Admin / Web Table)
-  async findAllOffset(query: QueryPostDto) {
-    const { page = 1, limit = 10, search } = query;
-    const skip = (page - 1) * limit;
-
-    const where = search
-      ? {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' as const } },
-            { content: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
-
-    const [items, totalItems] = await Promise.all([
-      this.prisma.post.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          author: {
-            select: { id: true, email: true, name: true },
-          },
-        },
-      }),
-      this.prisma.post.count({ where }),
-    ]);
-
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return {
-      items,
-      meta: {
-        page,
-        limit,
-        totalItems,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
-    };
-  }
-
-  // 3. Phân trang dạng Cursor-based (Dùng cho Mobile App / Infinite Scroll Feed)
-  async findAllCursor(query: QueryPostDto) {
-    const { cursor, take = 10, search } = query;
-
-    const where = search
-      ? {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' as const } },
-            { content: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
-
-    const items = await this.prisma.post.findMany({
-      where,
-      take: take + 1, // Lấy dư 1 phần tử để kiểm tra hasNextPage
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { id: 'desc' },
-      include: {
-        author: {
-          select: { id: true, email: true, name: true },
-        },
-      },
-    });
-
-    let hasNextPage = false;
-    if (items.length > take) {
-      hasNextPage = true;
-      items.pop(); // Loại bỏ phần tử dư thừa
-    }
-
-    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
-
-    return {
-      items,
-      meta: {
-        take,
-        nextCursor,
-        hasNextPage,
-      },
-    };
-  }
-
-  // 4. Lấy chi tiết bài viết theo ID
-  async findOne(id: number) {
-    const post = await this.prisma.post.findUnique({
-      where: { id },
-      include: {
-        author: { select: { id: true, email: true, name: true } },
-        comments: {
-          select: { id: true, content: true, createdAt: true, authorId: true },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-
-    if (!post) {
-      throw new NotFoundException(`Không tìm thấy bài viết với ID #${id}`);
-    }
-
-    return post;
-  }
-
-  // 5. Cập nhật bài viết (Chỉ chính chủ tác giả mới được cập nhật)
-  async update(id: number, userId: number, updatePostDto: UpdatePostDto) {
-    const post = await this.findOne(id);
-
-    if (post.authorId !== userId) {
-      throw new ForbiddenException('Bạn không có quyền chỉnh sửa bài viết này');
-    }
-
-    return this.prisma.post.update({
-      where: { id },
-      data: updatePostDto,
-      include: {
-        author: { select: { id: true, email: true, name: true } },
-      },
-    });
-  }
-
-  // 6. Xóa bài viết (Chỉ chính chủ tác giả mới được xóa)
-  async remove(id: number, userId: number) {
-    const post = await this.findOne(id);
-
-    if (post.authorId !== userId) {
-      throw new ForbiddenException('Bạn không có quyền xóa bài viết này');
-    }
-
-    await this.prisma.post.delete({ where: { id } });
-
-    return { id };
-  }
-}
+export class UpdateProfileDto extends PartialType(RegisterDto) {}
 ```
+
+> [!CAUTION]
+> Nếu bạn import `PartialType` từ `@nestjs/mapped-types`, NestJS runtime vẫn chạy bình thường, nhưng **giao diện Swagger UI sẽ không hiển thị các trường dữ liệu của DTO con** (schema rỗng).  
+> **Luôn luôn import `PartialType`, `OmitType`, `PickType`, `IntersectionType` từ gói `@nestjs/swagger`** để toàn bộ schema metadata được kế thừa hoàn chỉnh!
 
 ---
 
-### 📌 Bước 3: Triển Khai `PostsController` Đồng Bộ Các Custom Decorators
+### 📌 Bước 4: Trang Trí Controller Với OpenAPI Decorators
 
-Tạo tệp controller áp dụng chuẩn mực `@Version('1')`, `@ResponseMessage()`, `@Public()`, và `@CurrentUser('userId')`:
+Gắn các nhãn tài liệu lên `AuthController` và `UsersController`:
 
-📄 **`src/posts/posts.controller.ts`**
+📄 **`src/auth/auth.controller.ts`**
 
 ```typescript
 import {
   Body,
   Controller,
-  Delete,
-  Get,
   HttpCode,
   HttpStatus,
-  Param,
-  ParseIntPipe,
-  Patch,
   Post,
-  Query,
   Version,
 } from '@nestjs/common';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
-import { CreatePostDto } from './dto/create-post.dto';
-import { QueryPostDto } from './dto/query-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
-import { PostsService } from './posts.service';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 
-@Controller('posts')
-export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+@ApiTags('auth') // Nhóm toàn bộ endpoints trong controller này vào thư mục "auth" trên Swagger UI
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
 
-  // 1. POST /posts — Tạo bài viết mới (Mặc định riêng tư: Cần JWT Access Token)
+  // 1. POST /api/v1/auth/register — Đăng ký tài khoản
+  @Public()
   @Version('1')
-  @Post()
+  @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ResponseMessage('Tạo bài viết mới thành công!')
-  create(
-    @CurrentUser('userId') userId: number,
-    @Body() createPostDto: CreatePostDto,
-  ) {
-    return this.postsService.create(userId, createPostDto);
+  @ApiOperation({
+    summary: 'Đăng ký tài khoản mới',
+    description:
+      'Tạo tài khoản người dùng mới với email, password và name. Không yêu cầu xác thực token.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Đăng ký tài khoản thành công',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Dữ liệu không hợp lệ (Validation failed) hoặc email đã tồn tại',
+  })
+  @ResponseMessage('Đăng ký tài khoản thành công!')
+  register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
-  // 2. GET /posts — Lấy danh sách bài viết phân trang Offset (Public API)
+  // 2. POST /api/v1/auth/login — Đăng nhập tài khoản
   @Public()
   @Version('1')
-  @Get()
-  @ResponseMessage('Lấy danh sách bài viết phân trang thành công!')
-  findAllOffset(@Query() query: QueryPostDto) {
-    return this.postsService.findAllOffset(query);
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Đăng nhập hệ thống & lấy JWT Access Token',
+    description:
+      'Xác thực tài khoản bằng email/mật khẩu và phát hành Access Token thời hạn 1 ngày.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Đăng nhập thành công, trả về JWT Access Token',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Email hoặc mật khẩu không chính xác',
+  })
+  @ResponseMessage('Đăng nhập thành công!')
+  login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
+}
+```
 
-  // 3. GET /posts/feed — Lấy newsfeed cuộn vô tận phân trang Cursor (Public API)
-  @Public()
-  @Version('1')
-  @Get('feed')
-  @ResponseMessage('Lấy newsfeed cuộn vô tận thành công!')
-  findAllCursor(@Query() query: QueryPostDto) {
-    return this.postsService.findAllCursor(query);
-  }
+📄 **`src/users/users.controller.ts`**
 
-  // 4. GET /posts/:id — Xem chi tiết bài viết (Public API)
-  @Public()
-  @Version('1')
-  @Get(':id')
-  @ResponseMessage('Lấy thông tin chi tiết bài viết thành công!')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.postsService.findOne(id);
-  }
+Đối với các endpoint yêu cầu quyền riêng tư (Private/Protected API), gắn thêm decorator `@ApiBearerAuth('JWT-auth')`:
 
-  // 5. PATCH /posts/:id — Chỉnh sửa bài viết (Mặc định riêng tư & Kiểm tra chính chủ)
-  @Version('1')
-  @Patch(':id')
-  @ResponseMessage('Cập nhật bài viết thành công!')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('userId') userId: number,
-    @Body() updatePostDto: UpdatePostDto,
-  ) {
-    return this.postsService.update(id, userId, updatePostDto);
-  }
+```typescript
+import { Controller, Get, Version } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { UsersService } from './users.service';
 
-  // 6. DELETE /posts/:id — Xóa bài viết (Mặc định riêng tư & Kiểm tra chính chủ)
+@ApiTags('users')
+@ApiBearerAuth('JWT-auth') // Khai báo rằng tất cả endpoints trong controller này cần JWT Bearer Auth
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
   @Version('1')
-  @Delete(':id')
-  @ResponseMessage('Xóa bài viết thành công!')
-  remove(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('userId') userId: number,
-  ) {
-    return this.postsService.remove(id, userId);
+  @Get('profile')
+  @ApiOperation({
+    summary: 'Xem hồ sơ cá nhân của người dùng hiện tại',
+    description:
+      'Trích xuất thông tin người dùng từ JWT Access Token trong Header.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy thông tin hồ sơ thành công',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Chưa xác thực hoặc Access Token không hợp lệ / đã hết hạn',
+  })
+  @ResponseMessage('Lấy thông tin hồ sơ người dùng thành công!')
+  getProfile(@CurrentUser('userId') userId: number) {
+    return this.usersService.findById(userId);
   }
 }
 ```
 
 ---
 
-### 📌 Bước 4: Đăng Ký `PostsModule`
+## 4. Kịch Bản Kiểm Tra & Thử Nghiệm Tương Tác (Hands-on Lab)
 
-Đóng gói và khai báo `PostsModule` trong hệ thống:
+Khởi động dự án ở chế độ phát triển:
 
-📄 **`src/posts/posts.module.ts`**
-
-```typescript
-import { Module } from '@nestjs/common';
-import { PostsService } from './posts.service';
-import { PostsController } from './posts.controller';
-
-@Module({
-  controllers: [PostsController],
-  providers: [PostsService],
-  exports: [PostsService],
-})
-export class PostsModule {}
+```bash
+pnpm start:dev
 ```
 
-Và khai báo thêm `PostsModule` vào `AppModule`:
-
-📄 **`src/app.module.ts`**
-
-```typescript
-import { Module } from '@nestjs/common';
-import { PostsModule } from './posts/posts.module';
-
-@Module({
-  imports: [
-    // các module khác...
-    PostsModule,
-  ],
-})
-export class AppModule {}
-```
+Mở trình duyệt Web tại địa chỉ: **`http://localhost:3000/api/docs`**
 
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+### 🟢 Kịch Bản 1: Khám Phá Swagger UI & Kiểm Thử Auth API Không Cần Postman
 
-> [!TIP]
-> Hãy chắc chắn rằng bạn đã khởi chạy PostgreSQL Docker Container (`docker compose up -d`) và ứng dụng NestJS (`pnpm dev`).
-
-### 🟢 Kịch Bản 1: Thành Công (Success Flow)
-
-#### 1. Tạo bài viết mới thành công
-
-Gửi Request HTTP POST tới `/api/v1/posts` kèm theo Bearer JWT Access Token:
-
-```bash
-curl -X POST http://localhost:3000/api/v1/posts \
-  -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Hướng dẫn phân trang Cursor-based trong NestJS",
-    "content": "Kỹ thuật phân trang con trỏ giúp tăng tốc Feed gấp 10 lần so với Offset...",
-    "published": true
-  }'
-```
-
-**Kết quả kỳ vọng (Đã qua `TransformInterceptor` đóng gói JSON Enterprise - HTTP 201 Created):**
+1. Trên giao diện Swagger UI, bạn sẽ thấy hai nhóm tag lớn: **`auth`** và **`users`**.
+2. Nhấp chuột vào endpoint **`POST /api/v1/auth/register`**:
+   - Quan sát mục **Parameters & Request Body**: Swagger hiển thị sẵn mẫu JSON với các trường `email`, `password`, `name` kèm ví dụ mẫu đã khai báo trong DTO.
+   - Bấm nút **Try it out**.
+   - Sửa trường `email` thành: `"dev_test@example.com"`, `password` thành `"Secret@123"`.
+   - Bấm nút **Execute** (nút màu xanh lớn).
+3. **Kết quả phản hồi (Response 201 Created):**
 
 ```json
 {
   "statusCode": 201,
-  "message": "Tạo bài viết mới thành công!",
+  "message": "Đăng ký tài khoản thành công!",
   "data": {
     "id": 1,
-    "title": "Hướng dẫn phân trang Cursor-based trong NestJS",
-    "content": "Kỹ thuật phân trang con trỏ giúp tăng tốc Feed gấp 10 lần so với Offset...",
-    "published": true,
-    "createdAt": "2026-08-14T10:55:00.000Z",
-    "updatedAt": "2026-08-14T10:55:00.000Z",
-    "authorId": 1,
-    "author": {
-      "id": 1,
-      "email": "dev@nestjs.com",
-      "name": "Alex Developer"
-    }
+    "email": "dev_test@example.com",
+    "name": "Alice Nguyen",
+    "createdAt": "2026-09-07T10:30:00.000Z"
   },
-  "timestamp": "2026-08-14T10:55:00.000Z",
-  "path": "/api/v1/posts"
+  "timestamp": "2026-09-07T10:30:00.123Z",
+  "path": "/api/v1/auth/register"
 }
 ```
 
+4. Tiếp tục thử nghiệm endpoint **`POST /api/v1/auth/login`**:
+   - Bấm **Try it out**, nhập đúng tài khoản vừa tạo.
+   - Bấm **Execute**.
+   - Sao chép (copy) chuỗi `accessToken` từ kết quả phản hồi `200 OK`.
+
 ---
 
-#### 2. Phân trang Offset (Page 1, Limit 2)
+### 🟢 Kịch Bản 2: Đăng Nhập Bearer Token & Gọi Protected API Trực Tiếp Trên Swagger
 
-```bash
-curl -X GET "http://localhost:3000/api/v1/posts?page=1&limit=2"
-```
-
-**Kết quả kỳ vọng (HTTP status `200 OK`):**
+1. Kéo lên góc trên bên phải màn hình Swagger UI, bấm vào nút **Authorize 🔓** (ổ khóa màu xanh).
+2. Một hộp thoại popup sẽ xuất hiện:
+   - Tại ô **Value**, dán chuỗi token bạn vừa copy: `Bearer eyJhbGciOiJIUzI1Ni...` (hoặc chỉ cần dán token nếu cấu hình type là http bearer).
+   - Bấm nút **Authorize** màu xanh ➔ Bấm **Close**.
+   - Biểu tượng ổ khóa sẽ chuyển sang trạng thái đã khóa: **Authorize 🔒**.
+3. Cuộn xuống nhóm **`users`**, mở endpoint **`GET /api/v1/users/profile`**:
+   - Bấm **Try it out** ➔ Bấm **Execute**.
+4. **Kết quả phản hồi (Response 200 OK):**
 
 ```json
 {
   "statusCode": 200,
-  "message": "Lấy danh sách bài viết phân trang thành công!",
+  "message": "Lấy thông tin hồ sơ người dùng thành công!",
   "data": {
-    "items": [
-      {
-        "id": 2,
-        "title": "Bài viết số 2",
-        "author": {
-          "id": 1,
-          "email": "dev@nestjs.com",
-          "name": "Alex Developer"
-        }
-      },
-      {
-        "id": 1,
-        "title": "Hướng dẫn phân trang Cursor-based trong NestJS",
-        "author": {
-          "id": 1,
-          "email": "dev@nestjs.com",
-          "name": "Alex Developer"
-        }
-      }
-    ],
-    "meta": {
-      "page": 1,
-      "limit": 2,
-      "totalItems": 2,
-      "totalPages": 1,
-      "hasNextPage": false,
-      "hasPreviousPage": false
-    }
+    "id": 1,
+    "email": "dev_test@example.com",
+    "name": "Alice Nguyen"
   },
-  "timestamp": "2026-08-14T10:55:05.000Z",
-  "path": "/api/v1/posts"
+  "timestamp": "2026-09-07T10:32:15.000Z",
+  "path": "/api/v1/users/profile"
 }
 ```
+
+> [!TIP]
+> Nhìn vào phần **Curl** được Swagger UI tạo tự động, bạn sẽ thấy Swagger đã tự động gắn header:  
+> `-H "Authorization: Bearer eyJhbGci..."`. Toàn bộ quá trình test API diễn ra 100% trên trình duyệt mà không cần mở Postman hay gõ lệnh Terminal!
 
 ---
 
-#### 3. Phân trang Cursor Cuộn Vô Tận (Feed API)
+### 🔴 Kịch Bản 3: Kiểm Thử Lỗi Khi Chưa Authorize / Token Sai (Error Flow)
 
-```bash
-curl -X GET "http://localhost:3000/api/v1/posts/feed?take=1"
-```
-
-**Kết quả kỳ vọng trang đầu tiên:**
+1. Bấm lại vào nút **Authorize 🔒** ➔ Bấm **Logout** để xóa Token đã lưu.
+2. Thử bấm lại **Execute** trên endpoint **`GET /api/v1/users/profile`**.
+3. **Kết quả kỳ vọng (HTTP Status `401 Unauthorized`):**
 
 ```json
 {
-  "statusCode": 200,
-  "message": "Lấy newsfeed cuộn vô tận thành công!",
-  "data": {
-    "items": [
-      {
-        "id": 2,
-        "title": "Bài viết số 2"
-      }
-    ],
-    "meta": {
-      "take": 1,
-      "nextCursor": 2,
-      "hasNextPage": true
-    }
-  },
-  "timestamp": "2026-08-14T10:55:10.000Z",
-  "path": "/api/v1/posts/feed"
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "timestamp": "2026-09-07T10:33:00.000Z",
+  "path": "/api/v1/users/profile"
 }
 ```
 
-**Lấy trang tiếp theo bằng `cursor=2`:**
-
-```bash
-curl -X GET "http://localhost:3000/api/v1/posts/feed?cursor=2&take=1"
-```
-
----
-
-### 🔴 Kịch Bản 2: Kiểm Thử Lỗi & Ngăn Chặn (Blocked / Error Flow)
-
-#### 1. Lỗi Validation DTO (Thiếu title & content quá ngắn)
-
-```bash
-curl -X POST http://localhost:3000/api/v1/posts \
-  -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Nest",
-    "content": ""
-  }'
-```
-
-**Kết quả kỳ vọng (Qua `HttpExceptionFilter` toàn cục từ Lesson 3.4 - HTTP 400 Bad Request):**
-
-```json
-{
-  "statusCode": 400,
-  "message": [
-    "Tiêu đề bài viết phải có ít nhất 5 ký tự",
-    "Nội dung bài viết không được để trống"
-  ],
-  "error": "Bad Request",
-  "timestamp": "2026-08-14T10:55:15.000Z",
-  "path": "/api/v1/posts"
-}
-```
-
----
-
-#### 2. Lỗi Forbidden 403 khi Xóa Bài Viết Không Chính Chủ
-
-User B (ID = 2) gửi request xóa Bài viết #1 do User A (ID = 1) tạo ra:
-
-```bash
-curl -X DELETE http://localhost:3000/api/v1/posts/1 \
-  -H "Authorization: Bearer <TOKEN_USER_B>"
-```
-
-**Kết quả kỳ vọng (HTTP status `403 Forbidden`):**
-
-```json
-{
-  "statusCode": 403,
-  "message": "Bạn không có quyền xóa bài viết này",
-  "error": "Forbidden",
-  "timestamp": "2026-08-14T10:55:20.000Z",
-  "path": "/api/v1/posts/1"
-}
-```
+Swagger UI đã thể hiện chính xác cơ chế bảo vệ của `JwtAuthGuard` toàn cục mà chúng ta đã xây dựng từ Module 4!
 
 ---
 
@@ -692,28 +517,34 @@ curl -X DELETE http://localhost:3000/api/v1/posts/1 \
 
 ```mermaid
 mindmap
-  root((Posts API & Phân Trang))
-    Thao Tác CRUD
-      Create: Gán tác giả qua @CurrentUser('userId')
-      Read: Offset vs Cursor Pagination
-      Update & Delete: Kiểm tra quyền chính chủ authorId
-    Kỹ Thuật Phân Trang
-      Offset Based: Page & Limit - Phù hợp Admin
-      Cursor Based: Cursor & Take - Phù hợp Infinite Feed
-    Đồng Bộ Architecture
-      Global JwtAuthGuard & @Public() decorator
-      @Version('1') & URI Versioning /api/v1/posts
-      @ResponseMessage() & TransformInterceptor response format
+  root((OpenAPI & Swagger UI))
+    Lõi Khởi Tạo
+      DocumentBuilder trong main.ts
+      SwaggerModule setup /api/docs
+      persistAuthorization lưu token
+    Cơ Chế Bảo Mật
+      addBearerAuth JWT-auth
+      @ApiBearerAuth JWT-auth
+      Tương tác nút Authorize ổ khóa
+    Trang Trí Controller
+      @ApiTags gom nhóm tài nguyên
+      @ApiOperation mô tả endpoint
+      @ApiResponse mã HTTP và mô tả
+    Chuẩn Hóa DTOs
+      @ApiProperty và @ApiPropertyOptional
+      PartialType từ @nestjs/swagger
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu bản chất và sự khác biệt về hiệu năng giữa **Offset-based** (`OFFSET/LIMIT`) và **Cursor-based** (`WHERE id < cursor`).
-- [x] Thiết kế DTOs validation chuẩn mực cho Create, Update và Query params (`page`, `limit`, `cursor`, `take`).
-- [x] Đã đồng bộ kiến trúc Request Pipeline: `@Public()` cho Public API, `@CurrentUser('userId')` cho Protected API.
-- [x] Áp dụng `@Version('1')` và `@ResponseMessage()` để tạo JSON Enterprise Response đồng nhất với các Module trước.
-- [x] Kiểm soát phân quyền chính chủ bài viết, chặn đứng hành vi sửa/xóa trái phép với `ForbiddenException` (`403 Forbidden`).
+- [x] Hiểu rõ sự vượt trội của tiếp cận **Code-First** giúp đồng bộ tài liệu API tức thì, loại bỏ hoàn toàn Schema Drift.
+- [x] Cài đặt thành công `@nestjs/swagger` và `swagger-ui-express`.
+- [x] Cấu hình `DocumentBuilder` trong `main.ts`, hỗ trợ API Versioning và đường dẫn tài liệu chuẩn `/api/docs`.
+- [x] Thiết lập `addBearerAuth()` và `@ApiBearerAuth('JWT-auth')` để test các API bảo mật trực tiếp trên trình duyệt.
+- [x] Khai báo đầy đủ `@ApiProperty()` và `@ApiPropertyOptional()` trên các DTOs.
+- [x] Phân biệt rõ việc sử dụng `PartialType` từ `@nestjs/swagger` thay vì `@nestjs/mapped-types`.
+- [x] Thực hành thành thạo luồng kiểm thử tương tác (Interactive Testing): Đăng ký ➔ Đăng nhập ➔ Authorize ➔ Gọi Protected Route.
 
 ---
 
-👉 **Bài tiếp theo:** Lesson 5.2: File Upload - Upload ảnh đại diện/bài viết với Multer
+👉 **Bài tiếp theo:** [Lesson 5.2: Posts API — CRUD Bài Viết & Phân Trang Cursor/Offset](../lesson-5.2/lesson-5.2.md)

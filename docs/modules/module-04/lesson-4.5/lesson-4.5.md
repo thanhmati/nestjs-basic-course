@@ -356,4 +356,4 @@ mindmap
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 5.1: Posts API — CRUD Bài Viết & Phân Trang Cursor/Offset](../../module-05/lesson-5.1/lesson-5.1.md)
+👉 **Bài tiếp theo:** [Lesson 5.1: OpenAPI (Swagger) — Tự Động Sinh Swagger UI Tương Tác (@nestjs/swagger)](../../module-05/lesson-5.1/lesson-5.1.md)

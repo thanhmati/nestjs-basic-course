@@ -2,36 +2,36 @@
   <defs>
     <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="50%" stop-color="#1e293b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0b0f19"/>
     </linearGradient>
 
     <!-- Card Background Gradient -->
     <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95"/>
-      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+      <stop offset="0%" stop-color="#1f2937" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#111827" stop-opacity="0.95"/>
     </linearGradient>
 
     <!-- Accents -->
-    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
+    <linearGradient id="swaggerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#85ea2d"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <linearGradient id="nestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0234e"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
     </linearGradient>
 
     <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#06b6d4"/>
-      <stop offset="100%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
     </linearGradient>
 
     <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#a855f7"/>
-      <stop offset="100%" stop-color="#7e22ce"/>
-    </linearGradient>
-
-    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#6366f1"/>
     </linearGradient>
 
     <!-- Glow & Shadow Filters -->
@@ -40,13 +40,13 @@
     </filter>
 
     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feGaussianBlur stdDeviation="10" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
 
     <!-- Background Pattern -->
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.3"/>
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#374151" stroke-width="1" stroke-opacity="0.25"/>
     </pattern>
   </defs>
 
@@ -55,108 +55,122 @@
   <rect width="1200" height="400" fill="url(#grid)"/>
 
   <!-- Glowing Orbs -->
-  <circle cx="200" cy="100" r="140" fill="#6366f1" opacity="0.12" filter="url(#glow)"/>
-  <circle cx="1000" cy="300" r="160" fill="#06b6d4" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="180" cy="110" r="150" fill="#85ea2d" opacity="0.1" filter="url(#glow)"/>
+  <circle cx="1020" cy="280" r="160" fill="#06b6d4" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="600" cy="200" r="130" fill="#e0234e" opacity="0.08" filter="url(#glow)"/>
 
   <!-- Main Card Container -->
   <g filter="url(#shadow)">
-    <rect x="50" y="40" width="1100" height="320" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5"/>
+    <rect x="50" y="40" width="1100" height="320" rx="16" fill="url(#cardGrad)" stroke="#374151" stroke-width="1.5"/>
     
     <!-- Top Terminal Bar -->
-    <path d="M 50 56 A 16 16 0 0 1 66 40 L 1134 40 A 16 16 0 0 1 1150 56 L 1150 85 L 50 85 Z" fill="#0f172a" fill-opacity="0.8"/>
+    <path d="M 50 56 A 16 16 0 0 1 66 40 L 1134 40 A 16 16 0 0 1 1150 56 L 1150 85 L 50 85 Z" fill="#0b0f19" fill-opacity="0.85"/>
     <circle cx="80" cy="62" r="6" fill="#ef4444"/>
     <circle cx="100" cy="62" r="6" fill="#f59e0b"/>
     <circle cx="120" cy="62" r="6" fill="#10b981"/>
     
-    <text x="600" y="67" text-anchor="middle" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="600">
-      nest-app // social-chat-backend // src/posts/
+    <text x="600" y="67" text-anchor="middle" fill="#9ca3af" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="600">
+      nest-app // docs // http://localhost:3000/api/docs
     </text>
 
     <!-- Header Text -->
-    <text x="80" y="125" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="24" font-weight="800" letter-spacing="-0.5">
-      LESSON 5.1: POSTS API — CRUD &amp; PAGINATION
+    <text x="80" y="125" fill="#f9fafb" font-family="'Inter', sans-serif" font-size="24" font-weight="800" letter-spacing="-0.5">
+      LESSON 5.1: OPENAPI &amp; SWAGGER UI — INTERACTIVE API DOCS
     </text>
-    <text x="80" y="148" fill="#94a3b8" font-family="'Inter', sans-serif" font-size="14" font-weight="400">
-      Triển khai CRUD bài viết và phân tích kỹ thuật Offset-based vs Cursor-based Pagination trong NestJS &amp; Prisma ORM
+    <text x="80" y="148" fill="#9ca3af" font-family="'Inter', sans-serif" font-size="14" font-weight="400">
+      Tự động sinh cổng tài liệu API tương tác, thiết lập JWT Bearer Auth &amp; chuẩn hóa Schema với @nestjs/swagger
     </text>
   </g>
 
-  <!-- Left Inner Box: CRUD Endpoints -->
+  <!-- Left Inner Box: Setup & DocumentBuilder -->
   <g filter="url(#shadow)">
-    <rect x="80" y="170" width="310" height="165" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="100" y="195" fill="#6366f1" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">
-      ⚡ CRUD REST ENDPOINTS
+    <rect x="80" y="170" width="315" height="165" rx="10" fill="#0b0f19" stroke="#374151" stroke-width="1"/>
+    <text x="100" y="196" fill="#85ea2d" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">
+      ⚡ SWAGGER MODULE SETUP
     </text>
 
-    <!-- Method Badges -->
-    <!-- POST -->
-    <rect x="100" y="210" width="55" height="20" rx="4" fill="#10b981" opacity="0.2"/>
-    <text x="127" y="224" text-anchor="middle" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">POST</text>
-    <text x="168" y="224" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="12">/api/v1/posts</text>
+    <!-- Code Snippet -->
+    <text x="100" y="222" fill="#60a5fa" font-family="'JetBrains Mono', monospace" font-size="11">const</text>
+    <text x="135" y="222" fill="#f3f4f6" font-family="'JetBrains Mono', monospace" font-size="11">config =</text>
+    <text x="190" y="222" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="11">new DocumentBuilder()</text>
 
-    <!-- GET -->
-    <rect x="100" y="238" width="55" height="20" rx="4" fill="#3b82f6" opacity="0.2"/>
-    <text x="127" y="252" text-anchor="middle" fill="#3b82f6" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">GET</text>
-    <text x="168" y="252" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="12">/api/v1/posts?page=1</text>
+    <text x="110" y="242" fill="#9ca3af" font-family="'JetBrains Mono', monospace" font-size="11">.setTitle('Social API')</text>
+    <text x="110" y="260" fill="#9ca3af" font-family="'JetBrains Mono', monospace" font-size="11">.addBearerAuth(...)</text>
+    <text x="110" y="278" fill="#9ca3af" font-family="'JetBrains Mono', monospace" font-size="11">.build();</text>
 
-    <!-- PATCH -->
-    <rect x="100" y="266" width="55" height="20" rx="4" fill="#f59e0b" opacity="0.2"/>
-    <text x="127" y="280" text-anchor="middle" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">PATCH</text>
-    <text x="168" y="280" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="12">/api/v1/posts/:id</text>
-
-    <!-- DELETE -->
-    <rect x="100" y="294" width="55" height="20" rx="4" fill="#ef4444" opacity="0.2"/>
-    <text x="127" y="308" text-anchor="middle" fill="#ef4444" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">DELETE</text>
-    <text x="168" y="308" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="12">/api/v1/posts/:id</text>
+    <rect x="100" y="295" width="105" height="24" rx="5" fill="#85ea2d" opacity="0.15"/>
+    <text x="152" y="311" text-anchor="middle" fill="#85ea2d" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">/api/docs</text>
+    <text x="215" y="311" fill="#9ca3af" font-family="'JetBrains Mono', monospace" font-size="11">Swagger UI</text>
   </g>
 
-  <!-- Center Box: Offset Pagination -->
+  <!-- Middle Inner Box: Decorators & Metadata -->
   <g filter="url(#shadow)">
-    <rect x="410" y="170" width="345" height="165" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
-    <text x="430" y="195" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">
-      📑 OFFSET-BASED (PAGE / LIMIT)
+    <rect x="420" y="170" width="350" height="165" rx="10" fill="#0b0f19" stroke="#374151" stroke-width="1"/>
+    <text x="440" y="196" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">
+      🏷️ OPENAPI DECORATORS
     </text>
 
-    <!-- Graphic offset bars -->
-    <rect x="430" y="212" width="305" height="28" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-    <text x="442" y="230" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11">SQL: OFFSET 100000 LIMIT 10</text>
+    <!-- Badges / Pill Tags -->
+    <g transform="translate(440, 212)">
+      <rect width="135" height="22" rx="4" fill="#6366f1" opacity="0.2"/>
+      <text x="67" y="15" text-anchor="middle" fill="#818cf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">@ApiTags('auth')</text>
+    </g>
 
-    <path d="M 430 252 L 735 252" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+    <g transform="translate(585, 212)">
+      <rect width="165" height="22" rx="4" fill="#e0234e" opacity="0.2"/>
+      <text x="82" y="15" text-anchor="middle" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">@ApiBearerAuth()</text>
+    </g>
 
-    <!-- Pros & Cons -->
-    <text x="430" y="275" fill="#ef4444" font-family="'Inter', sans-serif" font-size="11" font-weight="600">❌ Nhược điểm:</text>
-    <text x="525" y="275" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11">Chậm khi dataset lớn (Scan lại B-Tree)</text>
-    
-    <text x="430" y="295" fill="#ef4444" font-family="'Inter', sans-serif" font-size="11" font-weight="600">❌ Data Drift:</text>
-    <text x="525" y="295" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11">Bị trùng/bỏ sót bài viết khi feed thêm mới</text>
+    <g transform="translate(440, 244)">
+      <rect width="170" height="22" rx="4" fill="#10b981" opacity="0.2"/>
+      <text x="85" y="15" text-anchor="middle" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">@ApiOperation(...)</text>
+    </g>
 
-    <text x="430" y="318" fill="#10b981" font-family="'Inter', sans-serif" font-size="11" font-weight="600">✔️ Phù hợp:</text>
-    <text x="525" y="318" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11">Trang Admin, Dashboard (Jump to Page N)</text>
+    <g transform="translate(620, 244)">
+      <rect width="130" height="22" rx="4" fill="#f59e0b" opacity="0.2"/>
+      <text x="65" y="15" text-anchor="middle" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">@ApiResponse()</text>
+    </g>
+
+    <g transform="translate(440, 276)">
+      <rect width="145" height="22" rx="4" fill="#06b6d4" opacity="0.2"/>
+      <text x="72" y="15" text-anchor="middle" fill="#22d3ee" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">@ApiProperty()</text>
+    </g>
+
+    <g transform="translate(595, 276)">
+      <rect width="155" height="22" rx="4" fill="#a855f7" opacity="0.2"/>
+      <text x="77" y="15" text-anchor="middle" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">PartialType()</text>
+    </g>
+
+    <text x="440" y="320" fill="#6b7280" font-family="'Inter', sans-serif" font-size="11">
+      Tự động đồng bộ Schema DTOs &amp; Typescript types
+    </text>
   </g>
 
-  <!-- Right Box: Cursor Pagination -->
+  <!-- Right Inner Box: Interactive Testing -->
   <g filter="url(#shadow)">
-    <rect x="775" y="170" width="345" height="165" rx="10" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5"/>
-    <rect x="775" y="170" width="345" height="24" rx="10" fill="url(#cyanGrad)" opacity="0.15"/>
-
-    <text x="795" y="195" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">
-      🚀 CURSOR-BASED (INFINITE SCROLL)
+    <rect x="795" y="170" width="325" height="165" rx="10" fill="#0b0f19" stroke="#374151" stroke-width="1"/>
+    <text x="815" y="196" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">
+      🚀 INTERACTIVE TESTING
     </text>
 
-    <!-- Graphic cursor bar -->
-    <rect x="795" y="212" width="305" height="28" rx="6" fill="#1e293b" stroke="#0891b2" stroke-width="1"/>
-    <text x="807" y="230" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">Prisma: cursor: { id: 105 }, take: 10</text>
+    <!-- Auth Button Simulation -->
+    <rect x="815" y="212" width="130" height="26" rx="6" fill="#10b981" opacity="0.2" stroke="#10b981" stroke-width="1"/>
+    <text x="880" y="229" text-anchor="middle" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">
+      Authorize 🔒
+    </text>
 
-    <path d="M 795 252 L 1100 252" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+    <!-- Try it out button simulation -->
+    <rect x="955" y="212" width="145" height="26" rx="6" fill="#3b82f6" opacity="0.2" stroke="#3b82f6" stroke-width="1"/>
+    <text x="1027" y="229" text-anchor="middle" fill="#60a5fa" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">
+      Try it out ⚡
+    </text>
 
-    <!-- Pros & Cons -->
-    <text x="795" y="275" fill="#10b981" font-family="'Inter', sans-serif" font-size="11" font-weight="600">⚡ Tốc độ:</text>
-    <text x="870" y="275" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11">Siêu nhanh O(1) nhờ Index Seek (id/createdAt)</text>
-    
-    <text x="795" y="295" fill="#10b981" font-family="'Inter', sans-serif" font-size="11" font-weight="600">🛡️ Vẫn nhất quán:</text>
-    <text x="870" y="295" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11">Không bị trôi dữ liệu khi new post xuất hiện</text>
-
-    <text x="795" y="318" fill="#10b981" font-family="'Inter', sans-serif" font-size="11" font-weight="600">🎯 Phù hợp:</text>
-    <text x="870" y="318" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11">Social Newsfeed, Real-time Chat Feed</text>
+    <!-- Response Preview -->
+    <rect x="815" y="248" width="285" height="70" rx="6" fill="#111827"/>
+    <text x="828" y="268" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">200 OK</text>
+    <text x="880" y="268" fill="#6b7280" font-family="'JetBrains Mono', monospace" font-size="10">application/json</text>
+    <text x="828" y="286" fill="#e5e7eb" font-family="'JetBrains Mono', monospace" font-size="10">{</text>
+    <text x="838" y="302" fill="#9ca3af" font-family="'JetBrains Mono', monospace" font-size="10">  "message": "Login success!", "token": "..."</text>
+    <text x="828" y="314" fill="#e5e7eb" font-family="'JetBrains Mono', monospace" font-size="10">}</text>
   </g>
 </svg>

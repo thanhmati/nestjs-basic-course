@@ -95,16 +95,16 @@ timeline
 
 ---
 
-### Module 5: Social Features, Event-Driven Architecture & OpenAPI (Swagger)
+### Module 5: OpenAPI (Swagger), Social Features & Event-Driven Architecture
 
 > [!NOTE]  
-> **Mục tiêu:** Phát triển tính năng Social, tách rời logic bằng Events và tạo tài liệu API Swagger.
+> **Mục tiêu:** Tự động sinh tài liệu API tương tác với OpenAPI (Swagger), phát triển tính năng Social (Posts, File Upload, Comments) và tách rời logic bằng Events.
 
-- **5.1** [_Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.](./modules/module-05/lesson-5.1/lesson-5.1.md)
-- **5.2** _File Upload:_ Upload ảnh đại diện/bài viết với Multer.
-- **5.3** _Comments API:_ Thêm bình luận dưới bài viết.
-- **5.4** _Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.
-- **5.5** _OpenAPI:_ Tự động sinh Swagger UI tương tác (`@nestjs/swagger`).
+- **5.1** [_OpenAPI (Swagger):_ Tự động sinh Swagger UI tương tác (`@nestjs/swagger`) & Document REST API.](./modules/module-05/lesson-5.1/lesson-5.1.md)
+- **5.2** [_Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.](./modules/module-05/lesson-5.2/lesson-5.2.md)
+- **5.3** _File Upload:_ Upload ảnh đại diện/bài viết với Multer.
+- **5.4** _Comments API:_ Thêm bình luận dưới bài viết.
+- **5.5** _Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.
 
 ---
 
