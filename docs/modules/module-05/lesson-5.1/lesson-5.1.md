@@ -163,7 +163,7 @@ async function bootstrap() {
     .setDescription(
       'Hệ thống REST API cho ứng dụng Mạng xã hội & Chat Realtime - Xây dựng với NestJS, PostgreSQL & Prisma ORM',
     )
-    .setVersion('1.0')
+    .setVersion(versionApi || '1.0')
     .addBearerAuth(
       {
         type: 'http',
@@ -174,11 +174,9 @@ async function bootstrap() {
           'Nhập JWT Access Token vào đây theo cú pháp: Bearer <token>',
         in: 'header',
       },
-      'JWT-auth', // Tên định danh Security Scheme dùng xuyên suốt các Controller
+      'JWT-auth',
     )
-    .addTag('auth', 'Các API xác thực: Đăng ký, Đăng nhập & Quản lý Token')
-    .addTag('users', 'Quản lý thông tin hồ sơ người dùng')
-    .addTag('posts', 'Quản lý bài viết & phân trang Offset/Cursor')
+    .addSecurityRequirements('JWT-auth')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -200,6 +198,16 @@ bootstrap();
 
 > [!IMPORTANT]
 > Tùy chọn `persistAuthorization: true` trong `swaggerOptions` là một mẹo cực kỳ hữu ích trong thực tế! Nó giúp trình duyệt lưu token vào `localStorage`, tránh việc bạn phải copy/paste lại chuỗi token mỗi khi F5 reload trang trong quá trình dev và kiểm thử.
+
+📄 **`src/shared/decorators/public.decorator.ts`**
+
+```typescript
+import { applyDecorators, SetMetadata } from '@nestjs/common';
+import { ApiSecurity } from '@nestjs/swagger';
+import { IS_PUBLIC_KEY } from '../constants/metadata.constant';
+export const Public = () =>
+  applyDecorators(SetMetadata(IS_PUBLIC_KEY, true), ApiSecurity({}));
+```
 
 ---
 
@@ -375,22 +383,14 @@ export class AuthController {
 
 📄 **`src/users/users.controller.ts`**
 
-Đối với các endpoint yêu cầu quyền riêng tư (Private/Protected API), gắn thêm decorator `@ApiBearerAuth('JWT-auth')`:
-
 ```typescript
 import { Controller, Get, Version } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { UsersService } from './users.service';
 
 @ApiTags('users')
-@ApiBearerAuth('JWT-auth') // Khai báo rằng tất cả endpoints trong controller này cần JWT Bearer Auth
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
