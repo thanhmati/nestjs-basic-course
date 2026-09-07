@@ -108,15 +108,14 @@ sequenceDiagram
 
 ### 📌 Bước 1: Cài Đặt Gói Phụ Thuộc Cần Thiết
 
-Cài đặt hai thư viện chính hãng:
+Cài đặt thư viện chính hãng:
 
 - `@nestjs/swagger`: Thư viện lõi cung cấp các decorators và `SwaggerModule`.
-- `swagger-ui-express`: Giao diện web trực quan để duyệt và thử nghiệm API.
 
 Mở terminal tại thư mục gốc của dự án và chạy lệnh:
 
 ```bash
-pnpm add @nestjs/swagger swagger-ui-express
+pnpm add @nestjs/swagger
 ```
 
 > [!TIP]

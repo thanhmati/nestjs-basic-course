@@ -1,5 +1,7 @@
 allowBuilds:
+  '@parcel/watcher': true
   '@prisma/engines': true
+  '@scarf/scarf': true
   bcrypt: false
   esbuild: true
   prisma: true
