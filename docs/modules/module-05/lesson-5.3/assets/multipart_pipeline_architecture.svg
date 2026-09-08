@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 480" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="svgBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Node Gradients -->
+    <linearGradient id="clientNode" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <linearGradient id="multerNode" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e0234e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+
+    <linearGradient id="pipeNode" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <linearGradient id="storageNode" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <linearGradient id="dbNode" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowSuccess" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrowDanger" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1000" height="480" rx="16" fill="url(#svgBg)"/>
+  <rect width="998" height="478" x="1" y="1" rx="15" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Title Badge -->
+  <g transform="translate(40, 30)">
+    <text x="0" y="0" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">
+      ⚡ Kiến Trúc Luồng Xử Lý File Upload Trong NestJS
+    </text>
+    <text x="0" y="22" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">
+      Từ Binary Multipart Stream đến Local Disk Storage &amp; Prisma Database
+    </text>
+  </g>
+
+  <!-- Flow Steps -->
+  <!-- 1. Client -->
+  <g transform="translate(40, 100)" filter="url(#softShadow)">
+    <rect width="160" height="130" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+    <rect x="0" y="0" width="160" height="6" rx="3" fill="url(#clientNode)"/>
+    <text x="16" y="32" fill="#60a5fa" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">📱 1. HTTP Client</text>
+    <text x="16" y="58" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600">POST /users/avatar</text>
+    <rect x="16" y="70" width="128" height="22" rx="4" fill="#0f172a"/>
+    <text x="22" y="85" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">multipart/form-data</text>
+    <text x="16" y="112" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Dữ liệu nhị phân (Bytes)</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="200" y1="165" x2="250" y2="165" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 2. Multer Interceptor -->
+  <g transform="translate(260, 100)" filter="url(#softShadow)">
+    <rect width="190" height="130" rx="12" fill="#1e293b" stroke="#e0234e" stroke-width="1.5"/>
+    <rect x="0" y="0" width="190" height="6" rx="3" fill="url(#multerGrad)"/>
+    <text x="16" y="32" fill="#f43f5e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">📦 2. FileInterceptor</text>
+    <text x="16" y="56" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">FileInterceptor('avatar')</text>
+    <text x="16" y="80" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">• Bóc tách Boundary chunks</text>
+    <text x="16" y="100" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">• Sinh tên file UUIDv4 an toàn</text>
+    <text x="16" y="120" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">• Ghi file vào thư mục đĩa</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="450" y1="165" x2="500" y2="165" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 3. ParseFilePipe (Security Gate) -->
+  <g transform="translate(510, 80)" filter="url(#softShadow)">
+    <rect width="210" height="170" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <rect x="0" y="0" width="210" height="6" rx="3" fill="url(#pipeNode)"/>
+    <text x="16" y="32" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🛡️ 3. ParseFilePipe</text>
+    <text x="16" y="54" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Cửa Kiểm Soát An Ninh</text>
+    
+    <rect x="14" y="65" width="182" height="38" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="22" y="82" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">⚖️ MaxFileSizeValidator</text>
+    <text x="22" y="96" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">maxSize: 2MB (2097152 B)</text>
+
+    <rect x="14" y="112" width="182" height="38" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="22" y="129" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">🏷️ FileTypeValidator</text>
+    <text x="22" y="143" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">/(jpg|jpeg|png|webp)$/i</text>
+  </g>
+
+  <!-- Error branch from Pipe -->
+  <path d="M 615 250 L 615 295 L 120 295 L 120 240" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="4,4" marker-end="url(#arrowDanger)"/>
+  <rect x="300" y="283" width="160" height="24" rx="6" fill="#450a0a" stroke="#b91c1c" stroke-width="1"/>
+  <text x="310" y="299" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">❌ Chặn lỗi: 400 Bad Request</text>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="720" y1="165" x2="770" y2="165" stroke="#10b981" stroke-width="2" marker-end="url(#arrowSuccess)"/>
+
+  <!-- 4. Controller & Persistence -->
+  <g transform="translate(780, 100)" filter="url(#softShadow)">
+    <rect width="180" height="130" rx="12" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5"/>
+    <rect x="0" y="0" width="180" height="6" rx="3" fill="url(#storageNode)"/>
+    <text x="16" y="32" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">⚙️ 4. UsersController</text>
+    <text x="16" y="56" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="11">@UploadedFile() file</text>
+    <text x="16" y="80" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">• Sinh URL: /uploads/...</text>
+    <text x="16" y="100" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">• Gọi UsersService</text>
+    <text x="16" y="120" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">• Trả về JSON Enterprise</text>
+  </g>
+
+  <!-- Bottom Section: Dual Persistence (Disk & DB) -->
+  <g transform="translate(260, 340)" filter="url(#softShadow)">
+    <!-- Disk Storage Box -->
+    <rect width="210" height="105" rx="12" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+    <text x="18" y="28" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">📁 Thư Mục Local Disk</text>
+    <rect x="18" y="38" width="174" height="26" rx="4" fill="#0f172a"/>
+    <text x="26" y="55" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">uploads/avatars/*.png</text>
+    <text x="18" y="85" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Phục vụ tĩnh qua Express Static</text>
+    <text x="18" y="99" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10.5">http://localhost:3000/uploads/...</text>
+  </g>
+
+  <!-- Line from Controller down to DB -->
+  <path d="M 870 230 L 870 330" fill="none" stroke="#8b5cf6" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <g transform="translate(765, 340)" filter="url(#softShadow)">
+    <!-- Prisma DB Box -->
+    <rect width="195" height="105" rx="12" fill="#1e293b" stroke="#06b6d4" stroke-width="1.2"/>
+    <text x="18" y="28" fill="#22d3ee" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🗄️ PostgreSQL (Prisma)</text>
+    <rect x="18" y="38" width="159" height="26" rx="4" fill="#0f172a"/>
+    <text x="26" y="55" fill="#67e8f9" font-family="'JetBrains Mono', monospace" font-size="11">Profile.avatarUrl</text>
+    <text x="18" y="85" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Lưu trữ đường dẫn tương đối</text>
+    <text x="18" y="99" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Quan hệ 1-1 với User</text>
+  </g>
+</svg>

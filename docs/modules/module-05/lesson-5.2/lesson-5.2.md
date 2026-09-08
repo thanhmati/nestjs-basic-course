@@ -854,4 +854,4 @@ mindmap
 ---
 
 👈 **Bài trước:** [Lesson 5.1: OpenAPI (Swagger) — Tự Động Sinh Swagger UI Tương Tác (@nestjs/swagger)](../lesson-5.1/lesson-5.1.md)  
-👉 **Bài tiếp theo:** Lesson 5.3: File Upload — Upload ảnh đại diện/bài viết với Multer
+👉 **Bài tiếp theo:** [Lesson 5.3: File Upload — Upload Ảnh Đại Diện / Bài Viết Với Multer](../lesson-5.3/lesson-5.3.md)
