@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
+import { CommentsModule } from './comments/comments.module';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -34,6 +35,7 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
     SharedServicesModule,
     UsersModule,
     PostsModule,
+    CommentsModule,
     AuthModule,
   ],
   controllers: [AppController],
