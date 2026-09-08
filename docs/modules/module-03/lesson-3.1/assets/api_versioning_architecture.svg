@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="svgBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Node Gradient Bars -->
+    <linearGradient id="clientBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="routerBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e0234e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+
+    <linearGradient id="v1Bar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <linearGradient id="v2Bar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <linearGradient id="multiBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7e22ce"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#c084fc"/>
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1100" height="560" rx="16" fill="url(#svgBg)"/>
+  <rect width="1098" height="558" x="1" y="1" rx="15" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Title Badge -->
+  <g transform="translate(45, 34)">
+    <text x="0" y="0" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">
+      ⚡ Kiến Trúc Điều Hướng REST API Versioning Trong NestJS
+    </text>
+    <text x="0" y="22" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">
+      Từ yêu cầu của các thế hệ Client khác nhau đến Global Router &amp; Các Cấp Độ Phân Giải Phiên Bản
+    </text>
+  </g>
+
+  <!-- COLUMN 1: CLIENTS (X: 45) -->
+  <!-- Client 1: Mobile v1.0 -->
+  <g transform="translate(45, 95)" filter="url(#softShadow)">
+    <rect width="230" height="120" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+    <rect x="0" y="0" width="230" height="5" rx="2.5" fill="url(#clientBar)"/>
+    <text x="16" y="28" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">📱 Mobile App (Legacy v1.0)</text>
+    <text x="16" y="48" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Chưa cập nhật App Store</text>
+    <rect x="14" y="60" width="202" height="26" rx="5" fill="#0f172a"/>
+    <text x="22" y="78" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">GET /api/v1/posts</text>
+    <text x="16" y="105" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">Kỳ vọng payload mảng cũ (Flat Array)</text>
+  </g>
+
+  <!-- Client 2: Modern Web v2.0 -->
+  <g transform="translate(45, 240)" filter="url(#softShadow)">
+    <rect width="230" height="120" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.2"/>
+    <rect x="0" y="0" width="230" height="5" rx="2.5" fill="url(#v2Bar)"/>
+    <text x="16" y="28" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🌐 Web App (Modern v2.0)</text>
+    <text x="16" y="48" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Bản phát hành giao diện mới</text>
+    <rect x="14" y="60" width="202" height="26" rx="5" fill="#0f172a"/>
+    <text x="22" y="78" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">GET /api/v2/posts</text>
+    <text x="16" y="105" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">Kỳ vọng phân trang &amp; views counter</text>
+  </g>
+
+  <!-- Client 3: Partner / Cross-version -->
+  <g transform="translate(45, 385)" filter="url(#softShadow)">
+    <rect width="230" height="120" rx="10" fill="#1e293b" stroke="#a855f7" stroke-width="1.2"/>
+    <rect x="0" y="0" width="230" height="5" rx="2.5" fill="url(#multiBar)"/>
+    <text x="16" y="28" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🔄 Cross-Platform Client</text>
+    <text x="16" y="48" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Tích hợp API Thống Kê / Auth</text>
+    <rect x="14" y="60" width="202" height="26" rx="5" fill="#0f172a"/>
+    <text x="20" y="78" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="10.5" font-weight="600">GET /api/v1/analytics/summary</text>
+    <text x="16" y="105" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">Hỗ trợ song song cả v1 &amp; v2</text>
+  </g>
+
+  <!-- CONNECTIONS: Clients -> Router -->
+  <line x1="275" y1="155" x2="355" y2="255" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrowBlue)"/>
+  <line x1="275" y1="300" x2="355" y2="300" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="275" y1="445" x2="355" y2="345" stroke="#a855f7" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrowPurple)"/>
+
+  <!-- COLUMN 2: NESTJS CORE ROUTING (X: 365) -->
+  <g transform="translate(365, 110)" filter="url(#softShadow)">
+    <rect width="280" height="370" rx="14" fill="#1e293b" stroke="#e0234e" stroke-width="1.8"/>
+    <rect x="0" y="0" width="280" height="6" rx="3" fill="url(#routerBar)"/>
+    
+    <text x="20" y="34" fill="#f43f5e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">🚀 NestJS Routing &amp; Versioning Core</text>
+    
+    <!-- Sub-box 1: Global Prefix -->
+    <rect x="18" y="55" width="244" height="68" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="77" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="600">setGlobalPrefix('api')</text>
+    <text x="30" y="98" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• Chuẩn hóa URL bắt đầu bằng /api</text>
+    <text x="30" y="114" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• Phân tách REST API với Static Files</text>
+
+    <!-- Sub-box 2: enableVersioning -->
+    <rect x="18" y="135" width="244" height="110" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="157" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="600">enableVersioning({</text>
+    <text x="42" y="176" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">type: VersioningType.URI,</text>
+    <text x="42" y="195" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="11">prefix: 'v',</text>
+    <text x="42" y="214" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="11">defaultVersion: '1'</text>
+    <text x="30" y="233" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="600">})</text>
+
+    <!-- Dispatcher Logic -->
+    <rect x="18" y="258" width="244" height="92" rx="8" fill="#111827" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="280" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700">🎯 Cơ chế phân giải (Dispatching):</text>
+    <text x="30" y="300" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">1. Tách segment <tspan fill="#f59e0b">/v{version}/</tspan> khỏi URL</text>
+    <text x="30" y="318" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">2. Đối soát Controller / Route decorators</text>
+    <text x="30" y="336" fill="#ef4444" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">3. Không khớp Version ➔ Trả về 404</text>
+  </g>
+
+  <!-- CONNECTIONS: Router -> Controllers -->
+  <line x1="645" y1="160" x2="725" y2="135" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <line x1="645" y1="245" x2="725" y2="245" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="645" y1="350" x2="725" y2="355" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="645" y1="435" x2="725" y2="465" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- COLUMN 3: HANDLERS & CONTROLLERS (X: 735) -->
+  <!-- Target 1: Controller-level v1 -->
+  <g transform="translate(735, 75)" filter="url(#softShadow)">
+    <rect width="320" height="95" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+    <rect x="0" y="0" width="320" height="4" rx="2" fill="url(#clientBar)"/>
+    <text x="16" y="24" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">1️⃣ Controller-Level V1</text>
+    <text x="16" y="44" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="11">@Controller({ path: 'posts', version: '1' })</text>
+    <rect x="14" y="54" width="292" height="28" rx="4" fill="#0f172a"/>
+    <text x="22" y="73" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">GET /api/v1/posts ➔ [ { id, title } ]</text>
+  </g>
+
+  <!-- Target 2: Controller-level v2 -->
+  <g transform="translate(735, 185)" filter="url(#softShadow)">
+    <rect width="320" height="95" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.2"/>
+    <rect x="0" y="0" width="320" height="4" rx="2" fill="url(#v2Bar)"/>
+    <text x="16" y="24" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">2️⃣ Controller-Level V2 (Breaking Change)</text>
+    <text x="16" y="44" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="11">@Controller({ path: 'posts', version: '2' })</text>
+    <rect x="14" y="54" width="292" height="28" rx="4" fill="#0f172a"/>
+    <text x="22" y="73" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="10">GET /api/v2/posts ➔ { items, meta }</text>
+  </g>
+
+  <!-- Target 3: Route-level @Version -->
+  <g transform="translate(735, 295)" filter="url(#softShadow)">
+    <rect width="320" height="110" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="1.2"/>
+    <rect x="0" y="0" width="320" height="4" rx="2" fill="url(#v1Bar)"/>
+    <text x="16" y="24" fill="#60a5fa" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">3️⃣ Route-Level Versioning (@Version)</text>
+    <text x="16" y="44" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="11">@Controller('users')</text>
+    <rect x="14" y="52" width="292" height="46" rx="4" fill="#0f172a"/>
+    <text x="22" y="70" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">@Version('1') @Get() ➔ /api/v1/users</text>
+    <text x="22" y="88" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10">@Version('2') @Get() ➔ /api/v2/users</text>
+  </g>
+
+  <!-- Target 4: Multiple Versions -->
+  <g transform="translate(735, 420)" filter="url(#softShadow)">
+    <rect width="320" height="95" rx="10" fill="#1e293b" stroke="#a855f7" stroke-width="1.2"/>
+    <rect x="0" y="0" width="320" height="4" rx="2" fill="url(#multiBar)"/>
+    <text x="16" y="24" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">4️⃣ Multiple Versions Support</text>
+    <text x="16" y="44" fill="#f8fafc" font-family="'JetBrains Mono', monospace" font-size="11">@Version(['1', '2']) @Get('summary')</text>
+    <rect x="14" y="54" width="292" height="28" rx="4" fill="#0f172a"/>
+    <text x="22" y="73" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="10">Phục vụ đồng thời cả /v1/ và /v2/</text>
+  </g>
+</svg>
