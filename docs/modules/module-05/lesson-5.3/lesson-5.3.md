@@ -663,4 +663,4 @@ mindmap
 ---
 
 👈 **Bài trước:** [Lesson 5.2: Posts API — CRUD Bài Viết & Phân Trang Cursor/Offset Trong NestJS](../lesson-5.2/lesson-5.2.md)  
-👉 **Bài tiếp theo:** Lesson 5.4: Comments API — Thêm Bình Luận Dưới Bài Viết
+👉 **Bài tiếp theo:** [Lesson 5.4: Comments API — Thêm Bình Luận Dưới Bài Viết Trong NestJS](../lesson-5.4/lesson-5.4.md)
