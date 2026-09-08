@@ -82,7 +82,7 @@ src/
 │   ├── pipes/
 │   │   └── image-validation.pipe.ts    👈 Reusable Pipe Factory (Dung lượng + Định dạng)
 │   └── helpers/
-│       └── multer.config.ts            👈 DiskStorage an toàn & Dọn dẹp rác file cũ
+│       └── multer.helper.ts            👈 DiskStorage an toàn & Dọn dẹp rác file cũ
 ├── users/
 │   ├── users.controller.ts             👈 Controller siêu sạch (chỉ 5 dòng code)
 │   └── users.service.ts                👈 Cập nhật Profile.avatarUrl & tự xóa file cũ
@@ -109,7 +109,7 @@ Tệp helper này đảm nhiệm 3 nhiệm vụ quan trọng:
 2. Sinh tên tệp ngẫu nhiên kết hợp UUIDv4 chống ghi đè và triệt tiêu lỗi **Path Traversal**.
 3. Cung cấp hàm **`deleteUploadedFile`** giúp dọn dẹp file cũ khi người dùng thay ảnh đại diện, tránh rác ổ cứng.
 
-📄 **`src/shared/helpers/multer.config.ts`**
+📄 **`src/shared/helpers/multer.helper.ts`**
 
 ```typescript
 import { BadRequestException, Logger } from '@nestjs/common';
@@ -144,31 +144,37 @@ export const createMulterDiskStorage = (subFolder: string) => {
   });
 };
 
+export const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
+
 /**
- * 2. File Filter: Chặn đứng các file không phải ảnh (chỉ nhận JPG, PNG, WEBP, GIF)
+ * 2. File Filter: Kiểm tra đuôi file và tự động chuẩn hóa mimetype
  */
 export const imageFileFilter = (
   req: Request,
   file: Express.Multer.File,
   cb: (error: Error | null, acceptFile: boolean) => void,
 ) => {
-  const allowedMimeTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-  ];
+  const ext = extname(file.originalname).toLowerCase();
+  const mimeType = ALLOWED_IMAGE_TYPES[ext];
 
-  if (allowedMimeTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(
+  if (!mimeType) {
+    return cb(
       new BadRequestException(
-        `Định dạng '${file.mimetype}' không hợp lệ! Chỉ chấp nhận JPG, PNG, WEBP hoặc GIF.`,
+        `Chỉ chấp nhận file ảnh: ${Object.keys(ALLOWED_IMAGE_TYPES).join(', ')}`,
       ),
       false,
     );
   }
+
+  // Tự động gán đúng MIME chuẩn dựa vào extension đã qua kiểm duyệt
+  file.mimetype = mimeType;
+  cb(null, true);
 };
 
 /**
@@ -221,6 +227,7 @@ export const createImageValidationPipe = (options?: ImageValidationOptions) => {
   return new ParseFilePipeBuilder()
     .addFileTypeValidator({
       fileType: /(jpg|jpeg|png|webp)$/i,
+      fallbackToMimetype: true, // Hỗ trợ diskStorage khi file.buffer không lưu trong RAM
     })
     .addMaxSizeValidator({
       maxSize: maxSizeInMb * 1024 * 1024,
