@@ -1,4 +1,4 @@
-# Lesson 3.2: Validation — DTOs & ValidationPipe Toàn Cục Với class-validator
+# Lesson 3.2: DTO & Validation — Chuẩn Hóa Dữ Liệu & Bộ Lọc An Ninh Toàn Cục Với class-validator
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Validation-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Validation" />
@@ -16,15 +16,66 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng:** 12 – 15 phút thực chiến  
-> 🎯 **Mục tiêu:** Nắm vững vai trò sống còn của DTO (Data Transfer Object) và Validation trong kiến trúc API Enterprise; thiết lập "bộ lọc an ninh" `ValidationPipe` toàn cục trong `main.ts` với 3 tầng phòng thủ nghiêm ngặt (`whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`); áp dụng thành thạo các decorator từ `class-validator` và `class-transformer` để kiểm tra kiểu dữ liệu, tự động ép kiểu dữ liệu primitive (`enableImplicitConversion`) cũng như validate các Object lồng nhau (Nested DTOs); thực hành kịch bản kiểm thử chặn đứng dữ liệu độc hại và triệt tiêu lỗ hổng Mass Assignment trước khi chạm tới Service Layer.
+> 🎯 **Mục tiêu:** Hiểu sâu sắc bản chất **DTO (Data Transfer Object)** là gì và vì sao DTO là bức tường ngăn cách bắt buộc giữa thế giới bên ngoài với CSDL nội bộ; phân biệt sự khác nhau cốt lõi giữa TypeScript Interface và DTO Class ở Runtime; thiết lập "bộ lọc an ninh" `ValidationPipe` toàn cục trong `main.ts` với 3 tầng phòng thủ nghiêm ngặt (`whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`); áp dụng thành thạo các decorator từ `class-validator` và `class-transformer` để tự động ép kiểu dữ liệu primitive (`enableImplicitConversion`) và validate các Object lồng nhau (Nested DTOs); thực hành kịch bản kiểm thử chặn đứng dữ liệu độc hại và triệt tiêu lỗ hổng Mass Assignment.
 
 ---
 
-## 1. Trực Quan Hóa Bài Toán: Cửa Khẩu An Ninh Dữ Liệu & Lỗ Hổng Mass Assignment
+## 1. DTO (Data Transfer Object) Là Gì? Tại Sao Backend Không Thể Thiếu DTO?
+
+### 🔹 Khái Niệm DTO & Bản Hợp Đồng Giao Tiếp (API Contract)
+
+**DTO (Data Transfer Object)** là một Design Pattern kinh điển định nghĩa một đối tượng thuần túy **chỉ chứa dữ liệu** (không chứa logic nghiệp vụ), dùng để đóng gói và định hình cấu trúc dữ liệu truyền qua mạng giữa Client và Server:
+
+<p align="center">
+  <img src="./assets/dto_concept_explainer.jpg" alt="Data Transfer Object Concept Illustration" width="95%" />
+</p>
+
+Trong kiến trúc ứng dụng hiện đại, DTO đóng vai trò là **Bản hợp đồng giao tiếp (API Contract)** giữa hai phía:
+
+- 📱 **Client (Frontend / Mobile):** Dựa vào DTO để biết chính xác cần gửi lên những trường dữ liệu nào (`username`, `email`, `age`).
+- 📦 **DTO Contract (Bộ lọc trung gian):** Chỉ chấp nhận các trường dữ liệu hợp lệ đã khai báo, đồng thời **ngăn chặn và loại bỏ các trường độc hại** như `role: admin`.
+- 🛢️ **Backend & Database:** Đảm bảo Controller và Service chỉ tiếp nhận dữ liệu đã được định kiểu chuẩn xác (Type-Safe).
+
+---
+
+### 🛡️ Tại Sao Không Dùng Trực Tiếp Database Model (Prisma Entity)?
+
+Nhiều người mới học thường thắc mắc: _"Tại sao trong database đã có model User rồi, sao không dùng luôn model đó để hứng dữ liệu từ Client cho đỡ phải viết thêm code?"_
+
+Sơ đồ kiến trúc dưới đây làm sáng tỏ sự khác biệt và ranh giới phân định rõ ràng giữa hai khái niệm:
+
+<p align="center">
+  <img src="./assets/dto_vs_entity_comparison.svg" alt="DTO vs Database Entity Architecture Comparison" width="100%" />
+</p>
+
+Nếu dùng chung Database Model để nhận request trực tiếp từ Client, bạn sẽ đối mặt với **3 rủi ro bảo mật nghiêm trọng**:
+
+1. 🔒 **Rò rỉ dữ liệu nhạy cảm (Data Leakage):** Model Database chứa `passwordHash`, `resetToken`, `stripeCustomerId`. Nếu dùng chung, khi trả response về Client, bạn rất dễ vô tình để lộ các chuỗi bí mật này ra ngoài.
+2. 🚫 **Nguy cơ bị chiếm quyền quản trị (Over-posting Attack):** Bảng User có cột `role: "USER" | "ADMIN"`, `balance: number`. Nếu hứng trực tiếp vào Database Model, kẻ tấn công chỉ cần gửi kèm `{"role": "ADMIN", "balance": 999999}` là tài khoản của chúng lập tức trở thành Quản trị viên tối cao!
+3. ⚡ **Phá vỡ tính độc lập (Decoupling):** Cấu trúc Database cần tối ưu cho việc lưu trữ và index (Normalization), trong khi DTO được thiết kế tối ưu cho trải nghiệm giao tiếp của ứng dụng (User Experience). DTO tạo ra **bức tường cách ly tuyệt đối** giữa Network và Database.
+
+---
+
+### ⚖️ Bản Chất Kỹ Thuật: Tại Sao DTO Trong NestJS Bắt Buộc Phải Là Class (Không Dùng Interface)?
+
+Trong TypeScript, chúng ta có 2 cách để định nghĩa kiểu dữ liệu: `interface` và `class`. Nhưng tại sao NestJS lại **bắt buộc** dùng `class` để tạo DTO?
+
+Bảng so sánh dưới đây làm sáng tỏ sự khác biệt cốt lõi:
+
+| Tiêu chí                        | 📄 TypeScript Interface                                                                                           | 🛡️ NestJS DTO Class                                                                                           |
+| :------------------------------ | :---------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| **Giai đoạn tồn tại**           | ❌ **Bị xóa sổ hoàn toàn khi biên dịch** (Type Erasure sang file `.js`). Ở Runtime, Interface hoàn toàn biến mất! | ✅ **Tồn tại vĩnh viễn ở Runtime** dưới dạng Constructor Function / ES6 Class tiêu chuẩn của JavaScript.      |
+| **Khả năng gắn Decorator**      | ❌ Không thể gắn Decorator `@IsEmail()`, `@IsNotEmpty()` vào thuộc tính interface.                                | ✅ **Gắn Decorator trực tiếp** từ `class-validator` để định nghĩa quy tắc kiểm tra.                           |
+| **Khả năng Khởi tạo & Ép kiểu** | ❌ Không thể dùng toán tử `new` hoặc phản chiếu metadata (Reflection).                                            | ✅ **Hỗ trợ `class-transformer`** để đệ quy chuyển đổi Plain Object thành Instance hoàn chỉnh (`instanceof`). |
+| **Vai trò kiến trúc**           | Phù hợp định nghĩa kiểu nội bộ lúc viết code (Compile-time type checking).                                        | **Tiêu chuẩn bắt buộc cho Data Transfer Objects (DTO)** giao tiếp giữa Client & Server.                       |
+
+---
+
+## 2. Từ DTO Đến Validation: Lá Chắn Bảo Vệ Khỏi Dữ Liệu Rác & Tấn Công Mass Assignment
+
+DTO đóng vai trò định nghĩa cấu trúc dữ liệu (Schema), nhưng **bản thân DTO không thể tự ngăn chặn** nếu Client cố tình gửi dữ liệu sai định dạng hoặc truyền thêm các trường độc hại. Lúc này, chúng ta cần một **cánh cổng kiểm soát an ninh (Validation Pipeline)** để kiểm duyệt và xác thực dữ liệu trước khi đi vào hệ thống!
 
 ### 📱 Sản Phẩm Thực Tế & Dashboard Giám Sát Validation
-
-Trong một ứng dụng thực tế, người dùng tương tác với hệ thống qua các Form giao diện (Đăng ký tài khoản, Đặt hàng, Cập nhật hồ sơ). Tuy nhiên, kẻ tấn công (hoặc client bị lỗi) có thể gửi bất kỳ chuỗi JSON nào lên máy chủ:
 
 <p align="center">
   <img src="./assets/validation_pipeline_ui_mockup.jpg" alt="NestJS Security Inspector & Validation Mockup" width="95%" />
@@ -43,26 +94,11 @@ Nhìn vào màn hình giám sát an ninh ở trên, bạn sẽ thấy 2 bức tr
 >
 > 1. **Vụ bê bối bảo mật GitHub (Egor Homakov Hack 2012):** Một lập trình viên đã khai thác lỗ hổng Mass Assignment trên Ruby on Rails của GitHub bằng cách gửi kèm public key SSH cá nhân vào tổ chức của Rails. Kết quả là anh ta chiếm toàn quyền commit code vào repository chính của Rails! Nếu không có **DTO Whitelist**, bất kỳ ai cũng có thể tự gắn `isAdmin: true` hoặc `balance: 999999` vào Payload gửi lên!
 > 2. **Thảm họa Crash Database vì thiếu Type Casting:** Client gửi dữ liệu số qua Query hoặc Body dưới dạng chuỗi `"15"`. Nếu không có cơ chế ép kiểu tự động, phép cộng logic sẽ biến thành phép nối chuỗi: `"15" + 1 = "151"`, gây sai lệch số dư ví, hoặc câu lệnh truy vấn PostgreSQL bị từ chối vì không đúng kiểu `integer`.
-> 3. **Lỗ hổng Tiêm Nhiễm Dữ Liệu Rác (Payload Pollution):** Kẻ tấn công gửi chuỗi văn bản dài 50.000 ký tự hoặc mảng lồng nhau vô hạn vào trường `username`. Nếu không có validation chặn chặn độ dài (`@MaxLength`), máy chủ sẽ cạn kiệt bộ nhớ RAM và tê liệt CSDL.
+> 3. **Lỗ hổng Tiêm Nhiễm Dữ Liệu Rác (Payload Pollution):** Kẻ tấn công gửi chuỗi văn bản dài 50.000 ký tự hoặc mảng lồng nhau vô hạn vào trường `username`. Nếu không có validation chặn độ dài (`@MaxLength`), máy chủ sẽ cạn kiệt bộ nhớ RAM và tê liệt CSDL.
 
 ---
 
-### ⚖️ Bản Chất Kỹ Thuật: Interface vs DTO Class Trong TypeScript
-
-Rất nhiều lập trình viên mới chuyển sang NestJS đặt câu hỏi: _"Tại sao phải tạo DTO bằng Class mà không dùng Interface cho gọn?"_
-
-Bảng so sánh dưới đây làm sáng tỏ sự khác biệt cốt lõi:
-
-| Tiêu chí                        | 📄 TypeScript Interface                                                                                                | 🛡️ NestJS DTO Class                                                                                           |
-| :------------------------------ | :--------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ |
-| **Giai đoạn tồn tại**           | ❌ **Bị xóa sổ hoàn toàn khi biên dịch** (Type Erasure sang file `.js`). Ở Runtime, Interface hoàn toàn không tồn tại! | ✅ **Tồn tại vĩnh viễn ở Runtime** dưới dạng Constructor Function / ES6 Class tiêu chuẩn của JavaScript.      |
-| **Khả năng gắn Decorator**      | ❌ Không thể gắn Decorator `@IsEmail()`, `@IsNotEmpty()` vào thuộc tính interface.                                     | ✅ **Gắn Decorator trực tiếp** từ `class-validator` để định nghĩa quy tắc kiểm tra.                           |
-| **Khả năng Khởi tạo & Ép kiểu** | ❌ Không thể dùng toán tử `new` hoặc phản chiếu metadata (Reflection).                                                 | ✅ **Hỗ trợ `class-transformer`** để đệ quy chuyển đổi Plain Object thành Instance hoàn chỉnh (`instanceof`). |
-| **Vai trò kiến trúc**           | Phù hợp định nghĩa kiểu nội bộ lúc viết code (Compile-time type checking).                                             | **Tiêu chuẩn bắt buộc cho Data Transfer Objects (DTO)** giao tiếp giữa Client & Server.                       |
-
----
-
-## 2. Kiến Trúc Luồng Validation Pipeline & Các Tầng Bảo Vệ
+## 3. Kiến Trúc Luồng Validation Pipeline & Các Tầng Bảo Vệ
 
 ### 🧩 Sơ Đồ Luồng Xử Lý Dữ Liệu Trong NestJS
 
@@ -99,7 +135,7 @@ Khi bạn cấu hình `ValidationPipe` trong NestJS, hệ thống dựng nên 3 
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step
+## 4. Hướng Dẫn Thực Hành Step-by-Step
 
 ### 📂 Cấu Trúc Mã Nguồn Triển Khai
 
@@ -299,7 +335,7 @@ export class UsersController {
 
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+## 5. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
 Khởi động ứng dụng NestJS của bạn:
 
@@ -431,15 +467,16 @@ Content-Type: application/json; charset=utf-8
 
 ---
 
-## 5. Tổng Kết Bài Học & Checklist Ghi Nhớ
+## 6. Tổng Kết Bài Học & Checklist Ghi Nhớ
 
 ```mermaid
 mindmap
-  root(("NestJS Data Validation"))
-    "Bản chất cốt lõi"
-      "DTO Class tồn tại ở Runtime"
-      "Khắc phục nhược điểm của Interface"
-      "Triệt tiêu lỗi Mass Assignment"
+  root(("DTO & Validation in NestJS"))
+    "Bản chất DTO"
+      "Bản hợp đồng cam kết API (API Contract)"
+      "Đối tượng đóng gói dữ liệu thuần túy"
+      "Tách rời Network Payload và Database Schema"
+      "Bắt buộc dùng Class thay vì Interface ở Runtime"
     "3 Lớp Lá Chắn ValidationPipe"
       "whitelist: true (Gọt sạch trường thừa)"
       "forbidNonWhitelisted: true (Ném 400 nếu có trường lạ)"
@@ -456,6 +493,8 @@ mindmap
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
+- [x] Hiểu sâu sắc bản chất **DTO** là bản hợp đồng cam kết cấu trúc dữ liệu (API Contract) giữa Client và Server.
+- [x] Nắm rõ lý do vì sao không được dùng trực tiếp Database Model (Prisma Entity) để hứng request (nguy cơ rò rỉ và bị ghi đè dữ liệu quản trị).
 - [x] Thấu hiểu lý do vì sao phải dùng DTO Class (tồn tại ở Runtime) thay vì Interface (bị xóa sổ khi biên dịch).
 - [x] Nắm vững cơ chế của 3 lớp phòng thủ trong `ValidationPipe`: `whitelist`, `forbidNonWhitelisted`, và `transform`.
 - [x] Cài đặt và cấu hình thành công bộ đôi `class-validator` & `class-transformer` trong `src/main.ts`.
