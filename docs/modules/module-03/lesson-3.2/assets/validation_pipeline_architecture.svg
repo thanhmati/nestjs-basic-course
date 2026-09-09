@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 560" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="svgBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Node Gradients -->
+    <linearGradient id="clientBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="pipeBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="successBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <linearGradient id="errorBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1140" height="560" rx="16" fill="url(#svgBg)"/>
+  <rect width="1138" height="558" x="1" y="1" rx="15" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Title Badge -->
+  <g transform="translate(45, 34)">
+    <text x="0" y="0" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">
+      🛡️ Kiến Trúc Luồng Validation Pipeline &amp; Bộ Lọc An Ninh Trong NestJS
+    </text>
+    <text x="0" y="22" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">
+      Hành trình từ Raw HTTP Request Body qua class-transformer &amp; class-validator đến Controller Type-Safe
+    </text>
+  </g>
+
+  <!-- COLUMN 1: CLIENT REQUEST (X: 45) -->
+  <g transform="translate(45, 95)" filter="url(#softShadow)">
+    <rect width="250" height="420" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+    <rect x="0" y="0" width="250" height="5" rx="2.5" fill="url(#clientBar)"/>
+    
+    <text x="18" y="30" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">📱 1. HTTP Client Request</text>
+    <text x="18" y="50" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5">Gửi dữ liệu thô (Raw JSON Body)</text>
+    
+    <rect x="16" y="65" width="218" height="30" rx="5" fill="#0f172a"/>
+    <text x="26" y="85" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600">POST /api/v1/users</text>
+
+    <!-- Raw Payload Card -->
+    <rect x="16" y="110" width="218" height="230" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="26" y="132" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="11">// Raw JSON Payload</text>
+    <text x="26" y="152" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">{</text>
+    <text x="36" y="172" fill="#93c5fd" font-family="'JetBrains Mono', monospace" font-size="11">"username": "alex",</text>
+    <text x="36" y="194" fill="#93c5fd" font-family="'JetBrains Mono', monospace" font-size="11">"email": "alex@mail",</text>
+    <text x="36" y="216" fill="#fcd34d" font-family="'JetBrains Mono', monospace" font-size="11">"age": "25",</text>
+    <text x="36" y="238" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="11">"role": "SUPER_ADMIN",</text>
+    <text x="36" y="260" fill="#93c5fd" font-family="'JetBrains Mono', monospace" font-size="11">"address": { ... }</text>
+    <text x="26" y="282" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">}</text>
+
+    <rect x="22" y="300" width="206" height="26" rx="4" fill="#450a0a" stroke="#b91c1c" stroke-width="0.8"/>
+    <text x="28" y="317" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">⚠️ Chứa trường lạ &amp; String age</text>
+
+    <text x="18" y="370" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Mục tiêu: Ngăn chặn lỗi runtime</text>
+    <text x="18" y="390" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">và triệt tiêu Mass Assignment!</text>
+  </g>
+
+  <!-- CONNECTION: Client -> ValidationPipe -->
+  <line x1="295" y1="305" x2="355" y2="305" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- COLUMN 2: GLOBAL VALIDATION PIPE (X: 365) -->
+  <g transform="translate(365, 80)" filter="url(#softShadow)">
+    <rect width="360" height="450" rx="14" fill="#1e293b" stroke="#f59e0b" stroke-width="1.8"/>
+    <rect x="0" y="0" width="360" height="6" rx="3" fill="url(#pipeBar)"/>
+
+    <text x="20" y="32" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">🛡️ 2. Global ValidationPipe (3 Lớp Lá Chắn)</text>
+
+    <!-- Stage 1: class-transformer -->
+    <rect x="18" y="52" width="324" height="110" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="74" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">LỚP 1: Chuyển Đổi &amp; Ép Kiểu (class-transformer)</text>
+    <text x="30" y="94" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">plainToInstance(CreateUserDto, body)</text>
+    <text x="30" y="114" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#f59e0b">transform: true</tspan> ➔ Biến Plain JS Object thành DTO Class</text>
+    <text x="30" y="132" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#10b981">enableImplicitConversion</tspan> ➔ Ép kiểu "25" (String) thành 25 (Int)</text>
+    <text x="30" y="150" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#a855f7">@Type(() =&gt; AddressDto)</tspan> ➔ Đệ quy khởi tạo Nested Object</text>
+
+    <!-- Stage 2: Whitelist Security -->
+    <rect x="18" y="174" width="324" height="110" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="196" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">LỚP 2: Chống Mass Assignment (Whitelist Defense)</text>
+    <text x="30" y="216" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">whitelist: true &amp; forbidNonWhitelisted: true</text>
+    <text x="30" y="236" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• Quét sạch các thuộc tính không khai báo decorator</text>
+    <text x="30" y="254" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• Phát hiện trường <tspan fill="#f87171">"role": "SUPER_ADMIN"</tspan> không hợp lệ!</text>
+    <text x="30" y="272" fill="#ef4444" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• Báo động đỏ: Ngắt tiến trình, chuẩn bị ném lỗi 400</text>
+
+    <!-- Stage 3: class-validator -->
+    <rect x="18" y="296" width="324" height="135" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="318" fill="#10b981" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700">LỚP 3: Ràng Buộc Dữ Liệu (class-validator)</text>
+    <text x="30" y="338" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">validate(dtoInstance, { ... })</text>
+    <text x="30" y="358" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#60a5fa">@IsString()</tspan>, <tspan fill="#60a5fa">@MinLength(3)</tspan> ➔ Kiểm tra độ dài username</text>
+    <text x="30" y="376" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#60a5fa">@IsEmail()</tspan> ➔ Kiểm tra cú pháp email RFC 5322</text>
+    <text x="30" y="394" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#60a5fa">@Min(18)</tspan>, <tspan fill="#60a5fa">@Max(100)</tspan> ➔ Kiểm định độ tuổi hợp lệ</text>
+    <text x="30" y="412" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">• <tspan fill="#60a5fa">@ValidateNested()</tspan> ➔ Kiểm tra sâu các trường của Address</text>
+  </g>
+
+  <!-- CONNECTIONS: Pipe -> Two Branches -->
+  <!-- Top line to Error -->
+  <path d="M 725 220 L 780 180" fill="none" stroke="#ef4444" stroke-width="2.5" marker-end="url(#arrowRed)"/>
+  <!-- Bottom line to Success -->
+  <path d="M 725 380 L 780 410" fill="none" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- COLUMN 3: OUTCOMES (X: 790) -->
+  <!-- Outcome 1: Rejection 400 Bad Request -->
+  <g transform="translate(790, 95)" filter="url(#softShadow)">
+    <rect width="305" height="195" rx="12" fill="#1e293b" stroke="#ef4444" stroke-width="1.5"/>
+    <rect x="0" y="0" width="305" height="5" rx="2.5" fill="url(#errorBar)"/>
+
+    <text x="18" y="28" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🔴 KỊCH BẢN BỊ TỪ CHỐI (Blocked Flow)</text>
+    <text x="18" y="48" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Phát hiện lỗi validate hoặc trường lạ</text>
+
+    <rect x="16" y="60" width="273" height="24" rx="4" fill="#450a0a"/>
+    <text x="24" y="76" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">HTTP 400 Bad Request</text>
+
+    <rect x="16" y="92" width="273" height="90" rx="5" fill="#0f172a"/>
+    <text x="24" y="112" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10.5">{</text>
+    <text x="34" y="128" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10.5">"message": [</text>
+    <text x="44" y="144" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10">"property role should not exist",</text>
+    <text x="44" y="158" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10">"Email không đúng định dạng!"</text>
+    <text x="34" y="172" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10.5">], "statusCode": 400</text>
+    <text x="24" y="186" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10.5">}</text>
+  </g>
+
+  <!-- Outcome 2: Success & Clean DTO Handover -->
+  <g transform="translate(790, 320)" filter="url(#softShadow)">
+    <rect width="305" height="195" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <rect x="0" y="0" width="305" height="5" rx="2.5" fill="url(#successBar)"/>
+
+    <text x="18" y="28" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🟢 KỊCH BẢN THÀNH CÔNG (Success Flow)</text>
+    <text x="18" y="48" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Dữ liệu chuẩn hóa chuyển tới Handler</text>
+
+    <rect x="16" y="60" width="273" height="24" rx="4" fill="#064e3b"/>
+    <text x="24" y="76" fill="#6ee7b7" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700">Clean DTO Instance @Body()</text>
+
+    <rect x="16" y="92" width="273" height="90" rx="5" fill="#0f172a"/>
+    <text x="24" y="112" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10.5">createUser(@Body() dto: CreateUserDto)</text>
+    <text x="24" y="132" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">• dto.age: <tspan fill="#34d399">25 (number thuần)</tspan></text>
+    <text x="24" y="150" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">• role bị loại bỏ hoặc an toàn</text>
+    <text x="24" y="168" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">• Chuyển tiếp tới Service &amp; Database</text>
+  </g>
+</svg>
