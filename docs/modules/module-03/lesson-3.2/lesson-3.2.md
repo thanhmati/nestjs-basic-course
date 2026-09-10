@@ -15,62 +15,149 @@
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng:** 10 – 12 phút  
-> 🎯 **Mục tiêu:** Hiểu rõ bản chất DTO (Data Transfer Object) và lý do bắt buộc dùng Class thay vì Interface; kích hoạt `ValidationPipe` toàn cục trong `main.ts` với 3 tầng bảo vệ (`whitelist`, `forbidNonWhitelisted`, `transform`); áp dụng `class-validator` & `class-transformer` để validate dữ liệu và triệt tiêu lỗ hổng Mass Assignment.
+> ⏱️ **Thời lượng:** 12 – 15 phút thực chiến  
+> 🎯 **Mục tiêu:** Hiểu sâu sắc bản chất **DTO (Data Transfer Object)** là gì và vì sao DTO là bức tường ngăn cách bắt buộc giữa thế giới bên ngoài với CSDL nội bộ; phân biệt sự khác nhau cốt lõi giữa TypeScript Interface và DTO Class ở Runtime; thiết lập "bộ lọc an ninh" `ValidationPipe` toàn cục trong `main.ts` với 3 tầng phòng thủ nghiêm ngặt (`whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`); áp dụng thành thạo các decorator từ `class-validator` và `class-transformer` để tự động ép kiểu dữ liệu primitive (`enableImplicitConversion`) và validate các Object lồng nhau (Nested DTOs); thực hành kịch bản kiểm thử chặn đứng dữ liệu độc hại và triệt tiêu lỗ hổng Mass Assignment.
 
 ---
 
-## 1. Bản Chất DTO & Tại Sao Không Dùng Trực Tiếp Database Model?
+## 1. DTO (Data Transfer Object) Là Gì? Tại Sao Backend Không Thể Thiếu DTO?
 
-### 🔹 DTO (Data Transfer Object) Là Gì?
+### 🔹 Khái Niệm DTO & Bản Hợp Đồng Giao Tiếp (API Contract)
 
-**DTO (Data Transfer Object)** là đối tượng thuần túy **chỉ chứa dữ liệu** (không chứa logic nghiệp vụ), đóng vai trò là **Bản hợp đồng giao tiếp (API Contract)** giữa Client và Server:
+**DTO (Data Transfer Object)** là một Design Pattern kinh điển định nghĩa một đối tượng thuần túy **chỉ chứa dữ liệu** (không chứa logic nghiệp vụ), dùng để đóng gói và định hình cấu trúc dữ liệu truyền qua mạng giữa Client và Server:
 
 <p align="center">
   <img src="./assets/dto_concept_explainer.jpg" alt="Data Transfer Object Concept Illustration" width="95%" />
 </p>
 
-### ⚖️ So Sánh Cốt Lõi: Interface vs Database Entity vs DTO Class
+Trong kiến trúc ứng dụng hiện đại, DTO đóng vai trò là **Bản hợp đồng giao tiếp (API Contract)** giữa hai phía:
 
-<p align="center">
-  <img src="./assets/dto_vs_entity_comparison.svg" alt="DTO vs Database Entity Comparison" width="100%" />
-</p>
-
-| Tiêu chí      | 📄 TypeScript Interface                     | 🗄️ Database Entity (Prisma)                             | 🛡️ NestJS DTO Class                              |
-| :------------ | :------------------------------------------ | :------------------------------------------------------ | :----------------------------------------------- |
-| **Ở Runtime** | ❌ Bị xóa sạch khi biên dịch (Type Erasure) | Quá thừa trường nhạy cảm (`passwordHash`, `resetToken`) | ✅ Tồn tại dưới dạng ES6 Class                   |
-| **Bảo mật**   | Không thể validate lúc chạy ứng dụng        | Nguy cơ bị Over-posting (`{"role": "ADMIN"}`)           | ✅ Chỉ nhận đúng các trường được cho phép        |
-| **Decorator** | Không gắn được decorator                    | Gắn Prisma schema attributes                            | ✅ Gắn trực tiếp decorator của `class-validator` |
+- 📱 **Client (Frontend / Mobile):** Dựa vào DTO để biết chính xác cần gửi lên những trường dữ liệu nào (`username`, `email`, `age`).
+- 📦 **DTO Contract (Bộ lọc trung gian):** Chỉ chấp nhận các trường dữ liệu hợp lệ đã khai báo, đồng thời **ngăn chặn và loại bỏ các trường độc hại** như `role: admin`.
+- 🛢️ **Backend & Database:** Đảm bảo Controller và Service chỉ tiếp nhận dữ liệu đã được định kiểu chuẩn xác (Type-Safe).
 
 ---
 
-## 2. Kiến Trúc Validation Pipeline & 3 Tầng Phòng Thủ
+### 🛡️ Tại Sao Không Dùng Trực Tiếp Database Model (Prisma Entity)?
+
+Nhiều người mới học thường thắc mắc: _"Tại sao trong database đã có model User rồi, sao không dùng luôn model đó để hứng dữ liệu từ Client cho đỡ phải viết thêm code?"_
+
+Sơ đồ kiến trúc dưới đây làm sáng tỏ sự khác biệt và ranh giới phân định rõ ràng giữa hai khái niệm:
+
+<p align="center">
+  <img src="./assets/dto_vs_entity_comparison.svg" alt="DTO vs Database Entity Architecture Comparison" width="100%" />
+</p>
+
+Nếu dùng chung Database Model để nhận request trực tiếp từ Client, bạn sẽ đối mặt với **3 rủi ro bảo mật nghiêm trọng**:
+
+1. 🔒 **Rò rỉ dữ liệu nhạy cảm (Data Leakage):** Model Database chứa `passwordHash`, `resetToken`, `stripeCustomerId`. Nếu dùng chung, khi trả response về Client, bạn rất dễ vô tình để lộ các chuỗi bí mật này ra ngoài.
+2. 🚫 **Nguy cơ bị chiếm quyền quản trị (Over-posting Attack):** Bảng User có cột `role: "USER" | "ADMIN"`, `balance: number`. Nếu hứng trực tiếp vào Database Model, kẻ tấn công chỉ cần gửi kèm `{"role": "ADMIN", "balance": 999999}` là tài khoản của chúng lập tức trở thành Quản trị viên tối cao!
+3. ⚡ **Phá vỡ tính độc lập (Decoupling):** Cấu trúc Database cần tối ưu cho việc lưu trữ và index (Normalization), trong khi DTO được thiết kế tối ưu cho trải nghiệm giao tiếp của ứng dụng (User Experience). DTO tạo ra **bức tường cách ly tuyệt đối** giữa Network và Database.
+
+---
+
+### ⚖️ Bản Chất Kỹ Thuật: Tại Sao DTO Trong NestJS Bắt Buộc Phải Là Class (Không Dùng Interface)?
+
+Trong TypeScript, chúng ta có 2 cách để định nghĩa kiểu dữ liệu: `interface` và `class`. Nhưng tại sao NestJS lại **bắt buộc** dùng `class` để tạo DTO?
+
+Bảng so sánh dưới đây làm sáng tỏ sự khác biệt cốt lõi:
+
+| Tiêu chí                        | 📄 TypeScript Interface                                                                                           | 🛡️ NestJS DTO Class                                                                                           |
+| :------------------------------ | :---------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| **Giai đoạn tồn tại**           | ❌ **Bị xóa sổ hoàn toàn khi biên dịch** (Type Erasure sang file `.js`). Ở Runtime, Interface hoàn toàn biến mất! | ✅ **Tồn tại vĩnh viễn ở Runtime** dưới dạng Constructor Function / ES6 Class tiêu chuẩn của JavaScript.      |
+| **Khả năng gắn Decorator**      | ❌ Không thể gắn Decorator `@IsEmail()`, `@IsNotEmpty()` vào thuộc tính interface.                                | ✅ **Gắn Decorator trực tiếp** từ `class-validator` để định nghĩa quy tắc kiểm tra.                           |
+| **Khả năng Khởi tạo & Ép kiểu** | ❌ Không thể dùng toán tử `new` hoặc phản chiếu metadata (Reflection).                                            | ✅ **Hỗ trợ `class-transformer`** để đệ quy chuyển đổi Plain Object thành Instance hoàn chỉnh (`instanceof`). |
+| **Vai trò kiến trúc**           | Phù hợp định nghĩa kiểu nội bộ lúc viết code (Compile-time type checking).                                        | **Tiêu chuẩn bắt buộc cho Data Transfer Objects (DTO)** giao tiếp giữa Client & Server.                       |
+
+---
+
+## 2. Từ DTO Đến Validation: Lá Chắn Bảo Vệ Khỏi Dữ Liệu Rác & Tấn Công Mass Assignment
+
+DTO đóng vai trò định nghĩa cấu trúc dữ liệu (Schema), nhưng **bản thân DTO không thể tự ngăn chặn** nếu Client cố tình gửi dữ liệu sai định dạng hoặc truyền thêm các trường độc hại. Lúc này, chúng ta cần một **cánh cổng kiểm soát an ninh (Validation Pipeline)** để kiểm duyệt và xác thực dữ liệu trước khi đi vào hệ thống!
+
+### 📱 Sản Phẩm Thực Tế & Dashboard Giám Sát Validation
+
+<p align="center">
+  <img src="./assets/validation_pipeline_ui_mockup.jpg" alt="NestJS Security Inspector & Validation Mockup" width="95%" />
+</p>
+
+Nhìn vào màn hình giám sát an ninh ở trên, bạn sẽ thấy 2 bức tranh đối lập:
+
+- 📝 **Form Đăng Ký (Phía Client):** Khi người dùng nhập sai định dạng email, khai báo tuổi chưa đủ 18, hoặc truyền trường lạ không hợp lệ, hệ thống cần phản hồi lập tức với thông báo lỗi rõ ràng, chính xác và thân thiện bằng tiếng Việt.
+- 🛡️ **Real-time API Inspector (Phía Server):** Khi kẻ xấu cố tình tiêm trường nguy hiểm như `"role": "admin"` vào Request Body hòng tự chiếm quyền quản trị, NestJS Validation Pipe lập tức kích hoạt báo động đỏ: **từ chối ngay tại cửa ngõ bằng mã `400 Bad Request`** và chỉ chuyển tiếp những DTO đã được làm sạch hoàn toàn vào Controller.
+
+---
+
+### 🔥 Góc Thực Chiến: 3 "Cơn Ác Mộng" Dữ Liệu Rác & Lỗ Hổng Mass Assignment
+
+> [!CAUTION]
+>
+> 1. **Vụ bê bối bảo mật GitHub (Egor Homakov Hack 2012):** Một lập trình viên đã khai thác lỗ hổng Mass Assignment trên Ruby on Rails của GitHub bằng cách gửi kèm public key SSH cá nhân vào tổ chức của Rails. Kết quả là anh ta chiếm toàn quyền commit code vào repository chính của Rails! Nếu không có **DTO Whitelist**, bất kỳ ai cũng có thể tự gắn `isAdmin: true` hoặc `balance: 999999` vào Payload gửi lên!
+> 2. **Thảm họa Crash Database vì thiếu Type Casting:** Client gửi dữ liệu số qua Query hoặc Body dưới dạng chuỗi `"15"`. Nếu không có cơ chế ép kiểu tự động, phép cộng logic sẽ biến thành phép nối chuỗi: `"15" + 1 = "151"`, gây sai lệch số dư ví, hoặc câu lệnh truy vấn PostgreSQL bị từ chối vì không đúng kiểu `integer`.
+> 3. **Lỗ hổng Tiêm Nhiễm Dữ Liệu Rác (Payload Pollution):** Kẻ tấn công gửi chuỗi văn bản dài 50.000 ký tự hoặc mảng lồng nhau vô hạn vào trường `username`. Nếu không có validation chặn độ dài (`@MaxLength`), máy chủ sẽ cạn kiệt bộ nhớ RAM và tê liệt CSDL.
+
+---
+
+## 3. Kiến Trúc Luồng Validation Pipeline & Các Tầng Bảo Vệ
+
+### 🧩 Sơ Đồ Luồng Xử Lý Dữ Liệu Trong NestJS
+
+Dưới đây là sơ đồ chi tiết hành trình của một HTTP Request Body đi qua bộ lọc an ninh toàn cục `ValidationPipe` trước khi được bàn giao cho Controller và Database:
 
 <p align="center">
   <img src="./assets/validation_pipeline_architecture.svg" alt="NestJS Validation Pipeline Architecture" width="100%" />
 </p>
 
-### 🛡️ 3 Tầng Bảo Vệ Của `ValidationPipe` Toàn Cục
+---
 
-| Cấu hình                     | Cơ chế hoạt động & Ý nghĩa an ninh                                                                                    |
-| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
-| `whitelist: true`            | **Gọt sạch trường thừa:** Tự động loại bỏ các field không được khai báo decorator trong DTO.                          |
-| `forbidNonWhitelisted: true` | **Báo động đỏ:** Ném ngay mã lỗi `400 Bad Request` nếu phát hiện Client gửi trường lạ (chặn đứng hacker dò field).    |
-| `transform: true`            | **Khởi tạo Instance & Ép kiểu:** Chuyển Plain Object thành Class Instance thật sự (`enableImplicitConversion: true`). |
+### 🛡️ 3 Tầng Phòng Thủ Của `ValidationPipe` Toàn Cục
 
-### 📋 Bảng Tra Cứu Decorator Phổ Biến (`class-validator`)
+Khi bạn cấu hình `ValidationPipe` trong NestJS, hệ thống dựng nên 3 lớp phòng thủ liên hoàn:
 
-- **Chuỗi:** `@IsString()`, `@IsNotEmpty()`, `@MinLength(min)`, `@MaxLength(max)`
-- **Email & Định dạng:** `@IsEmail()`, `@IsUrl()`, `@IsUUID()`
-- **Số học:** `@IsInt()`, `@IsNumber()`, `@Min(val)`, `@Max(val)`
-- **Enum & Boolean:** `@IsBoolean()`, `@IsEnum(MyEnum)`
-- **Tùy chọn & Lồng nhau:** `@IsOptional()`, `@ValidateNested()`, `@Type(() => SubDto)`
+| Tầng bảo vệ                             | Cấu hình tham số                                       | Cơ chế hoạt động & Ý nghĩa an ninh                                                                                                                                                                                                   |
+| :-------------------------------------- | :----------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Lớp 1: Gọt giũa dữ liệu thừa**        | `whitelist: true`                                      | **Tự động lọc bỏ các thuộc tính không được khai báo Decorator trong DTO.** Nếu client gửi `{ email, password, hackRole: "admin" }`, trường `hackRole` sẽ bị âm thầm gạch bỏ trước khi tới Controller.                                |
+| **Lớp 2: Báo động đỏ kẻ xâm nhập**      | `forbidNonWhitelisted: true`                           | **Bật chế độ nghiêm ngặt tối đa:** Thay vì chỉ âm thầm gọt bỏ, hệ thống lập tức ngắt request và ném mã lỗi `400 Bad Request` kèm thông báo `property hackRole should not exist`. Giúp lập tức ngăn chặn bot/hacker dò quét field ẩn. |
+| **Lớp 3: Tự động chuyển đổi & Ép kiểu** | `transform: true`<br/>`enableImplicitConversion: true` | Sử dụng `class-transformer` chuyển Plain JavaScript Object thành **DTO Class Instance thật sự**, đồng thời tự động ép kiểu chuỗi `"25"` thành số `25`, chuỗi `"true"` thành boolean `true` ở Query và Param.                         |
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step
+### 📋 Bảng Tra Cứu Toàn Diện: Các Decorators Phổ Biến Nhất Của `class-validator`
 
-### 📌 Bước 1: Cài Đặt Thư Viện Cốt Lõi
+| Nhóm dữ liệu                 | Decorator                                                         | Mô tả & Ví dụ ràng buộc                                                         |
+| :--------------------------- | :---------------------------------------------------------------- | :------------------------------------------------------------------------------ |
+| **Kiểm tra cơ bản**          | `@IsNotEmpty({ message: '...' })`<br/>`@IsOptional()`             | Bắt buộc không được để trống / Cho phép trường không bắt buộc truyền.           |
+| **Chuỗi ký tự (String)**     | `@IsString()`<br/>`@MinLength(min)`<br/>`@MaxLength(max)`         | Ràng buộc kiểu chuỗi và giới hạn độ dài ký tự tối thiểu / tối đa.               |
+| **Định dạng đặc biệt**       | `@IsEmail({}, { message: '...' })`<br/>`@IsUrl()`<br/>`@IsUUID()` | Kiểm tra chuẩn RFC Email, URL hợp lệ, hoặc chuỗi định danh UUIDv4.              |
+| **Số học (Number)**          | `@IsInt()`<br/>`@IsNumber()`<br/>`@Min(val)`<br/>`@Max(val)`      | Kiểm tra số nguyên, số thực, và giới hạn giá trị từ ngưỡng `Min` đến `Max`.     |
+| **Kiểu Đúng/Sai & Danh Mục** | `@IsBoolean()`<br/>`@IsEnum(MyEnum)`                              | Kiểm tra giá trị boolean hoặc chỉ cho phép các giá trị nằm trong `enum`.        |
+| **Cấu trúc phức tạp**        | `@IsArray()`<br/>`@ValidateNested()`<br/>`@Type(() => SubDto)`    | Kiểm tra mảng dữ liệu, hoặc kích hoạt kiểm tra đệ quy vào các Object lồng nhau. |
+
+---
+
+## 4. Hướng Dẫn Thực Hành Step-by-Step
+
+### 📂 Cấu Trúc Mã Nguồn Triển Khai
+
+Một cấu trúc tổ chức DTO chuẩn mực cho Module `users`:
+
+```
+src/
+├── users/
+│   ├── dto/
+│   │   ├── address.dto.ts        👈 Nested DTO: Cấu trúc địa chỉ con lồng nhau
+│   │   └── create-user.dto.ts    👈 Main DTO: Xác thực thông tin tạo mới người dùng
+│   ├── users.controller.ts       👈 Nhận DTO sạch qua @Body() đã được kiểm chứng
+│   └── users.service.ts          👈 Nhận dữ liệu Type-Safe chuyển tới Prisma/Database
+├── app.module.ts                 👈 Đăng ký Module
+└── main.ts                       👈 Kích hoạt Global ValidationPipe với cấu hình nghiêm ngặt
+```
+
+---
+
+### 📌 Bước 1: Cài Đặt Bộ Đôi Thư Viện Cốt Lõi
+
+Mở Terminal tại thư mục gốc của dự án và cài đặt bằng `pnpm`:
 
 ```bash
 pnpm add class-validator class-transformer
@@ -78,7 +165,9 @@ pnpm add class-validator class-transformer
 
 ---
 
-### 📌 Bước 2: Kích Hoạt `ValidationPipe` Toàn Cục Trong `src/main.ts`
+### 📌 Bước 2: Cấu Hình `ValidationPipe` Toàn Cục Trong `src/main.ts`
+
+Mở tệp `src/main.ts` và gắn `ValidationPipe` vào hệ thống thông qua `app.useGlobalPipes`:
 
 📄 **`src/main.ts`**
 
@@ -97,6 +186,7 @@ async function bootstrap() {
   const versionPrefix = configService.get<string>('VERSION_PREFIX', 'v');
   const versionApi = configService.get<string>('VERSION_API', '1');
 
+  // 1. Cấu hình tiền tố toàn cục & API Versioning
   app.setGlobalPrefix(globalPrefix);
   app.enableVersioning({
     type: VersioningType.URI,
@@ -104,21 +194,21 @@ async function bootstrap() {
     defaultVersion: versionApi,
   });
 
-  // 🛡️ Kích hoạt Bộ Lọc An Ninh Toàn Cục
+  // 2. 🛡️ Kích hoạt Lá Chắn Bảo Vệ Toàn Cục (Global ValidationPipe)
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Lớp 1: Gọt sạch mọi trường thừa
-      forbidNonWhitelisted: true, // Lớp 2: Quăng lỗi 400 nếu phát hiện trường lạ
-      transform: true, // Lớp 3: Tự động khởi tạo Plain Object thành DTO Class Instance
+      whitelist: true, // Lớp 1: Gọt sạch mọi thuộc tính không khai báo decorator trong DTO
+      forbidNonWhitelisted: true, // Lớp 2: Quăng lỗi 400 Bad Request ngay nếu phát hiện trường lạ độc hại
+      transform: true, // Lớp 3: Tự động khởi tạo DTO thành Class Instance thật sự
       transformOptions: {
-        enableImplicitConversion: true, // Tự động ép kiểu primitives (chuỗi sang số/boolean)
+        enableImplicitConversion: true, // Tự động ép kiểu primitives (chuỗi sang số/boolean ở Query & Param)
       },
     }),
   );
 
   await app.listen(port);
   Logger.log(
-    `🚀 Server running at: http://localhost:${port}/${globalPrefix}/${versionPrefix}${versionApi}`,
+    `🚀 Server đang khởi chạy tại: http://localhost:${port}/${globalPrefix}/${versionPrefix}${versionApi}`,
     'Bootstrap',
   );
 }
@@ -127,13 +217,36 @@ bootstrap();
 
 ---
 
-### 📌 Bước 3: Tạo DTO Với Các Ràng Buộc Xác Thực
+### 📌 Bước 3: Tạo Nested DTO (Địa Chỉ Người Dùng)
 
-Tạo tệp DTO định nghĩa các quy tắc kiểm tra và thông báo lỗi tiếng Việt:
+Khi dữ liệu gửi lên chứa một Object con bên trong (ví dụ trường `address`), ta tạo một DTO riêng để quản lý các trường con:
+
+📄 **`src/users/dto/address.dto.ts`**
+
+```typescript
+import { IsNotEmpty, IsString } from 'class-validator';
+
+export class AddressDto {
+  @IsString({ message: 'Tên đường phải là chuỗi ký tự!' })
+  @IsNotEmpty({ message: 'Tên đường không được để trống!' })
+  street: string;
+
+  @IsString({ message: 'Tên thành phố phải là chuỗi ký tự!' })
+  @IsNotEmpty({ message: 'Tên thành phố không được để trống!' })
+  city: string;
+}
+```
+
+---
+
+### 📌 Bước 4: Tạo Main DTO Toàn Diện Với Các Ràng Buộc Nâng Cao
+
+Tạo file `create-user.dto.ts` bao gồm kiểm tra chuỗi, email, số tuổi, danh mục `enum`, giá trị tùy chọn (`@IsOptional`) và Object lồng nhau (`@ValidateNested`):
 
 📄 **`src/users/dto/create-user.dto.ts`**
 
 ```typescript
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsEnum,
@@ -144,8 +257,11 @@ import {
   Max,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { AddressDto } from './address.dto';
 
+// Khai báo Enum vai trò người dùng
 export enum UserRole {
   USER = 'USER',
   MODERATOR = 'MODERATOR',
@@ -157,7 +273,10 @@ export class CreateUserDto {
   @MinLength(3, { message: 'Username phải có ít nhất 3 ký tự!' })
   username: string;
 
-  @IsEmail({}, { message: 'Email không đúng định dạng chuẩn!' })
+  @IsEmail(
+    {},
+    { message: 'Email không đúng định dạng chuẩn (ví dụ: user@example.com)!' },
+  )
   @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
 
@@ -169,12 +288,27 @@ export class CreateUserDto {
   @IsEnum(UserRole, { message: 'Vai trò phải là USER hoặc MODERATOR!' })
   @IsOptional()
   role?: UserRole = UserRole.USER;
+
+  // 🔄 Validate Object lồng nhau (Nested DTO)
+  @ValidateNested()
+  @Type(() => AddressDto) // BẮT BUỘC có @Type để class-transformer biết đây là kiểu Class con
+  @IsOptional()
+  address?: AddressDto;
 }
 ```
 
+> [!IMPORTANT]
+> **Quy tắc vàng khi validate Object lồng nhau:**  
+> Bạn **bắt buộc** phải sử dụng đồng thời cặp đôi:
+>
+> 1. `@ValidateNested()` của `class-validator`: Ra lệnh cho Pipe kiểm tra sâu vào các thuộc tính bên trong.
+> 2. `@Type(() => AddressDto)` của `class-transformer`: Hướng dẫn JavaScript khởi tạo object thô thành một instance của `AddressDto`. Nếu thiếu `@Type`, NestJS sẽ bỏ qua việc validate các trường bên trong `address`!
+
 ---
 
-### 📌 Bước 4: Áp Dụng DTO Sạch Sẽ Vào Controller
+### 📌 Bước 5: Áp Dụng DTO Sạch Sẽ Vào Controller
+
+Mở tệp `src/users/users.controller.ts` và gán DTO vào tham số `@Body()`:
 
 📄 **`src/users/users.controller.ts`**
 
@@ -187,9 +321,12 @@ export class UsersController {
   @Version('1')
   @Post()
   createUser(@Body() createUserDto: CreateUserDto) {
+    // Nhờ có transform: true, createUserDto là một Instance đích thực của class CreateUserDto
+    console.log('Kiểm tra Instance:', createUserDto instanceof CreateUserDto); // true
+
     return {
       success: true,
-      message: 'Người dùng đã được xác thực hợp lệ!',
+      message: 'Người dùng đã được xác thực hợp lệ và tạo thành công!',
       data: createUserDto,
     };
   }
@@ -198,19 +335,21 @@ export class UsersController {
 
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+## 5. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-Khởi động ứng dụng NestJS:
+Khởi động ứng dụng NestJS của bạn:
 
 ```bash
 pnpm start:dev
 ```
 
+Mở một cửa sổ Terminal mới và thực hiện kiểm thử theo các kịch bản thực tế bên dưới:
+
 ---
 
-### 🟢 Kịch Bản 1: Thành Công — Ép Kiểu Tự Động (Success Flow)
+### 🟢 Kịch Bản 1: Thành Công — Gửi Payload Hợp Lệ Kèm Ép Kiểu Tự Động
 
-Gửi request với trường `"age": "25"` (dạng chuỗi) để kiểm chứng khả năng tự động ép kiểu:
+Thực thi lệnh cURL gửi dữ liệu hoàn chỉnh, chú ý trường `"age": "25"` cố tình truyền chuỗi để kiểm chứng khả năng tự động ép kiểu sang số nguyên của `enableImplicitConversion`:
 
 ```bash
 curl -i -X POST http://localhost:3000/api/v1/users \
@@ -218,38 +357,69 @@ curl -i -X POST http://localhost:3000/api/v1/users \
   -d '{
     "username": "alex_johnson",
     "email": "alex@example.com",
-    "age": "25"
+    "age": "25",
+    "address": {
+      "street": "123 Đường Lê Lợi",
+      "city": "Hồ Chí Minh"
+    }
   }'
 ```
 
-📥 **Kết quả nhận được (`201 Created`):**
+📥 **Phản hồi HTTP nhận được (`201 Created`):**
 
-- Trường `age` tự động được ép kiểu thành số nguyên `25` (Number).
-- Trường `role` tự động nhận giá trị mặc định `"USER"`.
+```json
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "success": true,
+  "message": "Người dùng đã được xác thực hợp lệ và tạo thành công!",
+  "data": {
+    "username": "alex_johnson",
+    "email": "alex@example.com",
+    "age": 25,
+    "role": "USER",
+    "address": {
+      "street": "123 Đường Lê Lợi",
+      "city": "Hồ Chí Minh"
+    }
+  }
+}
+```
+
+> [!NOTE]
+> **Phân tích kết quả:**
+>
+> - Trường `age` đã tự động được ép kiểu từ chuỗi `"25"` thành số `25` nguyên bản (Number).
+> - Trường `role` tự động nhận giá trị mặc định `"USER"` do DTO định nghĩa.
+> - Cấu trúc `address` lồng nhau được kiểm tra an toàn và giữ nguyên tính toàn vẹn.
 
 ---
 
-### 🔴 Kịch Bản 2: Bắt Lỗi Vi Phạm Ràng Buộc (Validation Error)
+### 🔴 Kịch Bản 2: Kiểm Thử Bắt Lỗi — Vi Phạm Ràng Buộc Dữ Liệu
 
-Gửi dữ liệu vi phạm (username < 3 ký tự, email sai, tuổi 16):
+Thử gửi yêu cầu với các lỗi điển hình: username quá ngắn (< 3 ký tự), định dạng email sai, và tuổi dưới 18:
 
 ```bash
 curl -i -X POST http://localhost:3000/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{
     "username": "al",
-    "email": "email-sai-dinh-dang",
+    "email": "email-khong-dung-dinh-dang",
     "age": 16
   }'
 ```
 
-📥 **Phản hồi từ Server (`400 Bad Request`):**
+📥 **Phản hồi HTTP nhận được từ Server (`400 Bad Request`):**
 
 ```json
+HTTP/1.1 400 Bad Request
+Content-Type: application/json; charset=utf-8
+
 {
   "message": [
     "Username phải có ít nhất 3 ký tự!",
-    "Email không đúng định dạng chuẩn!",
+    "Email không đúng định dạng chuẩn (ví dụ: user@example.com)!",
     "Người dùng phải từ 18 tuổi trở lên!"
   ],
   "error": "Bad Request",
@@ -257,62 +427,80 @@ curl -i -X POST http://localhost:3000/api/v1/users \
 }
 ```
 
+✅ **Kết quả:** NestJS tự động gom toàn bộ danh sách lỗi vi phạm vào mảng `message` kèm thông báo tùy biến tiếng Việt thân thiện, giúp đội ngũ Frontend dễ dàng hiển thị lỗi tương ứng lên giao diện người dùng.
+
 ---
 
-### 🔴 Kịch Bản 3: Chặn Đứng Tấn Công Mass Assignment (Security Protection)
+### 🔴 Kịch Bản 3: Kiểm Thử Bảo Mật — Triệt Tiêu Tấn Công Mass Assignment
 
-Kẻ tấn công cố tình gửi kèm trường `hackRole: "SUPER_ADMIN"` để chiếm quyền:
+Kẻ tấn công cố tình tiêm thêm trường `hackRole: "SUPER_ADMIN"` và `isVip: true` nhằm chiếm quyền trái phép:
 
 ```bash
 curl -i -X POST http://localhost:3000/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "hacker",
-    "email": "hacker@test.com",
+    "username": "hacker_pro",
+    "email": "hacker@security.io",
     "age": 28,
-    "hackRole": "SUPER_ADMIN"
+    "hackRole": "SUPER_ADMIN",
+    "isVip": true
   }'
 ```
 
-📥 **Phản hồi từ Server (`400 Bad Request`):**
+📥 **Phản hồi HTTP nhận được từ Server (`400 Bad Request` do `forbidNonWhitelisted`):**
 
 ```json
+HTTP/1.1 400 Bad Request
+Content-Type: application/json; charset=utf-8
+
 {
-  "message": ["property hackRole should not exist"],
+  "message": [
+    "property hackRole should not exist",
+    "property isVip should not exist"
+  ],
   "error": "Bad Request",
   "statusCode": 400
 }
 ```
 
-🛡️ **Phân tích an ninh:** Nhờ `forbidNonWhitelisted: true`, máy chủ từ chối phục vụ ngay lập tức khi phát hiện trường lạ ngoài DTO, triệt tiêu nguy cơ thao túng dữ liệu.
+🛡️ **Phân tích an ninh:** Nhờ cấu hình `forbidNonWhitelisted: true`, máy chủ phát hiện ngay các trường nằm ngoài khai báo của DTO và **từ chối phục vụ ngay lập tức**. Kẻ xấu hoàn toàn không có cơ hội thao túng cơ sở dữ liệu!
 
 ---
 
-## 5. Tổng Kết Bài Học & Checklist Ghi Nhớ
+## 6. Tổng Kết Bài Học & Checklist Ghi Nhớ
 
 ```mermaid
 mindmap
-  root((Lesson 3.2: DTO & Validation))
-    Bản chất DTO
-      API Contract độc lập
-      Bắt buộc dùng Class thay vì Interface
-      Cách ly Payload mạng và CSDL
-    3 Tầng ValidationPipe
-      whitelist: Gọt sạch trường thừa
-      forbidNonWhitelisted: Ném 400 nếu có trường lạ
-      transform: Ép kiểu & Khởi tạo instance
-    class-validator
-      Decorators (@IsString, @IsEmail, @IsInt, @IsEnum)
-      Tùy biến thông báo lỗi tiếng Việt
+  root(("DTO & Validation in NestJS"))
+    "Bản chất DTO"
+      "Bản hợp đồng cam kết API (API Contract)"
+      "Đối tượng đóng gói dữ liệu thuần túy"
+      "Tách rời Network Payload và Database Schema"
+      "Bắt buộc dùng Class thay vì Interface ở Runtime"
+    "3 Lớp Lá Chắn ValidationPipe"
+      "whitelist: true (Gọt sạch trường thừa)"
+      "forbidNonWhitelisted: true (Ném 400 nếu có trường lạ)"
+      "transform: true (Khởi tạo DTO Class Instance)"
+      "enableImplicitConversion: true (Ép kiểu primitives)"
+    "Thư viện Cốt lõi"
+      "class-validator (Decorators kiểm định)"
+      "class-transformer (plainToInstance & Type casting)"
+    "Kỹ thuật Nâng cao"
+      "Thông báo lỗi tùy biến tiếng Việt"
+      "Validate Object lồng nhau (@ValidateNested + @Type)"
+      "Kiểm tra danh mục Enum an toàn"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu bản chất DTO là API Contract độc lập giữa Client và Database.
-- [x] Nắm rõ vì sao DTO phải là Class (tồn tại ở Runtime) thay vì Interface (bị Type Erasure).
-- [x] Cấu hình thành thạo 3 tầng phòng thủ của `ValidationPipe` trong `src/main.ts`.
-- [x] Khai báo các decorator thông dụng của `class-validator` kèm thông báo lỗi tiếng Việt.
-- [x] Kiểm chứng thành công khả năng tự động ép kiểu và chặn đứng tấn công Mass Assignment.
+- [x] Hiểu sâu sắc bản chất **DTO** là bản hợp đồng cam kết cấu trúc dữ liệu (API Contract) giữa Client và Server.
+- [x] Nắm rõ lý do vì sao không được dùng trực tiếp Database Model (Prisma Entity) để hứng request (nguy cơ rò rỉ và bị ghi đè dữ liệu quản trị).
+- [x] Thấu hiểu lý do vì sao phải dùng DTO Class (tồn tại ở Runtime) thay vì Interface (bị xóa sổ khi biên dịch).
+- [x] Nắm vững cơ chế của 3 lớp phòng thủ trong `ValidationPipe`: `whitelist`, `forbidNonWhitelisted`, và `transform`.
+- [x] Cài đặt và cấu hình thành công bộ đôi `class-validator` & `class-transformer` trong `src/main.ts`.
+- [x] Xây dựng thành thạo DTO với đầy đủ các decorator thông dụng (`@IsString`, `@IsEmail`, `@Min`, `@Max`, `@IsEnum`) kèm thông báo lỗi tiếng Việt dễ hiểu.
+- [x] Làm chủ kỹ thuật validate Object lồng nhau bằng bộ đôi `@ValidateNested()` và `@Type(() => SubDto)`.
+- [x] Thử nghiệm thành công kịch bản chặn đứng tấn công Mass Assignment và kiểm chứng cơ chế tự động ép kiểu dữ liệu.
 
 ---
 
