@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
 
 export interface User {
   id: number;
@@ -15,5 +16,9 @@ export class UsersService {
 
   findAll(): User[] {
     return this.users;
+  }
+
+  create(body: CreateUserDto) {
+    return body;
   }
 }
