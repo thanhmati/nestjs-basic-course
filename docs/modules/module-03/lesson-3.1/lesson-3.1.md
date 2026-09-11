@@ -310,7 +310,7 @@ export class AnalyticsController {
 
 _Áp dụng khi:_ Các endpoint mang tính hạ tầng (như kiểm tra tình trạng máy chủ `Health Check`), cần phản hồi bất kể client gọi kèm phiên bản nào hoặc không truyền phiên bản.
 
-📄 **`src/common/health.controller.ts`**
+📄 **`src/shared/health.controller.ts`**
 
 ```typescript
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';

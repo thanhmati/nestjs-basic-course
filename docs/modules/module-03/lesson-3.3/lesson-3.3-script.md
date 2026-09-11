@@ -167,8 +167,8 @@ flowchart LR
 #### ⏱️ Phút 05:00 - 06:30 | Viết `LoggerMiddleware` Chuẩn `NestMiddleware` Interface
 
 - 🎬 **Hành động & Màn hình hiển thị (Screen/Visuals):**
-  - Mở VS Code, tạo thư mục `src/common/middleware/`.
-  - Tạo tệp 📄 **`src/common/middleware/logger.middleware.ts`**.
+  - Mở VS Code, tạo thư mục `src/shared/middleware/`.
+  - Tạo tệp 📄 **`src/shared/middleware/logger.middleware.ts`**.
   - Gõ live-code từng dòng: `@Injectable()`, `implements NestMiddleware`, `new Logger('HTTP')`, và cài đặt hàm `use()`.
 
 - 🎙️ **Lời thoại Giảng viên (Instructor Dialogue):**
@@ -179,7 +179,7 @@ flowchart LR
   >
   > Chúng ta khai báo Class `LoggerMiddleware` triển khai interface `NestMiddleware`:
   >
-  > 📄 **`src/common/middleware/logger.middleware.ts`**
+  > 📄 **`src/shared/middleware/logger.middleware.ts`**
   >
   > ```typescript
   > import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
@@ -481,7 +481,7 @@ mindmap
 ## ✅ Checklist Kiểm Tra Chuẩn Bị Trước Khi Bấm Record (Ready to Record Checklist)
 
 - [ ] Node.js & pnpm hoạt động ổn định, dự án NestJS build không lỗi.
-- [ ] Thư mục `src/common/middleware/` đã sẵn sàng để tạo file `logger.middleware.ts`.
+- [ ] Thư mục `src/shared/middleware/` đã sẵn sàng để tạo file `logger.middleware.ts`.
 - [ ] File `src/app.module.ts` đã sẵn sàng để implements `NestModule`.
 - [ ] Soạn sẵn 3 câu lệnh cURL ra Notepad để copy-paste mượt mà trong lúc quay, tránh gõ nhầm URL.
 - [ ] Độ phân giải màn hình 1920x1080, font size VS Code 16–18, webcam góc phải không che khuất mã nguồn.
