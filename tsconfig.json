@@ -27,7 +27,8 @@
       "@config/*": ["src/config/*"],
       "@users/*": ["src/users/*"],
       "@posts/*": ["src/posts/*"],
-      "@prisma/*": ["src/prisma/*"]
+      "@prisma/*": ["src/prisma/*"],
+      "@shared/*": ["src/shared/*"]
     }
   }
 }
