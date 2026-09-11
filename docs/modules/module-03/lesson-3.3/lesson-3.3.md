@@ -15,78 +15,89 @@
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng dự kiến:** 10 – 12 phút  
-> 🎯 **Mục tiêu bài học:** Thấu hiểu khái niệm và vị trí của Middleware trong Vòng đời Request (Request Lifecycle) của NestJS; tự tay xây dựng `LoggerMiddleware` theo chuẩn `NestMiddleware` interface để tự động ghi vết HTTP Method, URL, Status Code, IP Address và Execution Time (ms); làm chủ kỹ thuật đăng ký Middleware toàn cục hoặc áp dụng linh hoạt cho từng Route/Controller với `MiddlewareConsumer`, `forRoutes()` và `exclude()`.
+> ⏱️ **Thời lượng:** 10 – 12 phút thực chiến  
+> 🎯 **Mục tiêu:** Thấu hiểu vị trí độc nhất của Middleware trong Vòng đời Request (Request Lifecycle) của NestJS; tự tay xây dựng `LoggerMiddleware` theo chuẩn `NestMiddleware` interface để tự động ghi vết HTTP Method, URL, Status Code, IP Address và Execution Time (ms); phân biệt Class Middleware và Functional Middleware; làm chủ kỹ thuật đăng ký và loại trừ endpoint với `MiddlewareConsumer`, `forRoutes()` và `exclude()`.
 
 ---
 
-## 1. Tại Sao Ứng Dụng Enterprise Cần HTTP Middleware?
+## 1. Bản Chất Middleware & Vị Trí Trong Request Pipeline
 
-### 💡 Ẩn Dụ Thực Tế: Trạm Thu Phí Tự Động Trên Đường Cao Tốc
+Trong hệ thống Backend thực tế, mỗi giây có hàng ngàn HTTP Request gửi đến máy chủ. Nếu không có cơ chế ghi log tự động, đội ngũ kỹ thuật sẽ hoàn toàn "mù thông tin" khi hệ thống gặp sự cố: _Không biết ai đã gọi API nào, gọi từ IP nào, phản hồi thành công hay thất bại, và mất bao nhiêu miligiây để xử lý._
 
-Hãy tưởng tượng tuyến đường cao tốc đi vào trung tâm thành phố (ứng dụng NestJS của bạn):
+### 📱 Sản Phẩm Thực Tế & Dashboard Giám Sát HTTP Request
 
-- Mọi xe ô tô (HTTP Request) muốn truy cập vào thành phố đều phải chạy qua **Trạm Thu Phí / Đăng Kiểm (Middleware)**.
-- Tại trạm này, thiết bị sẽ tự động ghi lại **Biển số xe (IP Address)**, **Loại xe (User-Agent)**, **Giờ vào trạm (Timestamp)** và **Làn đường muốn đi (HTTP Method & URL)** trước khi cho phép xe đi tiếp (`next()`).
+Dưới đây là giao diện bảng điều khiển giám sát API (Observability Dashboard) mà dữ liệu từ `LoggerMiddleware` sẽ trực tiếp cung cấp:
 
-Nếu hệ thống Backend không có Middleware ghi log, khi xảy ra sự cố (như bị tấn công DDoS, API bị treo hoặc nghi vấn rò rỉ dữ liệu), bạn sẽ hoàn toàn "mù thông tin" vì không biết ai đã gọi API nào, lúc mấy giờ và mất bao nhiêu miligiây để xử lý!
+<p align="center">
+  <img src="./assets/middleware_logger_ui_mockup.jpg" alt="API Request Logging & Tracing Mockup" width="95%" />
+</p>
 
-```mermaid
-flowchart LR
-    subgraph RequestPipeline ["🚀 NestJS Request Lifecycle Pipeline"]
-        direction LR
-        Client["📱 Client Request"] --> Middleware["⚙️ Middleware<br/><i>(Log, Cors, Body Parser)</i>"]
-        Middleware --> Guard["🛡️ Guards<br/><i>(Auth Check)</i>"]
-        Guard --> Pipe["⚡ Pipes<br/><i>(Validation)</i>"]
-        Pipe --> Controller["📄 Controller Handler"]
-    end
+Nhìn vào màn hình quan sát ở trên, hai giá trị cốt lõi của LoggerMiddleware được thể hiện rõ ràng:
+
+- 🟢 **HTTP Request Stream (Phía Trái):** Ghi vết tức thì từng lượt truy cập với Method, Path, Status Code (`200 OK`, `400 Bad Request`), Client IP và thời gian phản hồi chuẩn xác (`+12ms`, `+8ms`).
+- ⏱️ **Lifecycle & Latency Inspector (Phía Phải):** Đo đạc chính xác tổng thời gian từ lúc Request chạm vào tầng Middleware đầu tiên cho đến khi Response phát sự kiện kết thúc (`finish`).
+
+---
+
+### ⚖️ So Sánh 5 Thành Phần Cốt Lõi Trong NestJS Request Pipeline
+
+NestJS cung cấp 5 lớp xử lý theo thứ tự nghiêm ngặt. Hiểu rõ bảng so sánh này giúp bạn chọn đúng công cụ, tránh dùng nhầm lẫn:
+
+| Thành phần              | Vị trí thực thi                   | Quyền truy cập `req`, `res`, `next` | Trường hợp sử dụng chính                                                  |
+| :---------------------- | :-------------------------------- | :---------------------------------: | :------------------------------------------------------------------------ |
+| **🛡️ Middleware**       | **Đầu tiên (Trước tất cả)**       |     ✅ **Có (Express Native)**      | **Logging, CORS, Compression, Rate Limiting, Body Parser.**               |
+| **🔐 Guard**            | Sau Middleware, trước Interceptor |     ❌ Dùng `ExecutionContext`      | Xác thực danh tính (Authentication) & Kiểm tra quyền hạn (Authorization). |
+| **🔄 Interceptor**      | Xung quanh Controller Handler     |       ❌ Dùng RxJS Observable       | Chuyển đổi dữ liệu Response (Transform Payload), Cache, Timeout.          |
+| **⚡ Pipe**             | Trước Controller Handler          |     ❌ Dùng `ArgumentMetadata`      | Validate dữ liệu DTO, chuyển đổi kiểu dữ liệu (ParseInt, Type Casting).   |
+| **🚨 Exception Filter** | Khi có lỗi quăng ra (Throw Error) |       ❌ Dùng `ArgumentsHost`       | Chuẩn hóa định dạng JSON phản hồi lỗi (4xx, 5xx) về Client.               |
+
+> [!IMPORTANT]
+> **Điểm khác biệt sống còn của Middleware:**  
+> Middleware là thành phần **duy nhất** chạy ở tầng HTTP Engine gốc (Express/Fastify) và có quyền truy cập trực tiếp vào đối tượng gốc `req: Request` và `res: Response`. Do đó, Middleware là nơi lý tưởng nhất để thực hiện các tác vụ hạ tầng như ghi log, đo thời gian xử lý và gắn header bảo mật.
+
+---
+
+## 2. Kiến Trúc Vòng Đời Middleware & Cơ Chế Event-Driven Logging
+
+### 🧩 Sơ Đồ Luồng Xử Lý Của `LoggerMiddleware`
+
+Để đo được chính xác thời gian xử lý của một API (Response Time), Middleware áp dụng cơ chế **Event-Driven (Lắng nghe sự kiện)** bất đồng bộ, không hề làm chậm luồng xử lý chính:
+
+<p align="center">
+  <img src="./assets/middleware_lifecycle_architecture.svg" alt="NestJS Middleware Lifecycle Architecture" width="100%" />
+</p>
+
+Quy trình vận hành gồm 4 bước liền mạch:
+
+1. **Request Ingestion:** Request từ Client chạm vào `LoggerMiddleware`. Middleware ghi nhận mốc thời gian bắt đầu `const startTime = Date.now()` và trích xuất thông tin IP, Method, URL.
+2. **Event Registration:** Đăng ký hàm callback lắng nghe sự kiện `res.on('finish', ...)`. Sự kiện này **chỉ kích hoạt sau khi toàn bộ dữ liệu phản hồi đã được truyền xong về Client**.
+3. **Yield Control (`next()`):** Middleware gọi `next()` để chuyển giao quyền điều khiển cho Guards, Pipes, và Controller tiếp tục xử lý nghiệp vụ.
+4. **Finish & Log:** Khi Response hoàn tất, sự kiện `finish` phát ra. Callback được kích hoạt, tính toán độ trễ `Date.now() - startTime` và in dòng log chuyên nghiệp ra Terminal.
+
+---
+
+## 3. Hướng Dẫn Thực Hành Step-by-Step
+
+### 📂 Cấu Trúc Mã Nguồn Triển Khai
+
+```
+src/
+├── common/
+│   └── middleware/
+│       └── logger.middleware.ts    👈 Class Middleware chuẩn NestMiddleware
+├── posts/                          👈 Module Posts (Controller & Service)
+├── users/                          👈 Module Users (Controller & Service)
+├── app.module.ts                   👈 Cấu hình MiddlewareConsumer (apply, forRoutes, exclude)
+└── main.ts                         👈 Điểm khởi chạy ứng dụng
 ```
 
 ---
 
-### 🔹 So Sánh Các Thành Phần Trong NestJS Request Pipeline
+### 📌 Bước 1: Xây Dựng `LoggerMiddleware` Chuẩn `NestMiddleware`
 
-| Thành phần           | Vị trí thực thi                     | Mục đích sử dụng chính                                     | Có truy cập `req`, `res`, `next()` không? |
-| :------------------- | :---------------------------------- | :--------------------------------------------------------- | :---------------------------------------: |
-| **Middleware**       | **Đầu tiên (Trước Guards & Pipes)** | Logging, CORS, Compression, Session, Body Parsing          |        ✅ **Có (Express Native)**         |
-| **Guard**            | Sau Middleware, trước Pipe          | Xác thực (Authentication) & Phân quyền (Authorization)     |        ❌ Dùng `ExecutionContext`         |
-| **Pipe**             | Trước Controller Handler            | Validate & Transform DTO Payload                           |        ❌ Dùng `ArgumentMetadata`         |
-| **Interceptor**      | Xung quanh Controller Handler       | Transform Response, Caching, Log Execution Time chuyên sâu |          ❌ Dùng RxJS Observable          |
-| **Exception Filter** | Khi có lỗi xảy ra                   | Chuẩn hóa JSON Response lỗi (4xx, 5xx)                     |          ❌ Dùng `ArgumentsHost`          |
+Tạo file `src/common/middleware/logger.middleware.ts` triển khai interface `NestMiddleware`:
 
----
-
-## 2. Vòng Đời Xử Lý Của LoggerMiddleware
-
-NestJS Middleware về bản chất tương thích hoàn toàn với Express Middleware. Đối với bài toán Logging, chúng ta sẽ bắt thời điểm **Request bắt đầu** và lắng nghe sự kiện `finish` của `Response` để tính toán thời gian phản hồi:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as 📱 HTTP Client
-    participant Logger as ⚙️ LoggerMiddleware
-    participant Router as 🚀 NestJS Router / Controller
-    participant Res as 📤 HTTP Response Stream
-
-    Client->>Logger: 1. Gửi Request GET /api/v1/posts
-    Note over Logger: Trích xuất: Method, URL, IP, User-Agent<br/>Ghi nhận startTime = Date.now()
-    Logger->>Logger: Đăng ký res.on('finish', callback)
-    Logger->>Router: 2. Gọi next() chuyển tiếp sang Controller
-    Router-->>Res: 3. Xử lý nghiệp vụ & Tạo Response Header/Body
-    Res-->>Client: 4. Trả kết quả về cho Client
-    Note over Res,Logger: 5. Sự kiện 'finish' kích hoạt!
-    Logger->>Logger: Tính executionTime = Date.now() - startTime<br/>In log: [HTTP] GET /api/v1/posts 200 +14ms
-```
-
----
-
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Viết & Đăng Ký LoggerMiddleware
-
-### 📌 Bước 1: Xây Dựng `LoggerMiddleware` Class
-
-Tạo tệp `src/shared/middleware/logger.middleware.ts` và triển khai interface `NestMiddleware`:
-
-📄 **`src/shared/middleware/logger.middleware.ts`**
+📄 **`src/common/middleware/logger.middleware.ts`**
 
 ```typescript
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
@@ -94,12 +105,12 @@ import { NextFunction, Request, Response } from 'express';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  // Khởi tạo Logger instance với context 'HTTP' để phân biệt log trong Terminal
+  // Tạo Logger instance với ngữ cảnh 'HTTP' giúp hiển thị nhãn đẹp mắt trong Terminal
   private readonly logger = new Logger('HTTP');
 
   use(req: Request, res: Response, next: NextFunction): void {
     const { ip, method, originalUrl } = req;
-    const userAgent = req.get('user-agent') || 'Unknown User-Agent';
+    const userAgent = req.get('user-agent') || 'Unknown Agent';
     const startTime = Date.now();
 
     // Lắng nghe sự kiện khi HTTP Response hoàn tất truyền dữ liệu về Client
@@ -108,10 +119,10 @@ export class LoggerMiddleware implements NestMiddleware {
       const contentLength = res.get('content-length') || 0;
       const responseTime = Date.now() - startTime;
 
-      // Định dạng dòng log chuyên nghiệp
+      // Chuẩn hóa định dạng log chuyên nghiệp
       const logMessage = `${method} ${originalUrl} ${statusCode} ${contentLength}b - +${responseTime}ms [IP: ${ip}] [Agent: ${userAgent}]`;
 
-      // Phân loại màu sắc/level log dựa trên Status Code
+      // Phân cấp màu sắc cảnh báo dựa theo HTTP Status Code
       if (statusCode >= 500) {
         this.logger.error(logMessage);
       } else if (statusCode >= 400) {
@@ -121,20 +132,21 @@ export class LoggerMiddleware implements NestMiddleware {
       }
     });
 
-    // ⚠️ BẮT BỘC: Gọi next() để Yêu cầu không bị treo mãi mãi ở Middleware
+    // ⚠️ QUY TẮC SINH TỬ: Bắt buộc gọi next() để Request không bị treo Timeout!
     next();
   }
 }
 ```
 
-> [!IMPORTANT]
-> **Lưu ý sinh tử:**Luôn phải gọi `next()` ở cuối phương thức `use()`. Nếu quên `next()`, Request của người dùng sẽ bị kẹt lại vĩnh viễn ở Middleware và rơi vào trạng thái Timeout!
+> [!CAUTION]
+> **Cảnh báo sinh tử về `next()`:**  
+> Nếu bạn quên gọi `next()`, Request của người dùng sẽ bị kẹt lại vĩnh viễn ở Middleware và trình duyệt sẽ bị xoay tròn vô tận cho đến khi dính lỗi `504 Gateway Timeout`!
 
 ---
 
 ### 📌 Bước 2: Đăng Ký Middleware Trong Module (`AppModule`)
 
-Trong NestJS, Middleware **không đăng ký** qua mảng `providers` hay `imports`, mà được cấu hình thông qua phương thức `configure()` của interface `NestModule`:
+Trong NestJS, Middleware không đăng ký trong mảng `providers` mà được cấu hình thông qua phương thức `configure()` của interface `NestModule`:
 
 📄 **`src/app.module.ts`**
 
@@ -146,23 +158,22 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { PostsV1Controller } from './posts/posts-v1.controller';
-import { PostsV2Controller } from './posts/posts-v2.controller';
-import { UsersController } from './users/users.controller';
+import { PostsModule } from './posts/posts.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
-  controllers: [PostsV1Controller, PostsV2Controller, UsersController],
+  imports: [PostsModule, UsersModule],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
-      // 1. Loại trừ các endpoint không cần ghi log (như Healthcheck hoặc Static files)
+      // 1. Loại trừ các endpoint không cần ghi log (tránh rác log từ Healthcheck của K8s / AWS)
       .exclude(
         { path: 'health', method: RequestMethod.GET },
         { path: 'api/v1/health', method: RequestMethod.GET },
       )
-      // 2. Áp dụng LoggerMiddleware cho TẤT CẢ các routes còn lại
+      // 2. Áp dụng LoggerMiddleware cho toàn bộ các routes còn lại trong hệ thống
       .forRoutes('*');
   }
 }
@@ -170,88 +181,103 @@ export class AppModule implements NestModule {
 
 ---
 
-### 📌 Mở Rộng: Functional Middleware (Middleware Dạng Hàm Đơn Giản)
+### 💡 Mở Rộng: Khi Nào Dùng Functional Middleware?
 
-Nếu Middleware của bạn cực kỳ đơn giản, không phụ thuộc vào bất kỳ Service nào (Dependency Injection), bạn có thể viết dạng **Functional Middleware** ngắn gọn hơn:
+Nếu Middleware của bạn hoàn toàn đơn giản, không cần tiêm phụ thuộc (Dependency Injection), bạn có thể viết dạng **Functional Middleware** trực tiếp bằng hàm:
 
-📄 **`src/shared/middleware/simple-logger.middleware.ts`**
+📄 **`src/common/middleware/simple-logger.middleware.ts`**
 
 ```typescript
 import { NextFunction, Request, Response } from 'express';
 
 export function simpleLogger(req: Request, res: Response, next: NextFunction) {
-  console.log(`[Functional Logger] Request incoming: ${req.method} ${req.url}`);
+  console.log(`[Fast Logger] ${req.method} ${req.originalUrl}`);
   next();
 }
 ```
 
-Đăng ký Functional Middleware trực tiếp trong `main.ts`:
-📄 **`src/main.ts`**
+Đăng ký nhanh chóng trong `src/main.ts` bằng `app.use()`:
 
 ```typescript
-import { simpleLogger } from './common/middleware/simple-logger.middleware';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Đăng ký functional middleware toàn cục cho toàn bộ ứng dụng
-  app.use(simpleLogger);
-
-  await app.listen(3000);
-}
-bootstrap();
+// Gắn Functional Middleware toàn cục trực tiếp tại bootstrap
+app.use(simpleLogger);
 ```
+
+| Tiêu chí                 | 🏛️ Class Middleware (`NestMiddleware`)                             | ⚡ Functional Middleware (`app.use`)           |
+| :----------------------- | :----------------------------------------------------------------- | :--------------------------------------------- |
+| **Dependency Injection** | ✅ **Hỗ trợ đầy đủ** (có thể inject Service, Config).              | ❌ Không hỗ trợ DI.                            |
+| **Phạm vi áp dụng**      | Linh hoạt qua `forRoutes()`, `exclude()`, áp dụng theo Controller. | Toàn cục cho toàn bộ ứng dụng.                 |
+| **Khuyên dùng khi**      | **Logging nâng cao, Auth Middleware, Audit Log.**                  | **Tác vụ siêu nhẹ, CORS cơ bản, Header tĩnh.** |
 
 ---
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Thành Công — Ghi Log Tự Động Cho Các API Hit Vào Server
-
-Khởi động ứng dụng NestJS (`pnpm start:dev`) và mở một Terminal khác để gửi các yêu cầu cURL:
-
-#### 1. Gửi request thành công (`200 OK`):
+Khởi động ứng dụng NestJS của bạn:
 
 ```bash
-curl -X GET http://localhost:3000/api/v1/posts
+pnpm start:dev
 ```
 
-🖥️ **Kết quả ghi vết tại Terminal chạy NestJS Server:**
-
-```text
-[Nest] 48210  - 13/08/2026, 14:00:00     LOG [HTTP] GET /api/v1/posts 200 128b - +12ms [IP: ::1] [Agent: curl/8.7.1]
-```
-
-#### 2. Gửi request lỗi do validation (`400 Bad Request`):
-
-```bash
-curl -X POST http://localhost:3000/api/v1/users \
-  -H "Content-Type: application/json" \
-  -d '{"email": "sai-dinh-dang"}'
-```
-
-🖥️ **Kết quả ghi vết tại Terminal chạy NestJS Server (Cảnh báo mảng màu vàng `WARN`):**
-
-```text
-[Nest] 48210  - 13/08/2026, 14:00:05    WARN [HTTP] POST /api/v1/users 400 185b - +8ms [IP: ::1] [Agent: curl/8.7.1]
-```
-
-✅ **Kết quả:** `LoggerMiddleware` tự động tính toán thời gian phản hồi từng millisecond và phân loại mức độ quan trọng (`LOG` vs `WARN`) dựa trên Status Code!
+Mở một cửa sổ Terminal mới và gửi các yêu cầu HTTP để kiểm chứng hoạt động của bộ ghi vết:
 
 ---
 
-### 🔴 Kịch Bản 2: Kiểm Thử Route Được Loại Trừ (`exclude()`)
+### 🟢 Kịch Bản 1: Thành Công — Request Hợp Lệ (`200 OK`)
 
-Thử gửi yêu cầu tới Endpoint `/api/v1/health` đã được cấu hình trong hàm `.exclude()`:
+Gửi request lấy danh sách bài viết:
 
 ```bash
-curl -X GET http://localhost:3000/api/v1/health
+curl -i -X GET http://localhost:3000/api/v1/posts
+```
+
+🖥️ **Dòng Log xuất hiện tức thì tại Terminal chạy Server:**
+
+```text
+[Nest] 51240  - 11/09/2026, 14:32:01     LOG [HTTP] GET /api/v1/posts 200 128b - +12ms [IP: ::1] [Agent: curl/8.7.1]
+```
+
+> [!NOTE]
+> **Phân tích dòng log:**
+>
+> - Tag `[HTTP]` hiển thị màu xanh lá cây (`LOG`).
+> - Đo chính xác độ trễ xử lý `+12ms`.
+> - Kích thước gói tin trả về `128b` và định danh Client `IP: ::1`.
+
+---
+
+### 🟡 Kịch Bản 2: Bắt Lỗi Validation — Cảnh Báo Màu Vàng (`400 Bad Request`)
+
+Gửi request tạo User với payload vi phạm ràng buộc DTO:
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{"email": "email-sai-dinh-dang"}'
+```
+
+🖥️ **Dòng Log cảnh báo xuất hiện tại Terminal Server:**
+
+```text
+[Nest] 51240  - 11/09/2026, 14:32:05    WARN [HTTP] POST /api/v1/users 400 185b - +8ms [IP: ::1] [Agent: curl/8.7.1]
+```
+
+✅ **Kết quả:** `LoggerMiddleware` tự động phát hiện mã lỗi `400` và chuyển đổi cấp độ log sang **`WARN`** (màu vàng), giúp kỹ sư phát hiện ngay các request bất thường.
+
+---
+
+### ⚪ Kịch Bản 3: Kiểm Chứng Loại Trừ Route (`exclude()`)
+
+Gửi request kiểm tra tình trạng sức khỏe hệ thống:
+
+```bash
+curl -i -X GET http://localhost:3000/api/v1/health
 ```
 
 🖥️ **Kết quả quan sát tại Terminal Server:**
 
-- **Không có bất kỳ dòng log `[HTTP]` nào xuất hiện.**
-  ✅ **Kết quả:** Hàm `.exclude()` hoạt động chính xác, giúp lọc sạch log rác từ các cuộc gọi kiểm tra sức khỏe tự động (Healthcheck Polling) của Kubernetes / AWS Load Balancer!
+- **Hoàn toàn im lặng, không có bất kỳ dòng log `[HTTP]` nào xuất hiện.**
+- ✅ **Kết luận:** Hàm `.exclude()` đã lọc sạch các truy vấn thăm dò tự động của Kubernetes / Load Balancer, giữ cho log hệ thống luôn sạch sẽ và tập trung vào các luồng nghiệp vụ quan trọng.
 
 ---
 
@@ -259,32 +285,33 @@ curl -X GET http://localhost:3000/api/v1/health
 
 ```mermaid
 mindmap
-  root(("NestJS Middleware"))
-    "Đặc tính cốt lõi"
-      "Chạy ở đầu Request Pipeline"
-      "Truy cập req, res, next()"
-      "Bắt buộc phải gọi next()"
-    "Hình thức triển khai"
-      "Class Middleware (NestMiddleware)"
-      "Functional Middleware (Hàm đơn giản)"
-    "Cấu hình MiddlewareConsumer"
-      "apply(LoggerMiddleware)"
-      "forRoutes('*' hoặc Controller)"
-      "exclude('health', ...)"
-    "Tính năng của LoggerMiddleware"
-      "Đo thời gian phản hồi (ms)"
-      "Trích xuất IP, User-Agent, Status Code"
-      "Lắng nghe res.on('finish')"
+  root((Lesson 3.3: NestJS Middleware))
+    Vị trí & Đặc tính cốt lõi
+      Đứng đầu Request Pipeline
+      Truy cập trực tiếp Express req và res
+      Bắt buộc gọi next để tránh timeout
+    Cơ chế Event-Driven Logging
+      Đánh dấu startTime lúc bắt đầu
+      Lắng nghe sự kiện res on finish
+      Tính độ trễ responseTime không chặn I/O
+    Cấu hình MiddlewareConsumer
+      apply LoggerMiddleware
+      forRoutes chỉ định phạm vi
+      exclude lọc sạch endpoint rác
+    Phân loại Middleware
+      Class Middleware hỗ trợ Dependency Injection
+      Functional Middleware gọn nhẹ cho tác vụ tĩnh
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Nắm vững vị trí của Middleware trong Request Pipeline (thực thi trước Guards, Pipes, Interceptors).
-- [x] Tạo thành công `LoggerMiddleware` triển khai `NestMiddleware` interface.
-- [x] Lắng nghe sự kiện `res.on('finish')` để tính toán chính xác Response Time (ms).
-- [x] Đăng ký Middleware trong `AppModule` với `MiddlewareConsumer` và `forRoutes('*')`.
-- [x] Làm chủ kỹ thuật loại trừ Route ghi log không cần thiết với `.exclude()`.
-- [x] Phân biệt được khi nào dùng Class Middleware và Functional Middleware (`app.use()`).
+- [x] Hiểu rõ vị trí của Middleware trong Request Pipeline (thực thi trước Guards, Interceptors, Pipes).
+- [x] Nắm vững lý do Middleware là thành phần duy nhất truy cập được native `req`, `res` của Express.
+- [x] Tự tay xây dựng `LoggerMiddleware` triển khai `NestMiddleware` interface và hàm `use()`.
+- [x] Làm chủ cơ chế lắng nghe sự kiện `res.on('finish')` để đo thời gian phản hồi (ms) mà không làm nghẽn luồng.
+- [x] Luôn ghi nhớ gọi `next()` để tránh làm treo ứng dụng.
+- [x] Cấu hình thành thạo `MiddlewareConsumer` với `apply()`, `forRoutes('*')` và loại trừ endpoint bằng `.exclude()`.
+- [x] Phân biệt chính xác trường hợp sử dụng Class Middleware vs Functional Middleware.
 
 ---
 
