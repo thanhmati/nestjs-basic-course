@@ -15,101 +15,105 @@
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Thấu hiểu cơ chế xử lý ngoại lệ (Exception Handling) của NestJS và vị trí của Exception Filter; phân biệt các `HttpException` có sẵn trong `@nestjs/common` (`NotFoundException`, `BadRequestException`, `ForbiddenException`,...); tự tay xây dựng `HttpExceptionFilter` chuẩn hóa toàn bộ JSON Error (4xx, 5xx), bảo mật thông tin bằng cách giấu kín stack trace khỏi Client và ghi log vết nội bộ; đăng ký bộ lọc lỗi toàn cục với `app.useGlobalFilters()`.
+> ⏱️ **Thời lượng:** 10 – 12 phút thực chiến  
+> 🎯 **Mục tiêu:** Thấu hiểu cơ chế xử lý ngoại lệ (Exception Handling) của NestJS và vai trò của Exception Filter; phân biệt các class `HttpException` có sẵn trong `@nestjs/common` (`NotFoundException`, `BadRequestException`, `ForbiddenException`,...); tự tay xây dựng `HttpExceptionFilter` chuẩn hóa toàn bộ JSON Error (4xx, 5xx), bảo mật thông tin bằng cách khử khuẩn (Sanitize) giấu kín stack trace khỏi Client và lưu log vết chi tiết nội bộ; kích hoạt bộ lọc lỗi toàn cục với `app.useGlobalFilters()`.
 
 ---
 
-## 1. Tại Sao Ứng Dụng Enterprise Cần Chuẩn Hóa Lỗi API?
+## 1. Bản Chất Của Chuẩn Hóa Lỗi API & Rủi Ro Bại Lộ Thông Tin (Information Disclosure)
 
-### 💡 Ẩn Dụ Thực Tế: Phòng Cấp Cứu Bệnh Viện & Lỗ Hổng Rò Rỉ Thông Tin (Information Disclosure)
+Trong các ứng dụng thực tế, lỗi là điều không thể tránh khỏi: Người dùng nhập sai dữ liệu (400), tìm bài viết không tồn tại (404), hoặc sập kết nối cơ sở dữ liệu (500). Tuy nhiên, cách thức mà ứng dụng phản hồi lỗi ra bên ngoài sẽ quyết định trực tiếp **chất lượng trải nghiệm người dùng** và **độ an toàn bảo mật** của toàn bộ hệ thống.
 
-Hãy hình dung ứng dụng Backend của bạn như một **Bệnh Viện**:
+### 📱 Sản Phẩm Thực Tế & Bảng Điều Khiển So Sánh Lỗi
 
-- Khi có bệnh nhân (HTTP Request) gặp sự cố hoặc triệu chứng bất thường (Lỗi Runtime / Dữ liệu sai), ứng dụng cần được chuyển tới **Phòng Cấp Cứu (Exception Filter)** để phân loại và xử lý.
-- Nếu không có Exception Filter chuẩn hóa, khi gặp sự cố nghiêm trọng (như sập kết nối Database), Server có thể trả về cho Client nguyên một trang HTML chứa **Stack Trace** (chi tiết dòng code, tên file, mật khẩu CSDL trong biến môi trường).
+Dưới đây là bảng điều khiển giám sát lỗi (Error Security Console) phản ánh sự khác biệt giữa một API chưa qua xử lý và một API đã được bảo vệ bởi `HttpExceptionFilter`:
 
-Đây là lỗ hổng bảo mật cực kỳ nguy hiểm có tên **Information Disclosure** (Bại lộ thông tin hệ thống), giúp Hacker dễ dàng khai thác kiến trúc bên trong của bạn!
+<p align="center">
+  <img src="./assets/exception_filter_ui_mockup.jpg" alt="API Error Filtering & Security Inspection Mockup" width="95%" />
+</p>
 
-```mermaid
-flowchart TD
-    subgraph Danger ["🔴 KHÔNG CÓ EXCEPTION FILTER"]
-        ServerError["💥 Lỗi Runtime 500 / Database Error"] --> RawError["📄 Trả nguyên Stacktrace HTML / Error Thô"]
-        RawError --> Hacker["🥷 Hacker đọc được tên file, vị trí code & config"]
-    end
+Nhìn vào màn hình so sánh ở trên, bạn sẽ nhận thấy 2 bài toán sống còn mà một kỹ sư Backend phải giải quyết:
 
-    subgraph Secure ["🟢 CÓ NESTJS HTTP EXCEPTION FILTER"]
-        AppError["💥 Mọi Lỗi Runtime (4xx / 5xx)"] --> Filter{"🛡️ Global HttpExceptionFilter"}
-        Filter --> LogInternal["🖥️ Ghi Log chi tiết Stacktrace ra Terminal Server (Debug)"]
-        Filter --> CleanJSON["🔴 Trả về Client JSON Lỗi Đã Làm Sạch (No Stacktrace)"]
-    end
-```
+1. 🔴 **Lỗ hổng Bại Lộ Thông Tin (CWE-209: Information Disclosure):** Khi xảy ra lỗi crash không lường trước (500), nếu không có Filter, Node.js/Express sẽ trả về nguyên một trang HTML hoặc chuỗi text chứa **Stack Trace** (tên file nội bộ, dòng code bị crash, câu truy vấn SQL, tên bảng CSDL). Kẻ tấn công có thể lợi dụng dữ liệu này để thăm dò lỗ hổng và tấn công khai thác!
+2. 🟢 **Chuẩn Hóa Cấu Trúc Phản Hồi (Consistent Error Contract):** Thay vì mỗi endpoint trả về một cấu trúc lộn xộn (chỗ thì `{ err: "..." }`, chỗ thì `{ message: "..." }`), toàn bộ lỗi trong hệ thống sẽ được đóng gói theo đúng **1 cấu trúc JSON duy nhất**, giúp đội ngũ Frontend (React, Vue, Flutter, iOS) dễ dàng viết Interceptor xử lý lỗi tập trung.
 
 ---
 
-### 🔹 Cấu Trúc JSON Error Chuẩn Enterprise
+### 📋 Cấu Trúc JSON Error Chuẩn Enterprise
 
-Để Frontend (React, Vue, Flutter, iOS) dễ dàng bắt và hiển thị thông báo lỗi thân thiện cho người dùng, toàn bộ các lỗi trong hệ thống sẽ được đóng gói theo đúng **1 cấu trúc duy nhất**:
+Một định dạng phản hồi lỗi chuẩn mực cần cung cấp đầy đủ thông tin định danh mà không làm lộ chi tiết mã nguồn nội bộ:
 
 ```json
 {
   "statusCode": 404,
   "message": "Không tìm thấy bài viết với ID 99!",
   "error": "Not Found",
-  "timestamp": "2026-08-13T15:00:00.000Z",
+  "timestamp": "2026-09-11T09:30:00.000Z",
   "path": "/api/v1/posts/99"
 }
 ```
 
+- `statusCode`: Mã trạng thái HTTP chuẩn xác (400, 401, 403, 404, 500,...).
+- `message`: Thông điệp lỗi chi tiết (hoặc mảng thông báo đối với lỗi validation).
+- `error`: Tên định danh ngắn gọn của lỗi theo chuẩn HTTP.
+- `timestamp`: Thời điểm chính xác xảy ra lỗi theo chuẩn ISO 8601, hỗ trợ đối soát log.
+- `path`: Đường dẫn URI mà Client đã gọi vào, giúp dễ dàng nhận diện nguồn gốc lỗi.
+
 ---
 
-## 2. Vòng Đời Bắt Lỗi Của Exception Filter Trong NestJS
+## 2. Kiến Trúc Bắt Lỗi Toàn Cục & Cơ Chế Khử Khuẩn (Sanitization)
 
-NestJS có sẵn một **Global Exception Layer** mặc định. Tuy nhiên, khi bạn tự viết một `HttpExceptionFilter` custom với decorator `@Catch()`, bạn sẽ nắm toàn quyền kiểm soát quá trình phản hồi lỗi:
+### 🧩 Sơ Đồ Điều Hướng Của `HttpExceptionFilter`
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as 📱 HTTP Client
-    participant Controller as 📄 Controller / Service
-    participant Filter as 🛡️ HttpExceptionFilter
-    participant Logger as 🖥️ Terminal Logger
+NestJS sở hữu cơ chế Exception Handling thông minh. Khi một Controller hoặc Service quăng ra ngoại lệ (`throw new ...`), Request sẽ lập tức chuyển hướng tới tầng **Exception Filters** nằm ở lớp ngoài cùng:
 
-    Client->>Controller: GET /api/v1/posts/99
-    Controller->>Controller: Không tìm thấy bản ghi trong Database!
-    Controller-->>Filter: throw new NotFoundException('Bài viết không tồn tại!')
+<p align="center">
+  <img src="./assets/exception_filter_architecture.svg" alt="NestJS Exception Filter Architecture" width="100%" />
+</p>
 
-    Note over Filter: 1. Trích xuất HttpContext (req, res)<br/>2. Lấy statusCode (404), message, error
+Bộ lọc `HttpExceptionFilter` thực hiện chiến lược điều hướng 2 kênh độc lập:
 
-    alt Lỗi Unhandled (HTTP 500 Internal Server Error)
-        Filter->>Logger: Ghi log exception.stack ra Terminal Server
-    end
+- 📤 **Kênh 1 — Phản hồi công khai cho Client:** Khử khuẩn dữ liệu (Sanitization). Với các lỗi 4xx (Client Error), giữ nguyên thông điệp rõ ràng để người dùng biết mình làm sai ở đâu. Với các lỗi 500 (Server Crash), lập tức thay thế bằng thông điệp an toàn `"Lỗi hệ thống nội bộ!"`, tuyệt đối không để lộ Stack Trace.
+- 🖥️ **Kênh 2 — Ghi vết nội bộ cho Developer (Terminal Server):** Lưu giữ trọn vẹn Call Stack, tên tệp, dòng code bị crash thông qua `this.logger.error()`, giúp lập trình viên nhanh chóng tra cứu và sửa lỗi mà không làm ảnh hưởng đến tính bảo mật.
 
-    Filter-->>Client: 🔴 Trả về JSON Error chuẩn hóa (StatusCode: 404)
+---
+
+### 📚 Bảng Tra Cứu Các Built-in `HttpException` Trong NestJS
+
+NestJS cung cấp sẵn các class ngoại lệ kế thừa từ `HttpException` trong package `@nestjs/common`. Bạn chỉ cần `throw` trực tiếp mà không phải tự tạo thủ công:
+
+| Exception Class                | HTTP Status Code | Khi nào nên sử dụng?                                                   |
+| :----------------------------- | :--------------: | :--------------------------------------------------------------------- |
+| `BadRequestException`          |      `400`       | Dữ liệu gửi lên sai định dạng hoặc vi phạm ràng buộc DTO validation.   |
+| `UnauthorizedException`        |      `401`       | Người dùng chưa đăng nhập, thiếu token hoặc JWT đã hết hạn.            |
+| `ForbiddenException`           |      `403`       | Đã đăng nhập nhưng không đủ quyền hạn (Role/Permission) để truy cập.   |
+| `NotFoundException`            |      `404`       | Không tìm thấy tài nguyên yêu cầu (User, Post, Order không tồn tại).   |
+| `ConflictException`            |      `409`       | Xung đột dữ liệu (ví dụ Email hoặc Username đã được đăng ký trước đó). |
+| `UnprocessableEntityException` |      `422`       | Cú pháp request hợp lệ nhưng ngữ nghĩa logic không thể xử lý được.     |
+| `InternalServerErrorException` |      `500`       | Sự cố máy chủ bất ngờ (sập kết nối database, lỗi logic ngoài dự kiến). |
+
+---
+
+## 3. Hướng Dẫn Thực Hành Step-by-Step
+
+### 📂 Cấu Trúc Mã Nguồn Triển Khai
+
+```
+src/
+├── shared/
+│   └── filters/
+│       └── http-exception.filter.ts    👈 Catch-all ExceptionFilter toàn diện
+├── posts/
+│   └── posts.controller.ts             👈 Thử nghiệm ném lỗi 404 & giả lập crash 500
+├── app.module.ts
+└── main.ts                             👈 Kích hoạt app.useGlobalFilters()
 ```
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Viết & Đăng Ký HttpExceptionFilter
+### 📌 Bước 1: Xây Dựng `HttpExceptionFilter` Bắt Mọi Ngoại Lệ
 
-### 📌 Bước 1: Tìm Hiểu Các `HttpException` Có Sẵn Trong NestJS
-
-NestJS cung cấp sẵn các Class kế thừa từ `HttpException` nằm trong `@nestjs/common`. Bạn chỉ cần `throw` chúng trực tiếp trong Controller hoặc Service:
-
-| Class Exception                | HTTP Status Code | Ý nghĩa sử dụng                                          |
-| :----------------------------- | :--------------: | :------------------------------------------------------- |
-| `BadRequestException`          |      `400`       | Dữ liệu đầu vào vi phạm DTO / Validation.                |
-| `UnauthorizedException`        |      `401`       | Chưa đăng nhập / JWT Token không hợp lệ.                 |
-| `ForbiddenException`           |      `403`       | Đã đăng nhập nhưng không đủ quyền hạn (Role/Permission). |
-| `NotFoundException`            |      `404`       | Không tìm thấy bản ghi / tài nguyên yêu cầu.             |
-| `ConflictException`            |      `409`       | Dữ liệu bị trùng lặp (ví dụ Email đã tồn tại).           |
-| `InternalServerErrorException` |      `500`       | Lỗi sập hệ thống / CSDL không lường trước.               |
-
----
-
-### 📌 Bước 2: Xây Dựng Class `HttpExceptionFilter`
-
-Tạo tệp `src/shared/filters/http-exception.filter.ts` và triển khai `ExceptionFilter`:
+Tạo file `src/shared/filters/http-exception.filter.ts` triển khai interface `ExceptionFilter`:
 
 📄 **`src/shared/filters/http-exception.filter.ts`**
 
@@ -124,7 +128,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-// Decorator @Catch() không truyền tham số có nghĩa là bắt TẤT CẢ mọi loại ngoại lệ (Catch-All)
+// @Catch() không truyền tham số giúp bắt TẤT CẢ mọi loại ngoại lệ (Catch-All Filter)
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -134,13 +138,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    // 1. Phân loại Status Code: Nếu là HttpException lấy từ exception, ngược lại gán 500
+    // 1. Phân loại Status Code: Nếu là HttpException thì lấy status chuẩn, ngược lại gán 500
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    // 2. Trích xuất thông báo lỗi và kiểu lỗi
+    // 2. Trích xuất thông điệp và phân loại lỗi
     let message: string | string[] = 'Lỗi hệ thống nội bộ!';
     let error = 'Internal Server Error';
 
@@ -154,14 +158,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = res;
       }
     } else if (exception instanceof Error) {
-      // ⚠️ ĐỐI VỚI LỖI 500: Ghi log chi tiết stack trace ra Terminal để Developer debug
+      // ⚠️ GHI VẾT NỘI BỘ: Lưu Stack Trace ra Terminal để Developer debug lỗi 500
       this.logger.error(
         `[Unhandled Exception] ${exception.message}`,
         exception.stack,
       );
     }
 
-    // 3. Chuẩn hóa định dạng Response JSON gửi về cho Client (Tuyệt đối KHÔNG chứa stacktrace)
+    // 3. Chuẩn hóa cấu trúc JSON Error an toàn gửi về cho Client (Tuyệt đối KHÔNG có stacktrace)
     const errorResponse = {
       statusCode: status,
       message,
@@ -176,118 +180,172 @@ export class HttpExceptionFilter implements ExceptionFilter {
 ```
 
 > [!IMPORTANT]
-> **Điểm mấu chốt về Bảo mật:**
-> Việc phân biệt `exception instanceof HttpException` giúp bạn **che giấu hoàn toàn** các lỗi CSDL (Prisma/PostgreSQL Error) hoặc lỗi Crash Code (Null Pointer) khỏi mắt người dùng Client. Server chỉ ghi vết ra Terminal và trả về cho Client mảng lỗi 500 an toàn!
+> **Điểm mấu chốt về Bảo mật:**  
+> Điều kiện kiểm tra `exception instanceof HttpException` là ranh giới phân định an toàn:
+>
+> - Các lỗi có chủ đích từ lập trình viên (`NotFoundException`, `BadRequestException`) sẽ được giữ nguyên thông báo chi tiết.
+> - Các lỗi không lường trước (Crash code, Prisma Error, Null Pointer) sẽ tự động bị ẩn đi và chuyển thành `500 Internal Server Error`, triệt tiêu hoàn toàn nguy cơ rò rỉ mã nguồn.
 
 ---
 
-### 📌 Bước 3: Đăng Ký `HttpExceptionFilter` Toàn Cục Trong `main.ts`
+### 📌 Bước 2: Đăng Ký Bộ Lọc Toàn Cục Trong `src/main.ts`
 
-Mở file `src/main.ts` và đăng ký filter toàn cục:
+Mở tệp `src/main.ts` và gắn filter thông qua `app.useGlobalFilters()`:
 
 📄 **`src/main.ts`**
 
 ```typescript
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
-  app.setGlobalPrefix('api');
+  const port = configService.get<number>('PORT', 3000);
+  const globalPrefix = configService.get<string>('GLOBAL_PREFIX', 'api');
+  const versionPrefix = configService.get<string>('VERSION_PREFIX', 'v');
+  const versionApi = configService.get<string>('VERSION_API', '1');
 
+  app.setGlobalPrefix(globalPrefix);
   app.enableVersioning({
     type: VersioningType.URI,
-    prefix: 'v',
-    defaultVersion: '1',
+    prefix: versionPrefix,
+    defaultVersion: versionApi,
   });
 
+  // Kích hoạt ValidationPipe toàn cục
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  // 🔴 Kích hoạt HttpExceptionFilter toàn cục
+  // 🛡️ Kích hoạt Bộ Lọc Lỗi Toàn Cục (Global Exception Filter)
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  await app.listen(3000);
-  console.log(`🚀 Server running on: http://localhost:3000/api/v1`);
+  await app.listen(port);
+  Logger.log(
+    `🚀 Server running at: http://localhost:${port}/${globalPrefix}/${versionPrefix}${versionApi}`,
+    'Bootstrap',
+  );
 }
 bootstrap();
 ```
 
 ---
 
+### 💡 Mở Rộng: Khi Nào Nên Đăng Ký Filter Qua `APP_FILTER`?
+
+Ngoài cách dùng `app.useGlobalFilters(new HttpExceptionFilter())` trong `main.ts`, bạn còn có thể đăng ký filter trong `AppModule` bằng custom provider `APP_FILTER`:
+
+📄 **`src/app.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+
+@Module({
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
+})
+export class AppModule {}
+```
+
+| Tiêu chí                 | 🚀 `app.useGlobalFilters()` (trong `main.ts`)  | 🏛️ `APP_FILTER` Provider (trong `AppModule`)                         |
+| :----------------------- | :--------------------------------------------- | :------------------------------------------------------------------- |
+| **Dependency Injection** | ❌ Không hỗ trợ DI (phải khởi tạo bằng `new`). | ✅ **Hỗ trợ tiêm Service/ConfigService** vào constructor của Filter. |
+| **Độ đơn giản**          | Rất ngắn gọn, áp dụng ngay tại điểm khởi động. | Cần khai báo cú pháp Provider trong Module.                          |
+| **Khuyên dùng khi**      | **Filter độc lập, chỉ dùng Logger cơ bản.**    | **Filter cần ghi log vào CSDL hoặc gửi cảnh báo qua Slack/Sentry.**  |
+
+---
+
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🔴 Kịch Bản 1: Kiểm Thử Lỗi Validation (`400 Bad Request`)
-
-Gửi một Yêu cầu POST chứa dữ liệu sai DTO đến Server:
+Khởi động ứng dụng NestJS của bạn:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/users \
+pnpm start:dev
+```
+
+Mở một cửa sổ Terminal mới và thực hiện kiểm thử theo 3 kịch bản thực tế:
+
+---
+
+### 🟢 Kịch Bản 1: Bắt Lỗi Validation (`400 Bad Request`)
+
+Gửi một request vi phạm ràng buộc DTO (email không hợp lệ):
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/users \
   -H "Content-Type: application/json" \
-  -d '{"email": "sai- dinh-dang"}'
+  -d '{"username": "alex", "email": "invalid-email", "age": 25}'
 ```
 
 📥 **Phản hồi HTTP nhận được từ Server (`400 Bad Request`):**
 
 ```json
+HTTP/1.1 400 Bad Request
+Content-Type: application/json; charset=utf-8
+
 {
   "statusCode": 400,
-  "message": ["Email không đúng định dạng chuẩn!"],
+  "message": [
+    "Email không đúng định dạng chuẩn!"
+  ],
   "error": "Bad Request",
-  "timestamp": "2026-08-13T15:15:00.123Z",
+  "timestamp": "2026-09-11T09:35:10.123Z",
   "path": "/api/v1/users"
 }
 ```
 
-✅ **Kết quả:** Lỗi Validation Pipe được tự động đóng gói theo chuẩn JSON nhất quán.
+✅ **Kết quả:** Lỗi Validation Pipe được tự động đóng gói theo đúng cấu trúc JSON nhất quán.
 
 ---
 
-### 🔴 Kịch Bản 2: Kiểm Thử Lỗi Không Tìm Thấy Bản Ghi (`404 Not Found`)
+### 🟡 Kịch Bản 2: Bắt Lỗi Không Tìm Thấy Bản Ghi (`404 Not Found`)
 
-Thêm một API cố tình throw `NotFoundException` trong Controller:
-
-```typescript
-@Get(':id')
-getPostById(@Param('id') id: string) {
-  if (id === '99') {
-    throw new NotFoundException(`Không tìm thấy bài viết với ID ${id}!`);
-  }
-  return { id, title: 'Bài viết hợp lệ' };
-}
-```
-
-Thực hiện gọi cURL:
+Gửi request tìm kiếm bài viết với ID không tồn tại:
 
 ```bash
-curl -X GET http://localhost:3000/api/v1/posts/99
+curl -i -X GET http://localhost:3000/api/v1/posts/99999
 ```
 
-📥 **Phản hồi HTTP nhận được (`404 Not Found`):**
+📥 **Phản hồi HTTP nhận được từ Server (`404 Not Found`):**
 
 ```json
+HTTP/1.1 404 Not Found
+Content-Type: application/json; charset=utf-8
+
 {
   "statusCode": 404,
-  "message": "Không tìm thấy bài viết với ID 99!",
+  "message": "Không tìm thấy bài viết với ID 99999!",
   "error": "Not Found",
-  "timestamp": "2026-08-13T15:15:05.456Z",
-  "path": "/api/v1/posts/99"
+  "timestamp": "2026-09-11T09:35:25.456Z",
+  "path": "/api/v1/posts/99999"
 }
 ```
 
+✅ **Kết quả:** Thông điệp ném ra từ `NotFoundException` được chuyển tiếp nguyên vẹn và trực quan cho người dùng.
+
 ---
 
-### 🔴 Kịch Bản 3: Kiểm Thử Lỗi Crash Code / Database (`500 Internal Server Error`)
+### 🔴 Kịch Bản 3: Chặn Đứng Lỗi Crash Code / Database (`500 Internal Server Error`)
 
-Thêm một API cố tình bị lỗi runtime (truy cập biến `undefined`):
+Thêm tạm thời một route cố tình gây lỗi runtime (truy cập thuộc tính của `null`) trong Controller:
+
+📄 **`src/posts/posts.controller.ts`**
 
 ```typescript
 @Get('test-crash')
@@ -297,33 +355,37 @@ testCrash() {
 }
 ```
 
-Thực hiện gọi cURL:
+Gửi request kích hoạt lỗi:
 
 ```bash
-curl -X GET http://localhost:3000/api/v1/posts/test-crash
+curl -i -X GET http://localhost:3000/api/v1/posts/test-crash
 ```
 
-📥 **Phản hồi HTTP trả về cho Client (`500 Internal Server Error` - Đã giấu Stacktrace):**
+📥 **Phản hồi HTTP trả về cho Client (Đã khử khuẩn an toàn — Tuyệt đối không có Stack Trace):**
 
 ```json
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json; charset=utf-8
+
 {
   "statusCode": 500,
   "message": "Lỗi hệ thống nội bộ!",
   "error": "Internal Server Error",
-  "timestamp": "2026-08-13T15:15:10.789Z",
+  "timestamp": "2026-09-11T09:35:40.789Z",
   "path": "/api/v1/posts/test-crash"
 }
 ```
 
-🖥️ **Ghi vết nội bộ tại Terminal Server (Dành cho Developer debug):**
+🖥️ **Ghi vết nội bộ xuất hiện tại Terminal Server (Dành riêng cho Developer gỡ lỗi):**
 
 ```text
-[Nest] 51200  - 13/08/2026, 15:15:10   ERROR [HttpExceptionFilter] [Unhandled Exception] Cannot read properties of null (reading 'name')
+[Nest] 54310  - 11/09/2026, 14:35:40   ERROR [HttpExceptionFilter] [Unhandled Exception] Cannot read properties of null (reading 'name')
 TypeError: Cannot read properties of null (reading 'name')
-    at PostsV1Controller.testCrash (/src/posts/posts-v1.controller.ts:45:21)
+    at PostsController.testCrash (/src/posts/posts.controller.ts:35:15)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
 ```
 
-✅ **Kết quả:** Client chỉ nhận về JSON thông báo lỗi an toàn, còn Developer vẫn xem được chi tiết dòng code bị lỗi tại Terminal Server!
+🛡️ **Kết luận an ninh:** Client chỉ nhận được thông báo lỗi chung an toàn, trong khi Developer vẫn có đầy đủ Stack Trace tại Terminal để xác định chính xác dòng code bị crash.
 
 ---
 
@@ -331,34 +393,36 @@ TypeError: Cannot read properties of null (reading 'name')
 
 ```mermaid
 mindmap
-  root(("NestJS Exception Filters"))
+  root(("Lesson 3.4: NestJS Exception Filters"))
     "Tầm quan trọng"
-      "Chuẩn hóa JSON Error"
-      "Bảo mật Information Disclosure"
+      "Chuẩn hóa định dạng JSON lỗi duy nhất"
+      "Bảo vệ an ninh Information Disclosure CWE-209"
       "Giấu kín Stacktrace khỏi Client"
-    "HttpException có sẵn"
+    "HttpException Phổ biến"
       "BadRequestException (400)"
       "UnauthorizedException (401)"
       "ForbiddenException (403)"
       "NotFoundException (404)"
       "InternalServerErrorException (500)"
-    "Triển khai HttpExceptionFilter"
+    "Cơ chế HttpExceptionFilter"
       "Triển khai ExceptionFilter interface"
       "Sử dụng @Catch() bắt Catch-All"
-      "Phân biệt 4xx vs 5xx Unhandled"
-      "Ghi log stacktrace ra Terminal"
-    "Đăng ký"
-      "app.useGlobalFilters(new HttpExceptionFilter())"
+      "Phân loại 4xx (giữ message) vs 5xx (khử khuẩn)"
+      "Ghi log stacktrace nội bộ ra Terminal"
+    "Hình thức Đăng ký"
+      "app.useGlobalFilters() tại bootstrap"
+      "APP_FILTER provider hỗ trợ Dependency Injection"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Thấu hiểu tầm quan trọng của Exception Filter trong việc ngăn chặn rò rỉ Stack Trace hệ thống.
+- [x] Thấu hiểu tầm quan trọng của Exception Filter trong việc chuẩn hóa cấu trúc lỗi và triệt tiêu lỗ hổng rò rỉ Stack Trace.
 - [x] Sử dụng thành thạo các class `HttpException` có sẵn trong `@nestjs/common`.
-- [x] Triển khai thành công `HttpExceptionFilter` chuẩn hóa JSON Error chứa `statusCode`, `message`, `error`, `timestamp`, `path`.
-- [x] Phân loại được lỗi Client (4xx) và lỗi Server Unhandled (500) để ghi log debug thích hợp.
+- [x] Xây dựng thành công `HttpExceptionFilter` chuẩn hóa JSON Error với đầy đủ `statusCode`, `message`, `error`, `timestamp`, `path`.
+- [x] Phân biệt rõ cơ chế xử lý giữa lỗi Client (4xx) và lỗi Crash Server (5xx).
 - [x] Đăng ký thành công Exception Filter toàn cục trong `main.ts`.
-- [x] Thử nghiệm thành công cURL cho cả 3 kịch bản lỗi Validation (400), Not Found (404) và Server Crash (500).
+- [x] Nắm vững sự khác biệt giữa `app.useGlobalFilters()` và `APP_FILTER` khi cần Dependency Injection.
+- [x] Thử nghiệm thành công kịch bản kiểm tra an ninh và giấu kín mã nguồn khi server gặp sự cố crash.
 
 ---
 

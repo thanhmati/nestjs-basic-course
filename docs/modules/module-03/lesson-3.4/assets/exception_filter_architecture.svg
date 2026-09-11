@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 560" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="svgBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Node Gradients -->
+    <linearGradient id="clientErrBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="serverErrBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+
+    <linearGradient id="filterBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="sanitizedBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <linearGradient id="debugBar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7e22ce"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#c084fc"/>
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1140" height="560" rx="16" fill="url(#svgBg)"/>
+  <rect width="1138" height="558" x="1" y="1" rx="15" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Title Badge -->
+  <g transform="translate(45, 34)">
+    <text x="0" y="0" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700">
+      🛡️ Kiến Trúc Bộ Lọc Lỗi Toàn Cục (HttpExceptionFilter) Trong NestJS
+    </text>
+    <text x="0" y="22" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">
+      Bắt ngoại lệ, khử khuẩn thông tin (Sanitize), giấu kín Stacktrace khỏi Client &amp; Chuẩn hóa JSON Response
+    </text>
+  </g>
+
+  <!-- COLUMN 1: EXCEPTION EMITTERS (X: 45) -->
+  <!-- Box 1A: 4xx Client Exceptions -->
+  <g transform="translate(45, 95)" filter="url(#softShadow)">
+    <rect width="260" height="200" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2"/>
+    <rect x="0" y="0" width="260" height="5" rx="2.5" fill="url(#clientErrBar)"/>
+
+    <text x="16" y="28" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🟡 1. Client Exceptions (4xx)</text>
+    <text x="16" y="46" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Chủ động quăng ra từ Controller/Service</text>
+
+    <rect x="14" y="58" width="232" height="125" rx="5" fill="#0f172a"/>
+    <text x="22" y="78" fill="#fcd34d" font-family="'JetBrains Mono', monospace" font-size="10.5">throw new BadRequestException()</text>
+    <text x="22" y="98" fill="#fcd34d" font-family="'JetBrains Mono', monospace" font-size="10.5">throw new NotFoundException()</text>
+    <text x="22" y="118" fill="#fcd34d" font-family="'JetBrains Mono', monospace" font-size="10.5">throw new UnauthorizedException()</text>
+    <text x="22" y="138" fill="#fcd34d" font-family="'JetBrains Mono', monospace" font-size="10.5">throw new ForbiddenException()</text>
+    <text x="22" y="162" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="10">instanceof HttpException ➔ true</text>
+  </g>
+
+  <!-- Box 1B: 500 Unhandled System Errors -->
+  <g transform="translate(45, 315)" filter="url(#softShadow)">
+    <rect width="260" height="200" rx="10" fill="#1e293b" stroke="#ef4444" stroke-width="1.2"/>
+    <rect x="0" y="0" width="260" height="5" rx="2.5" fill="url(#serverErrBar)"/>
+
+    <text x="16" y="28" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">🔴 2. Unhandled Errors (500)</text>
+    <text x="16" y="46" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Lỗi crash đột xuất ngoài ý muốn</text>
+
+    <rect x="14" y="58" width="232" height="125" rx="5" fill="#0f172a"/>
+    <text x="22" y="78" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="10.5">PrismaClientKnownRequestError</text>
+    <text x="22" y="98" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="10.5">TypeError: Cannot read null</text>
+    <text x="22" y="118" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="10.5">Database Connection Timeout</text>
+    <text x="22" y="142" fill="#ef4444" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">⚠️ Chứa Stacktrace &amp; Credentials</text>
+    <text x="22" y="162" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="10">instanceof HttpException ➔ false</text>
+  </g>
+
+  <!-- ARROWS 1 -> 2 -->
+  <line x1="305" y1="195" x2="365" y2="280" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowAmber)"/>
+  <line x1="305" y1="415" x2="365" y2="330" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowRed)"/>
+
+  <!-- COLUMN 2: GLOBAL HTTP EXCEPTION FILTER (X: 375) -->
+  <g transform="translate(375, 80)" filter="url(#softShadow)">
+    <rect width="360" height="450" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="1.8"/>
+    <rect x="0" y="0" width="360" height="6" rx="3" fill="url(#filterBar)"/>
+
+    <text x="20" y="32" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">🛡️ HttpExceptionFilter (@Catch())</text>
+    <text x="20" y="50" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Trạm Kiểm Soát &amp; Khử Khuẩn Lỗi Tập Trung</text>
+
+    <!-- Step 1 -->
+    <rect x="18" y="65" width="324" height="65" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="86" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700">BƯỚC 1: Trích Xuất HttpContext</text>
+    <text x="28" y="104" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10.5">const ctx = host.switchToHttp();</text>
+    <text x="28" y="120" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10.5">const res = ctx.getResponse(); const req = ctx.getRequest();</text>
+
+    <!-- Step 2 -->
+    <rect x="18" y="140" width="324" height="90" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="161" fill="#f59e0b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700">BƯỚC 2: Phân Loại &amp; Quyết Định Status Code</text>
+    <text x="28" y="180" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10.5">const status = exception instanceof HttpException</text>
+    <text x="40" y="196" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="10.5">? exception.getStatus() // 400, 404, 403...</text>
+    <text x="40" y="212" fill="#ef4444" font-family="'JetBrains Mono', monospace" font-size="10.5">: HttpStatus.INTERNAL_SERVER_ERROR; // 500</text>
+
+    <!-- Step 3 -->
+    <rect x="18" y="240" width="324" height="90" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="28" y="261" fill="#10b981" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700">BƯỚC 3: Khử Khuẩn Nội Dung (Sanitization)</text>
+    <text x="28" y="280" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">• Nếu là 4xx: Giữ nguyên message chi tiết cho Client</text>
+    <text x="28" y="298" fill="#ef4444" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">• Nếu là 500: Thay bằng <tspan fill="#fca5a5" font-weight="700">"Lỗi hệ thống nội bộ!"</tspan></text>
+    <text x="28" y="316" fill="#10b981" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">🛡️ Triệt tiêu hoàn toàn rò rỉ Stacktrace ra Client!</text>
+
+    <!-- Step 4 -->
+    <rect x="18" y="340" width="324" height="90" rx="8" fill="#111827" stroke="#a855f7" stroke-width="1.2"/>
+    <text x="28" y="361" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="700">BƯỚC 4: Điều Hướng 2 Kênh (Dual Routing)</text>
+    <text x="28" y="380" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10.5">if (!(exception instanceof HttpException))</text>
+    <text x="40" y="398" fill="#c084fc" font-family="'JetBrains Mono', monospace" font-size="10.5">this.logger.error(exception.stack);</text>
+    <text x="28" y="416" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">➔ Lưu Stacktrace nội bộ cho Developer gỡ lỗi</text>
+  </g>
+
+  <!-- ARROWS 2 -> 3 -->
+  <line x1="735" y1="210" x2="795" y2="180" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+  <line x1="735" y1="410" x2="795" y2="430" stroke="#a855f7" stroke-width="2.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- COLUMN 3: OUTPUT CHANNELS (X: 805) -->
+  <!-- Channel 1: Clean JSON to Client -->
+  <g transform="translate(805, 95)" filter="url(#softShadow)">
+    <rect width="290" height="200" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+    <rect x="0" y="0" width="290" height="5" rx="2.5" fill="url(#sanitizedBar)"/>
+
+    <text x="16" y="26" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12.5" font-weight="700">📤 KÊNH 1: Gửi Về Client (HTTP JSON)</text>
+    <text x="16" y="44" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">Chuẩn hóa cấu trúc 100% — Tuyệt đối an toàn</text>
+
+    <rect x="14" y="56" width="262" height="130" rx="4" fill="#0f172a"/>
+    <text x="22" y="74" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10">{</text>
+    <text x="32" y="90" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">"statusCode": <tspan fill="#f59e0b">404</tspan> | <tspan fill="#ef4444">500</tspan>,</text>
+    <text x="32" y="106" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">"message": "Không tìm thấy bài viết!",</text>
+    <text x="32" y="122" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">"error": "Not Found",</text>
+    <text x="32" y="138" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">"timestamp": "2026-09-11T09:30:00Z",</text>
+    <text x="32" y="154" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">"path": "/api/v1/posts/99"</text>
+    <text x="22" y="172" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10">}</text>
+  </g>
+
+  <!-- Channel 2: Server Terminal Debug Log -->
+  <g transform="translate(805, 320)" filter="url(#softShadow)">
+    <rect width="290" height="195" rx="10" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+    <rect x="0" y="0" width="290" height="5" rx="2.5" fill="url(#debugBar)"/>
+
+    <text x="16" y="26" fill="#c084fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12.5" font-weight="700">🖥️ KÊNH 2: Ghi Vết Nội Bộ (Terminal)</text>
+    <text x="16" y="44" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5">Lưu giữ trọn vẹn Stacktrace để gỡ lỗi</text>
+
+    <rect x="14" y="56" width="262" height="125" rx="4" fill="#020617" stroke="#334155" stroke-width="0.8"/>
+    <text x="22" y="74" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="9.5">[ERROR] [HttpExceptionFilter]</text>
+    <text x="22" y="90" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="9.5">TypeError: Cannot read null</text>
+    <text x="22" y="106" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="8.5">  at PostsService.findOne (/posts.service.ts:42)</text>
+    <text x="22" y="120" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="8.5">  at PostsController.get (/posts.controller.ts:18)</text>
+    <text x="22" y="134" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="8.5">  at processTicksAndRejections (task_queues:95)</text>
+    <text x="22" y="156" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="700">✓ Developer xem được, Client bị chặn</text>
+  </g>
+</svg>
