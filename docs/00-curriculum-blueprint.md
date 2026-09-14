@@ -104,7 +104,7 @@ timeline
 - **5.2** [_Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.](./modules/module-05/lesson-5.2/lesson-5.2.md)
 - **5.3** [_File Upload:_ Upload ảnh đại diện/bài viết với Multer.](./modules/module-05/lesson-5.3/lesson-5.3.md)
 - **5.4** [_Comments API:_ Thêm bình luận dưới bài viết.](./modules/module-05/lesson-5.4/lesson-5.4.md)
-- **5.5** _Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.
+- **5.5** [_Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.](./modules/module-05/lesson-5.5/lesson-5.5.md)
 
 ---
 

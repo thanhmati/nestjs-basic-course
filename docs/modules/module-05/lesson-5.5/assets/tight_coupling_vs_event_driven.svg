@@ -1,0 +1,264 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 540" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Card Backgrounds -->
+    <linearGradient id="leftPanelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b2e" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#181124" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <linearGradient id="rightPanelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f2937" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#091e2b" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <linearGradient id="innerCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Accent Gradients -->
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <!-- Grid Pattern -->
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#334155" stroke-width="0.8" stroke-opacity="0.25"/>
+    </pattern>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1160" height="540" rx="16" fill="url(#bgGrad)"/>
+  <rect width="1160" height="540" rx="16" fill="url(#grid)"/>
+  <rect width="1160" height="540" rx="16" fill="none" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Top Title Bar -->
+  <g transform="translate(40, 24)">
+    <text x="0" y="24" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="800" letter-spacing="-0.3">
+      So Sánh Kiến Trúc: Gọi Trực Tiếp Tuần Tự (Coupled) vs Hướng Sự Kiện (Event-Driven)
+    </text>
+    <text x="0" y="44" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12.5">
+      Phân tích trực quan sự khác biệt giữa khớp nối chặt (Tight Coupling) và phân tán sự kiện bất đồng bộ qua In-Process Event Bus
+    </text>
+  </g>
+
+  <!-- ==================== LEFT PANEL: COUPLED IN-LINE ==================== -->
+  <g transform="translate(40, 85)" filter="url(#shadow)">
+    <!-- Outer Card -->
+    <rect width="525" height="425" rx="14" fill="url(#leftPanelGrad)" stroke="#ef4444" stroke-width="1.5"/>
+    <rect x="0" y="0" width="525" height="5" rx="2.5" fill="url(#redGrad)"/>
+
+    <!-- Panel Header -->
+    <g transform="translate(24, 20)">
+      <rect x="0" y="0" width="28" height="28" rx="7" fill="#ef4444" fill-opacity="0.2"/>
+      <text x="14" y="19" fill="#ef4444" font-family="'JetBrains Mono', monospace" font-size="15" font-weight="900" text-anchor="middle">✕</text>
+      <text x="36" y="19" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800">
+        1. Gọi Trực Tiếp Tuần Tự (Tightly-Coupled)
+      </text>
+      <text x="36" y="35" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11">
+        Khớp nối cứng • Chạy đồng bộ (Blocking)
+      </text>
+    </g>
+
+    <!-- Architecture Diagram (Left) -->
+    <g transform="translate(24, 75)">
+      <!-- Client -->
+      <rect x="0" y="40" width="95" height="60" rx="8" fill="url(#innerCardGrad)" stroke="#64748b" stroke-width="1"/>
+      <text x="47" y="65" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Client</text>
+      <text x="47" y="82" fill="#ef4444" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">Chờ 2.4s ⏳</text>
+
+      <!-- Arrow Client -> CommentsService -->
+      <line x1="95" y1="70" x2="135" y2="70" stroke="#f43f5e" stroke-width="2"/>
+      <polygon points="135,70 127,66 127,74" fill="#f43f5e"/>
+
+      <!-- CommentsService (Hub of dependencies) -->
+      <rect x="135" y="15" width="140" height="110" rx="10" fill="#450a0a" stroke="#ef4444" stroke-width="1.8"/>
+      <text x="205" y="42" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" text-anchor="middle">Comments</text>
+      <text x="205" y="58" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" text-anchor="middle">Service</text>
+      <rect x="148" y="70" width="114" height="20" rx="4" fill="#7f1d1d"/>
+      <text x="205" y="84" fill="#fecaca" font-family="'JetBrains Mono', monospace" font-size="9.5" text-anchor="middle">Inject 4 Services!</text>
+      <text x="205" y="112" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">💥 Quá tải</text>
+
+      <!-- Dependency Arrows to Subservices -->
+      <!-- Arrow 1: DB -->
+      <line x1="275" y1="35" x2="335" y2="15" stroke="#94a3b8" stroke-width="1.5"/>
+      <polygon points="335,15 326,16 329,23" fill="#94a3b8"/>
+      <rect x="335" y="0" width="135" height="28" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="345" y="18" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10.5">1. Prisma (50ms)</text>
+
+      <!-- Arrow 2: Notification -->
+      <line x1="275" y1="55" x2="335" y2="48" stroke="#94a3b8" stroke-width="1.5"/>
+      <polygon points="335,48 326,46 328,54" fill="#94a3b8"/>
+      <rect x="335" y="34" width="135" height="28" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="345" y="52" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10.5">2. Notif (50ms)</text>
+
+      <!-- Arrow 3: SendGrid (Slow/Crash) -->
+      <line x1="275" y1="80" x2="335" y2="82" stroke="#ef4444" stroke-width="2"/>
+      <polygon points="335,82 326,78 326,86" fill="#ef4444"/>
+      <rect x="335" y="68" width="135" height="28" rx="6" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.2"/>
+      <text x="345" y="86" fill="#fecaca" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">3. Email (1.5s 💥)</text>
+
+      <!-- Arrow 4: FCM Push -->
+      <line x1="275" y1="105" x2="335" y2="116" stroke="#94a3b8" stroke-width="1.5"/>
+      <polygon points="335,116 326,111 328,119" fill="#94a3b8"/>
+      <rect x="335" y="102" width="135" height="28" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="345" y="120" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10.5">4. FCM (800ms)</text>
+    </g>
+
+    <!-- Metrics Box (Left) -->
+    <g transform="translate(24, 230)">
+      <rect width="477" height="175" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      
+      <!-- Metric Row 1 -->
+      <g transform="translate(16, 16)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Thời gian phản hồi:</text>
+        <text x="445" y="16" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="800" text-anchor="end">~2,400ms (Rất chậm O(N))</text>
+        <line x1="0" y1="28" x2="445" y2="28" stroke="#1e293b" stroke-width="1"/>
+      </g>
+
+      <!-- Metric Row 2 -->
+      <g transform="translate(16, 56)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Khả năng cách ly lỗi:</text>
+        <text x="445" y="16" fill="#f87171" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="end">Kém (Email hỏng ➔ Sập API)</text>
+        <line x1="0" y1="28" x2="445" y2="28" stroke="#1e293b" stroke-width="1"/>
+      </g>
+
+      <!-- Metric Row 3 -->
+      <g transform="translate(16, 96)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Mức độ phụ thuộc:</text>
+        <text x="445" y="16" fill="#fca5a5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="end">Dính chặt (Tight Coupling)</text>
+        <line x1="0" y1="28" x2="445" y2="28" stroke="#1e293b" stroke-width="1"/>
+      </g>
+
+      <!-- Metric Row 4 -->
+      <g transform="translate(16, 136)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Khả năng mở rộng:</text>
+        <text x="445" y="16" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" text-anchor="end">Khó (Phải sửa code cũ)</text>
+      </g>
+    </g>
+  </g>
+
+
+  <!-- ==================== RIGHT PANEL: EVENT-DRIVEN ==================== -->
+  <g transform="translate(595, 85)" filter="url(#shadow)">
+    <!-- Outer Card -->
+    <rect width="525" height="425" rx="14" fill="url(#rightPanelGrad)" stroke="#10b981" stroke-width="1.5"/>
+    <rect x="0" y="0" width="525" height="5" rx="2.5" fill="url(#greenGrad)"/>
+
+    <!-- Panel Header -->
+    <g transform="translate(24, 20)">
+      <rect x="0" y="0" width="28" height="28" rx="7" fill="#10b981" fill-opacity="0.2"/>
+      <text x="14" y="19" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="15" font-weight="900" text-anchor="middle">✓</text>
+      <text x="36" y="19" fill="#6ee7b7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800">
+        2. Hướng Sự Kiện (Event-Driven Architecture)
+      </text>
+      <text x="36" y="35" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
+        Tách rời 100% • Bất đồng bộ qua Event Bus
+      </text>
+    </g>
+
+    <!-- Architecture Diagram (Right) -->
+    <g transform="translate(24, 75)">
+      <!-- Client -->
+      <rect x="0" y="40" width="90" height="60" rx="8" fill="url(#innerCardGrad)" stroke="#10b981" stroke-width="1.2"/>
+      <text x="45" y="65" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="middle">Client</text>
+      <text x="45" y="82" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">201 OK ~15ms ⚡</text>
+
+      <!-- Bidirectional Arrow Client <-> CommentsService -->
+      <line x1="90" y1="70" x2="120" y2="70" stroke="#10b981" stroke-width="2"/>
+      <polygon points="120,70 112,66 112,74" fill="#10b981"/>
+
+      <!-- Clean CommentsService -->
+      <rect x="120" y="30" width="115" height="80" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="1.5"/>
+      <text x="177" y="55" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="800" text-anchor="middle">Comments</text>
+      <text x="177" y="70" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="800" text-anchor="middle">Service</text>
+      <text x="177" y="94" fill="#6ee7b7" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">emit('created') ⚡</text>
+
+      <!-- Arrow to Event Bus -->
+      <line x1="235" y1="70" x2="265" y2="70" stroke="#38bdf8" stroke-width="2.2"/>
+      <polygon points="265,70 257,66 257,74" fill="#38bdf8"/>
+
+      <!-- Event Bus Component -->
+      <rect x="265" y="15" width="85" height="110" rx="8" fill="#0c4a6e" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="307" y="42" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle">Event Bus</text>
+      <text x="307" y="60" fill="#bae6fd" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">EventEmitter2</text>
+      <line x1="275" y1="70" x2="340" y2="70" stroke="#0284c7" stroke-width="1"/>
+      <text x="307" y="92" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700" text-anchor="middle">Pub / Sub</text>
+      <text x="307" y="108" fill="#7dd3fc" font-family="'JetBrains Mono', monospace" font-size="8.5" text-anchor="middle">Async Queue</text>
+
+      <!-- Arrows from Event Bus to Independent Listeners -->
+      <!-- Listener 1: Notification -->
+      <line x1="350" y1="40" x2="385" y2="25" stroke="#38bdf8" stroke-width="1.5"/>
+      <polygon points="385,25 376,23 378,31" fill="#38bdf8"/>
+      <rect x="385" y="10" width="95" height="30" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+      <text x="432" y="29" fill="#6ee7b7" font-family="'JetBrains Mono', monospace" font-size="9.5" text-anchor="middle">Notification</text>
+
+      <!-- Listener 2: Email -->
+      <line x1="350" y1="70" x2="385" y2="70" stroke="#38bdf8" stroke-width="1.5"/>
+      <polygon points="385,70 377,66 377,74" fill="#38bdf8"/>
+      <rect x="385" y="55" width="95" height="30" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+      <text x="432" y="74" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="9.5" text-anchor="middle">EmailListener</text>
+
+      <!-- Listener 3: WebSockets (Module 6) -->
+      <line x1="350" y1="100" x2="385" y2="115" stroke="#38bdf8" stroke-width="1.5"/>
+      <polygon points="385,115 377,110 380,118" fill="#38bdf8"/>
+      <rect x="385" y="100" width="95" height="30" rx="6" fill="#1e293b" stroke="#a855f7" stroke-width="1"/>
+      <text x="432" y="119" fill="#d8b4fe" font-family="'JetBrains Mono', monospace" font-size="9.5" text-anchor="middle">Socket (Mod 6)</text>
+    </g>
+
+    <!-- Metrics Box (Right) -->
+    <g transform="translate(24, 230)">
+      <rect width="477" height="175" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+
+      <!-- Metric Row 1 -->
+      <g transform="translate(16, 16)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Thời gian phản hồi:</text>
+        <text x="445" y="16" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="800" text-anchor="end">~15ms (Siêu tốc O(1)) ⚡</text>
+        <line x1="0" y1="28" x2="445" y2="28" stroke="#1e293b" stroke-width="1"/>
+      </g>
+
+      <!-- Metric Row 2 -->
+      <g transform="translate(16, 56)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Khả năng cách ly lỗi:</text>
+        <text x="445" y="16" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="end">Hoàn hảo (Listener lỗi không crash API)</text>
+        <line x1="0" y1="28" x2="445" y2="28" stroke="#1e293b" stroke-width="1"/>
+      </g>
+
+      <!-- Metric Row 3 -->
+      <g transform="translate(16, 96)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Mức độ phụ thuộc:</text>
+        <text x="445" y="16" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" text-anchor="end">Tách rời 100% (Decoupled)</text>
+        <line x1="0" y1="28" x2="445" y2="28" stroke="#1e293b" stroke-width="1"/>
+      </g>
+
+      <!-- Metric Row 4 -->
+      <g transform="translate(16, 136)">
+        <text x="0" y="16" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12">Khả năng mở rộng:</text>
+        <text x="445" y="16" fill="#a7f3d0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" text-anchor="end">Cực dễ (@OnEvent tự động)</text>
+      </g>
+    </g>
+  </g>
+</svg>
