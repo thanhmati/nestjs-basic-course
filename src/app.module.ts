@@ -4,6 +4,8 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -25,6 +27,7 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
       validationSchema: envValidationSchema,
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -36,6 +39,7 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
     UsersModule,
     PostsModule,
     CommentsModule,
+    NotificationsModule,
     AuthModule,
   ],
   controllers: [AppController],

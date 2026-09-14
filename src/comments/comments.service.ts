@@ -3,14 +3,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryCommentDto } from './dto/query-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { CommentCreatedEvent } from './events/comment-created.event';
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * Tạo bình luận mới cho bài viết
@@ -30,7 +35,7 @@ export class CommentsService {
     }
 
     // 2. Tạo bình luận gắn liền với postId và authorId
-    return await this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: {
         content: createCommentDto.content,
         postId,
@@ -51,6 +56,22 @@ export class CommentsService {
         },
       },
     });
+
+    // 3. Bắn sự kiện 'comment.created' tới In-Process Event Bus
+    this.eventEmitter.emit(
+      'comment.created',
+      new CommentCreatedEvent(
+        comment.id,
+        post.id,
+        post.title,
+        post.authorId,
+        authorId,
+        comment.author?.name || 'Thành viên cộng đồng',
+        comment.content,
+      ),
+    );
+
+    return comment;
   }
 
   /**
