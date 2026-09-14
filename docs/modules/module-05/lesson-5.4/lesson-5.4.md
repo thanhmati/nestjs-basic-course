@@ -933,4 +933,4 @@ mindmap
 ---
 
 👈 **Bài trước:** [Lesson 5.3: File Upload — Upload Ảnh Đại Diện / Bài Viết Với Multer Trong NestJS](../lesson-5.3/lesson-5.3.md)  
-👉 **Bài tiếp theo:** Lesson 5.5: Event-Driven: Bắn Sự Kiện comment.created Với @nestjs/event-emitter Để Tự Động Tạo Notification
+👉 **Bài tiếp theo:** [Lesson 5.5: Event-Driven: Bắn Sự Kiện comment.created Với @nestjs/event-emitter Để Tự Động Tạo Notification](../lesson-5.5/lesson-5.5.md)
