@@ -113,7 +113,7 @@ timeline
 > [!TIP]  
 > **Mục tiêu:** Tạo tính năng Chat nhóm/1-1 Real-time và tăng tốc tải trang với Caching.
 
-- **6.1** _WebSockets:_ Tạo Gateway với `@WebSocketGateway()` (Socket.io).
+- **6.1** [_WebSockets:_ Tạo Gateway với `@WebSocketGateway()` (Socket.io).](./modules/module-06/lesson-6.1/lesson-6.1.md)
 - **6.2** _Socket Auth:_ Authen JWT ngay từ giai đoạn Socket Handshake.
 - **6.3** _Chat Room:_ Join Room, Broadcast message real-time & lưu DB.
 - **6.4** _Sockets + Events:_ Đẩy thông báo tức thì khi có sự kiện `comment.created`.

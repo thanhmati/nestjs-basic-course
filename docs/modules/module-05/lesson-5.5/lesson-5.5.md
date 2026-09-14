@@ -818,4 +818,4 @@ mindmap
 ---
 
 👈 **Bài trước:** [Lesson 5.4: Comments API — Thêm Bình Luận Dưới Bài Viết Trong NestJS](../lesson-5.4/lesson-5.4.md)  
-👉 **Bài tiếp theo:** Lesson 6.1: WebSockets — Khởi Tạo WebSocket Gateway Với @WebSocketGateway() (Socket.IO)
+👉 **Bài tiếp theo:** [Lesson 6.1: WebSockets — Khởi Tạo WebSocket Gateway Với @WebSocketGateway() (Socket.IO)](../../module-06/lesson-6.1/lesson-6.1.md)
