@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+
+    <!-- Card Gradients -->
+    <linearGradient id="card-http" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9" />
+    </linearGradient>
+    <linearGradient id="card-ws" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Glow & Accents -->
+    <linearGradient id="accent-rose" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#fb7185" />
+    </linearGradient>
+    <linearGradient id="accent-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="accent-emerald" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="accent-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadow-card" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+    <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="glow-rose" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrow-rose" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M1,1 L7,4 L1,7 Z" fill="#f43f5e" />
+    </marker>
+    <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M1,1 L7,4 L1,7 Z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrow-emerald" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M1,1 L7,4 L1,7 Z" fill="#34d399" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="560" rx="16" fill="url(#bg-grad)" stroke="#334155" stroke-width="1.5" />
+
+  <!-- Grid Decoration -->
+  <pattern id="grid-dots" width="30" height="30" patternUnits="userSpaceOnUse">
+    <circle cx="2" cy="2" r="1.2" fill="#334155" opacity="0.3" />
+  </pattern>
+  <rect width="1100" height="560" fill="url(#grid-dots)" />
+
+  <!-- Header Section -->
+  <g transform="translate(50, 42)">
+    <rect x="0" y="0" width="160" height="26" rx="13" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <text x="80" y="17" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="1">ARCHITECTURAL SHIFT</text>
+    
+    <text x="0" y="56" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="800">
+      HTTP Request / Response <tspan fill="#64748b" font-weight="400">vs</tspan> WebSocket Full-Duplex
+    </text>
+    <text x="0" y="80" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13">
+      So sánh mô hình kết nối cổ điển (Half-Duplex / Polling) và dòng truyền dữ liệu hai chiều thời gian thực (Full-Duplex)
+    </text>
+  </g>
+
+  <!-- ================= LEFT COLUMN: HTTP (Half-Duplex / Polling) ================= -->
+  <g transform="translate(50, 140)">
+    <!-- Card Frame -->
+    <rect x="0" y="0" width="480" height="380" rx="14" fill="url(#card-http)" stroke="#f43f5e" stroke-opacity="0.3" stroke-width="1.5" filter="url(#shadow-card)" />
+    
+    <!-- Top badge -->
+    <rect x="24" y="20" width="200" height="28" rx="6" fill="#4c0519" stroke="#f43f5e" stroke-opacity="0.5" stroke-width="1" />
+    <circle cx="38" cy="34" r="5" fill="#f43f5e" />
+    <text x="52" y="39" fill="#fda4af" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700">HTTP/1.1 REST &amp; Polling</text>
+
+    <!-- Subtitle badge -->
+    <text x="456" y="38" fill="#e11d48" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="end">ĐƠN CÔNG (Half-Duplex)</text>
+
+    <!-- Client & Server Pillars -->
+    <g transform="translate(36, 75)">
+      <!-- Client Node -->
+      <rect x="0" y="0" width="80" height="34" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1" />
+      <text x="40" y="21" fill="#f1f5f9" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle">Client (UI)</text>
+
+      <!-- Server Node -->
+      <rect x="328" y="0" width="80" height="34" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1" />
+      <text x="368" y="21" fill="#f1f5f9" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle">Server</text>
+
+      <!-- Lifelines -->
+      <line x1="40" y1="34" x2="40" y2="200" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4" />
+      <line x1="368" y1="34" x2="368" y2="200" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4" />
+
+      <!-- Cycle 1: Request -->
+      <path d="M 44 60 L 360 60" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrow-rose)" />
+      <text x="204" y="53" fill="#fca5a5" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">1. POST /messages (~1KB Header)</text>
+
+      <!-- Cycle 1: Response -->
+      <path d="M 364 88 L 48 88" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow-rose)" />
+      <text x="204" y="82" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="10.5" text-anchor="middle">200 OK (Connection Close)</text>
+
+      <!-- Gap / Waiting -->
+      <rect x="150" y="105" width="108" height="20" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
+      <text x="204" y="119" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">TCP Terminated</text>
+
+      <!-- Cycle 2: Polling Ping -->
+      <path d="M 44 140 L 360 140" stroke="#f43f5e" stroke-width="1.8" marker-end="url(#arrow-rose)" />
+      <text x="204" y="134" fill="#fca5a5" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">2. GET /updates (New TCP Handshake)</text>
+
+      <!-- Cycle 2: Empty Response -->
+      <path d="M 364 168 L 48 168" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrow-rose)" />
+      <text x="204" y="162" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle">304 Not Modified / [] Empty</text>
+    </g>
+
+    <!-- Bottlenecks Box -->
+    <g transform="translate(24, 285)">
+      <rect x="0" y="0" width="432" height="74" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1" />
+      <text x="16" y="24" fill="#f43f5e" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700">⚠️ Hạn Chế Khi Làm Chat Real-time:</text>
+      <text x="16" y="44" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5">• Client phải chủ động hỏi ("Pull") — Server không thể tự đẩy tin nhắn mới.</text>
+      <text x="16" y="62" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5">• Lặp lại TCP Handshake + HTTP Header khổng lồ gây tốn băng thông &amp; trễ (latency).</text>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT COLUMN: WEBSOCKET (Full-Duplex) ================= -->
+  <g transform="translate(570, 140)">
+    <!-- Card Frame -->
+    <rect x="0" y="0" width="480" height="380" rx="14" fill="url(#card-ws)" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1.5" filter="url(#shadow-card)" />
+
+    <!-- Top badge -->
+    <rect x="24" y="20" width="220" height="28" rx="6" fill="#082f49" stroke="#38bdf8" stroke-opacity="0.6" stroke-width="1" />
+    <circle cx="38" cy="34" r="5" fill="#38bdf8" />
+    <text x="52" y="39" fill="#7dd3fc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700">WebSocket / Socket.IO</text>
+
+    <!-- Subtitle badge -->
+    <text x="456" y="38" fill="#10b981" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="600" text-anchor="end">SONG CÔNG (Full-Duplex)</text>
+
+    <!-- Client & Gateway Pillars -->
+    <g transform="translate(36, 75)">
+      <!-- Client Node -->
+      <rect x="0" y="0" width="80" height="34" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+      <text x="40" y="21" fill="#f1f5f9" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle">Client (UI)</text>
+
+      <!-- Gateway Node -->
+      <rect x="328" y="0" width="80" height="34" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1.5" />
+      <text x="368" y="21" fill="#f1f5f9" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle">Gateway</text>
+
+      <!-- Lifelines with persistent pipe glow -->
+      <line x1="40" y1="34" x2="40" y2="200" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="2" />
+      <line x1="368" y1="34" x2="368" y2="200" stroke="#10b981" stroke-opacity="0.4" stroke-width="2" />
+
+      <!-- Step 1: Handshake Upgrade -->
+      <path d="M 44 48 L 360 48" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+      <text x="204" y="42" fill="#bae6fd" font-family="JetBrains Mono, monospace" font-size="10.5" text-anchor="middle">1. HTTP Upgrade (101 Switching Protocols)</text>
+
+      <!-- Persistent Pipe Box -->
+      <rect x="42" y="64" width="324" height="26" rx="5" fill="#082f49" stroke="#0284c7" stroke-width="1" stroke-dasharray="4 2" />
+      <text x="204" y="81" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="700" text-anchor="middle">⚡ PERSISTENT BI-DIRECTIONAL TCP PIPE ⚡</text>
+
+      <!-- Step 2: Client emit message -->
+      <path d="M 44 110 L 360 110" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+      <text x="204" y="104" fill="#e0f2fe" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Client emit("message", payload)</text>
+
+      <!-- Step 3: Server push instant notification -->
+      <path d="M 364 146 L 48 146" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-emerald)" />
+      <text x="204" y="140" fill="#a7f3d0" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Server push("new_message", data) [Latency &lt; 5ms]</text>
+
+      <!-- Step 4: Tiny Heartbeat ping -->
+      <path d="M 44 175 L 360 175" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 2" />
+      <text x="204" y="171" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="9.5" text-anchor="middle">Heartbeat Frame (~2 Bytes Overhead)</text>
+    </g>
+
+    <!-- Advantages Box -->
+    <g transform="translate(24, 285)">
+      <rect x="0" y="0" width="432" height="74" rx="8" fill="#064e3b" fill-opacity="0.3" stroke="#059669" stroke-width="1" />
+      <text x="16" y="24" fill="#34d399" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="700">🚀 Lợi Thế Vượt Trội Của WebSocket Gateway:</text>
+      <text x="16" y="44" fill="#d1fae5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5">• Handshake duy nhất 1 lần; duy trì luồng kết nối liên tục, ổn định.</text>
+      <text x="16" y="62" fill="#d1fae5" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5">• Server chủ động Push dữ liệu bất cứ lúc nào, overhead cực nhẹ (~2 byte/frame).</text>
+    </g>
+  </g>
+</svg>
