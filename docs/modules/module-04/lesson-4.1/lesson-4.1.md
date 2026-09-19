@@ -15,96 +15,74 @@
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng dự kiến:** 10 – 12 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững nguyên lý an toàn thông tin tối quan trọng: **Tuyệt đối không lưu mật khẩu dạng Plaintext**; phân biệt sự khác nhau giữa Mã hóa 2 chiều (Encryption) và Băm 1 chiều có Muối (Salted One-way Hashing); tự tay cài đặt và sử dụng `bcrypt` trong NestJS; đóng gói `HashService` chuẩn tái sử dụng để băm mật khẩu khi Đăng ký và so sánh mật khẩu khi Đăng nhập; thực hành kịch bản kiểm thử bảo mật chống lại tấn công Rainbow Table & Brute-force.
+> ⏱️ **Thời lượng:** 10 – 12 phút thực chiến  
+> 🎯 **Mục tiêu:** Nắm vững nguyên lý bảo mật bắt buộc: **Tuyệt đối không lưu mật khẩu Plaintext**; phân biệt Mã hóa 2 chiều (Encryption) vs Băm 1 chiều (Salted Hashing); giải phẫu chuỗi băm 60 ký tự của `bcrypt`; đóng gói `HashService` trong `SharedServicesModule` toàn cục để tái sử dụng; tích hợp băm mật khẩu khi Đăng ký và so sánh mật khẩu khi Đăng nhập; kiểm thử bảo mật chống Rainbow Table & Brute-force.
 
 ---
 
-## 1. Tại Sao Lưu Mật Khẩu Plaintext Là "Án Tử" Cho Hệ Thống?
+## 1. Bản Chất Bảo Mật: Tại Sao Không Được Lưu Mật Khẩu Plaintext?
 
-### 💡 Ẩn Dụ Thực Tế: Chiếc Két Sắt Khai Sinh & Thảm Họa Rò Rỉ Dữ Liệu
+Trong an toàn thông tin, lưu mật khẩu dạng thô (Plaintext) là lỗi nghiêm trọng thuộc nhóm **CWE-256 (Unprotected Storage of Credentials)** và **OWASP Top 10 (Cryptographic Failures)**:
 
-Hãy tưởng tượng cơ sở dữ liệu của bạn lưu trữ 100.000 tài khoản người dùng:
+- Khi cơ sở dữ liệu bị rò rỉ (qua SQL Injection hoặc lộ biến môi trường), mật khẩu thô sẽ bị phơi bày công khai.
+- Kẻ tấn công sẽ sử dụng mật khẩu này để thực hiện tấn công **Credential Stuffing** (chiếm đoạt tài khoản người dùng trên các dịch vụ khác như Email, Ngân hàng, Mạng xã hội).
 
-- Nếu bạn lưu mật khẩu dưới dạng **Plaintext** (văn bản thô như `"MyPassword123"`), chỉ cần một phút lơ là lộ biến môi trường CSDL hoặc bị tấn công SQL Injection, toàn bộ thông tin đăng nhập của người dùng sẽ bị phơi bày công khai.
-- Vì người dùng thường có thói quen **dùng chung một mật khẩu** cho nhiều dịch vụ (Gmail, Facebook, Ngân hàng), việc rò rỉ Plaintext ở ứng dụng của bạn sẽ gây thảm họa dây chuyền cho chính người dùng!
+---
 
-```mermaid
-flowchart TD
-    subgraph Danger ["🔴 LƯU PLAIN TEXT / MD5 THUẦN TÚY"]
-        DBLeakBad["💥 CSDL bị rò rỉ (DB Leak)"] --> PassRaw["📄 Mật khẩu thô: 'Secret123'"]
-        PassRaw --> HackerBad["🥷 Hacker chiếm đoạt ngay tài khoản người dùng trên các dịch vụ khác"]
-    end
+### 📱 So Sánh Trực Quan: Plaintext Nguy Hiểm vs bcrypt Salted Hash
 
-    subgraph Secure ["🟢 BĂM MẬT KHẨU BẰNG BCRYPT (SALTED HASH)"]
-        DBLeakGood["💥 CSDL bị rò rỉ (DB Leak)"] --> PassHash["🔒 Chuỗi băm: '$2b$10$e83...xJ9K...'"]
-        PassHash --> HackerGood["🛡️ Hacker KHÔNG THỂ giải mã ngược về mật khẩu ban đầu!"]
-    end
+<p align="center">
+  <img src="./assets/password_hashing_ui_mockup.jpg" alt="Password Hashing Security Inspection Mockup" width="95%" />
+</p>
+
+| Tiêu chí             | 🔴 Mã hóa 2 chiều (Encryption - AES, RSA)         | 🟢 Băm 1 chiều (Salted Hash - bcrypt, Argon2)          |
+| :------------------- | :------------------------------------------------ | :----------------------------------------------------- |
+| **Tính khả nghịch**  | 🔄 **Có thể giải mã ngược** nếu có Secret Key     | ⛔ **KHÔNG THỂ giải mã ngược** (One-way Function)      |
+| **Mục đích sử dụng** | Truyền nhận dữ liệu bí mật (SSL/TLS, mã hóa file) | **Lưu trữ an toàn mật khẩu người dùng trong Database** |
+| **Cơ chế xác thực**  | Giải mã dữ liệu và so sánh                        | Băm chuỗi đầu vào mới và so sánh 2 chuỗi Hash          |
+| **Bảo vệ CSDL**      | Nếu lộ Secret Key ➔ Toàn bộ dữ liệu bị giải mã    | CSDL bị lộ ➔ Kẻ tấn công không thể phục hồi mật khẩu   |
+
+---
+
+### 🛡️ 2 Cơ Chế Bảo Vệ Đột Phá Của `bcrypt`
+
+1. **Tự động sinh Muối (128-bit Salt):**  
+   Mỗi lần băm, `bcrypt` tự tạo một chuỗi Salt ngẫu nhiên. Hai người dùng có cùng mật khẩu `"Secret123!"` sẽ có 2 chuỗi băm hoàn toàn khác nhau trong CSDL. Điều này triệt tiêu hoàn toàn kỹ thuật tấn công **Rainbow Table Attack** (bảng tra cứu băm sẵn).
+2. **Cost Factor / Salt Rounds (Chống Brute-force):**  
+   `bcrypt` cho phép thiết lập số vòng lặp tính toán (chuẩn khuyến nghị: `10`, tương đương $2^{10} = 1024$ vòng lặp, tiêu tốn ~70ms CPU). Độ trễ có chủ đích này vô hiệu hóa các máy đào GPU chuyên bẻ khóa mật khẩu tốc độ cao.
+
+---
+
+## 2. Kiến Trúc bcrypt & Giải Phẫu Chuỗi Hash 60 Ký Tự
+
+<p align="center">
+  <img src="./assets/password_hashing_architecture.svg" alt="Password Hashing Architecture" width="100%" />
+</p>
+
+> [!TIP]
+> **Điểm kỳ diệu khi Đăng nhập:** Hàm `bcrypt.compare(password, dbHash)` tự động đọc 22 ký tự Salt và Cost Factor từ chính chuỗi `dbHash`, băm mật khẩu người dùng vừa nhập với đúng thông số đó, rồi so sánh bằng kỹ thuật **Constant-Time** để ngăn chặn tấn công kênh phụ (Timing Attack).
+
+---
+
+## 3. Hướng Dẫn Thực Hành Step-by-Step
+
+### 📂 Cấu Trúc File Triển Khai
+
+```
+src/
+├── shared/
+│   └── services/
+│       ├── hash.service.ts              👈 Đóng gói bcrypt.hash() & bcrypt.compare()
+│       └── shared-services.module.ts    👈 @Global() module quản lý các service dùng chung
+└── users/
+    ├── dto/
+    │   └── create-user.dto.ts           👈 Bổ sung field password validation
+    └── users.service.ts                 👈 Băm password & loại bỏ khỏi response JSON
 ```
 
 ---
 
-### 🔹 Khái Niệm Hashing vs Encryption (Băm 1 Chiều vs Mã Hóa 2 Chiều)
-
-| Đặc tính             | Mã hóa 2 Chiều (Encryption - AES, RSA)             | Băm 1 Chiều (One-Way Hashing - bcrypt, Argon2)      |
-| :------------------- | :------------------------------------------------- | :-------------------------------------------------- |
-| **Tính khả nghịch**  | 🔄 **Có thể giải mã ngược** nếu có Secret Key      | ⛔ **KHÔNG THỂ giải mã ngược** (Hàm 1 chiều)        |
-| **Mục đích sử dụng** | Truyền nhận dữ liệu bí mật (SSL/TLS, file bảo mật) | **Lưu trữ mật khẩu người dùng trong Cơ sở dữ liệu** |
-| **Cơ chế kiểm tra**  | Giải mã dữ liệu và so sánh                         | Băm chuỗi đầu vào mới và so sánh 2 chuỗi Hash       |
-
----
-
-### 🔹 Tại Sao `bcrypt` Được Ưu Chuộng Chuẩn OWASP?
-
-1. **Tự động sinh Muối (Salt):** Mỗi lần băm, `bcrypt` tự tạo ra một chuỗi ngẫu nhiên 128-bit gọi là **Salt**. Dù hai người dùng có cùng mật khẩu `"123456"`, kết quả chuỗi băm trong CSDL vẫn hoàn toàn khác nhau! Điều này vô hiệu hóa kỹ thuật tấn công **Rainbow Table Attack** (bảng tra cứu mật khẩu băm sẵn).
-2. **Work Factor / Salt Rounds (Độ khó băm):** `bcrypt` cho phép cấu hình tham số `cost factor` (ví dụ `10` nghĩa là $2^{10} = 1024$ vòng lặp băm). Kỹ thuật này cố tình làm chậm quá trình tính toán của máy tính (khoảng 50-100ms cho 1 lần băm), giúp chống lại tấn công dò quét mật khẩu **Brute-Force Attack** bằng card đồ họa GPU tốc độ cao.
-
----
-
-## 2. Giải Mã Cấu Trúc Chuỗi Băm `bcrypt`
-
-Khi bạn gọi `bcrypt.hash("MyPassword", 10)`, hàm sẽ trả về một chuỗi mã hóa 60 ký tự có cấu trúc như sau:
-
-```text
- $2b$10$e83U5x4...Y6aK...
- └───┘└──┘└────────────┘└──────────────────────────────┘
-   │   │        │                      │
-   │   │        │                      └── Hash Value (31 ký tự)
-   │   │        └───────────────────────── Salt Ngẫu Nhiên (22 ký tự)
-   │   └────────────────────────────────── Cost Factor / Salt Rounds (2^10 vòng)
-   └────────────────────────────────────── Thuật toán bcrypt (v2b)
-```
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as 👤 User / Client
-    participant Controller as 📄 AuthController
-    participant HashService as 🔐 HashService
-    participant DB as 🛢️ PostgreSQL (Prisma)
-
-    Note over User,DB: KỊCH BẢN 1: ĐĂNG KÝ TÀI KHOẢN (REGISTER)
-    User->>Controller: POST /api/v1/auth/register { email, password: "myPassword123" }
-    Controller->>HashService: hashPassword("myPassword123", 10)
-    HashService-->>Controller: Trả về "$2b$10$e83...xJ9K..."
-    Controller->>DB: prisma.user.create({ data: { email, password: hash } })
-    DB-->>User: 201 Created (Mật khẩu thô KHÔNG BAO GIỜ lưu CSDL)
-
-    Note over User,DB: KỊCH BẢN 2: ĐĂNG NHẬP (LOGIN)
-    User->>Controller: POST /api/v1/auth/login { email, password: "myPassword123" }
-    Controller->>DB: Tìm User theo email ➔ Lấy chuỗi Hash từ DB
-    Controller->>HashService: comparePassword("myPassword123", dbHash)
-    HashService-->>Controller: Trả về true (Khớp mật khẩu)
-    Controller-->>User: 200 OK (Đăng nhập thành công)
-```
-
----
-
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Cài Đặt & Viết HashService
-
-### 📌 Bước 0: Cài Đặt Thư Viện `bcrypt` & Type Definitions
-
-Mở Terminal tại thư mục gốc dự án và cài đặt gói `bcrypt` cùng type cho TypeScript:
+### 📌 Bước 0: Cài Đặt Thư Viện `bcrypt`
 
 ```bash
 pnpm add bcrypt
@@ -113,9 +91,9 @@ pnpm add -D @types/bcrypt
 
 ---
 
-### 📌 Bước 1: Xây Dựng `HashService` Reusable Component
+### 📌 Bước 1: Xây Dựng `HashService`
 
-Tạo tệp `src/shared/services/hash.service.ts` đóng gói các phương thức băm và so sánh mật khẩu:
+Tạo file `src/shared/services/hash.service.ts`:
 
 📄 **`src/shared/services/hash.service.ts`**
 
@@ -125,23 +103,18 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class HashService {
-  // Số vòng lặp băm mặc định (Cost Factor). Giá trị 10 là chuẩn cân bằng giữa Bảo mật & Hiệu năng
+  // Salt Rounds = 10 là chuẩn cân bằng tối ưu giữa Bảo mật và Hiệu năng CPU
   private readonly SALT_ROUNDS = 10;
 
   /**
-   * Băm mật khẩu thô thành chuỗi bcrypt hash an toàn
-   * @param plainTextMật khẩu thô do người dùng nhập vào
-   * @returns Chuỗi băm bcrypt 60 ký tự
+   * Băm mật khẩu thô thành chuỗi bcrypt hash 60 ký tự an toàn
    */
   async hashPassword(plainText: string): Promise<string> {
     return bcrypt.hash(plainText, this.SALT_ROUNDS);
   }
 
   /**
-   * So sánh mật khẩu thô với chuỗi bcrypt hash lưu trong CSDL
-   * @param plainText Mật khẩu thô cần kiểm tra khi Đăng nhập
-   * @param hash Chuỗi băm lưu sẵn trong Cơ sở dữ liệu
-   * @returns true nếu trùng khớp, false nếu sai mật khẩu
+   * So sánh mật khẩu thô với chuỗi hash trong CSDL (so sánh Constant-Time)
    */
   async comparePassword(plainText: string, hash: string): Promise<boolean> {
     return bcrypt.compare(plainText, hash);
@@ -151,11 +124,13 @@ export class HashService {
 
 ---
 
-### 📌 Bước 2: Đóng Gói `HashModule` Để Dùng Chung Trong Toàn Ứng Dụng
+### 📌 Bước 2: Đóng Gói `SharedServicesModule` Toàn Cục
 
-Tạo tệp `src/shared/services/hash.module.ts` và export `HashService`:
+Thay vì tạo riêng từng module nhỏ cho mỗi utility service, ta tạo `SharedServicesModule` để gom nhóm và tái sử dụng các dịch vụ dùng chung trong toàn bộ ứng dụng (như `HashService`, `MailService`,...):
 
-📄 **`src/shared/services/hash.module.ts`**
+Tạo file `src/shared/services/shared-services.module.ts` gắn decorator `@Global()`:
+
+📄 **`src/shared/services/shared-services.module.ts`**
 
 ```typescript
 import { Global, Module } from '@nestjs/common';
@@ -166,20 +141,59 @@ import { HashService } from './hash.service';
   providers: [HashService],
   exports: [HashService],
 })
-export class HashModule {}
+export class SharedServicesModule {}
 ```
+
+Sau đó đăng ký `SharedServicesModule` vào `AppModule`:
+
+📄 **`src/app.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { SharedServicesModule } from './shared/services/shared-services.module';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [SharedServicesModule, UsersModule],
+})
+export class AppModule {}
+```
+
+> [!IMPORTANT]
+> Nhờ decorator `@Global()`, sau khi đăng ký `SharedServicesModule` tại `AppModule`, mọi feature module khác (`UsersModule`, `AuthModule`) đều có thể trực tiếp inject `HashService` vào constructor mà không cần import lại `SharedServicesModule`.
 
 ---
 
-### 📌 Bước 3: Tích Hợp `HashService` Vào Quy Trình Đăng Ký Người Dùng (`UsersService`)
+### 📌 Bước 3: Cập Nhật DTO & Băm Mật Khẩu Trong `UsersService`
 
-Mở tệp `src/users/users.service.ts` và băm mật khẩu trước khi lưu vào PostgreSQL qua Prisma:
+#### 1. Bổ sung trường `password` vào `CreateUserDto`:
+
+📄 **`src/users/dto/create-user.dto.ts`**
+
+```typescript
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+
+export class CreateUserDto {
+  @IsString({ message: 'Tên người dùng phải là chuỗi ký tự!' })
+  @IsNotEmpty({ message: 'Tên người dùng không được để trống!' })
+  username: string;
+
+  @IsEmail({}, { message: 'Email không đúng định dạng!' })
+  email: string;
+
+  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự!' })
+  @MinLength(6, { message: 'Mật khẩu phải có tối thiểu 6 ký tự!' })
+  password: string;
+}
+```
+
+#### 2. Tích hợp băm mật khẩu vào `UsersService`:
 
 📄 **`src/users/users.service.ts`**
 
 ```typescript
 import { ConflictException, Injectable } from '@nestjs/common';
-import { HashService } from '../common/services/hash.service';
+import { HashService } from '../shared/services/hash.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -190,8 +204,8 @@ export class UsersService {
     private readonly hashService: HashService,
   ) {}
 
-  async createUser(dto: CreateUserDto) {
-    // 1. Kiểm tra Email đã tồn tại chưa
+  async create(dto: CreateUserDto) {
+    // 1. Kiểm tra trùng lặp email
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -199,93 +213,127 @@ export class UsersService {
       throw new ConflictException('Email này đã được sử dụng!');
     }
 
-    // 2. Băm mật khẩu thô bằng HashService
+    // 2. Băm mật khẩu thô trước khi lưu
     const hashedPassword = await this.hashService.hashPassword(dto.password);
 
-    // 3. Lưu vào Cơ sở dữ liệu với mật khẩu đã băm
+    // 3. Lưu vào Database với mật khẩu đã băm
     const user = await this.prisma.user.create({
       data: {
-        username: dto.username,
+        name: dto.username,
         email: dto.email,
-        password: hashedPassword, // 🔒 Lưu chuỗi băm an toàn
+        password: hashedPassword,
       },
     });
 
-    // 4. Loại bỏ trường password trước khi trả về kết quả cho Client
+    // 4. BẢO MẬT: Tuyệt đối không trả password về cho Client
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 }
 ```
 
-> [!CAUTION]
-> **Quy tắc bảo mật thông tin:** Sau khi tạo User thành công, luôn sử dụng kỹ thuật Destructuring để loại bỏ thuộc tính `password` trước khi trả về Response JSON cho Client!
-
 ---
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Thành Công — Đăng Ký Tài Khoản & Kiểm Tra Dữ Liệu Băm
-
-Thực hiện gửi yêu cầu cURL Đăng ký người dùng mới:
+Khởi động ứng dụng:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/users \
+pnpm start:dev
+```
+
+Mở Terminal và thực hiện 3 kịch bản kiểm thử:
+
+---
+
+### 🟢 Kịch Bản 1: Đăng Ký Tài Khoản & Kiểm Tra Chuỗi Băm
+
+Gửi request tạo người dùng mới:
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "security_master",
-    "email": "security@example.com",
-    "password": "MySuperSecretPassword123!",
-    "age": 25
+    "username": "security_dev",
+    "email": "dev@example.com",
+    "password": "MySecretPassword123!"
   }'
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`201 Created` - Đã ẩn password):**
+📥 **Phản hồi từ Server (`201 Created` — Trường password đã được lọc sạch):**
 
 ```json
 {
   "statusCode": 201,
   "message": "Thao tác thực hiện thành công!",
   "data": {
-    "id": "clx123abc456",
-    "username": "security_master",
-    "email": "security@example.com",
-    "createdAt": "2026-08-13T15:30:00.000Z"
+    "id": 1,
+    "name": "security_dev",
+    "email": "dev@example.com",
+    "createdAt": "2026-09-19T15:30:00.000Z"
   },
-  "timestamp": "2026-08-13T15:30:00.123Z",
+  "timestamp": "2026-09-19T15:30:00.123Z",
   "path": "/api/v1/users"
 }
 ```
 
-🖥️ **Kiểm tra dữ liệu trực tiếp trong CSDL (Prisma Studio `npx prisma studio`):**
+🖥️ **Kiểm tra dữ liệu trong CSDL qua Prisma Studio (`pnpm prisma studio`):**
 
-- Mở bảng `User`, trường `password` hiển thị chuỗi:  
+- Bảng `users`, trường `password` hiển thị chuỗi:  
   `$2b$10$e83U5x4H9kL0mN1oP2qR3u4v5w6x7y8z9A0B1C2D3E4F5G6H7I8J9`
-  ✅ **Kết quả:** Mật khẩu thô đã biến mất hoàn toàn và được lưu trữ dưới dạng chuỗi băm bcrypt cực kỳ an toàn!
+- ✅ **Kết quả:** Mật khẩu thô biến mất hoàn toàn, CSDL chỉ lưu chuỗi băm 60 ký tự an toàn.
 
 ---
 
-### 🔴 Kịch Bản 2: Kiểm Thử Bảo Mật — Khả Năng So Sánh Mật Khẩu Với `comparePassword()`
+### 🟢 Kịch Bản 2: Kiểm Thử Phương Thức So Sánh `comparePassword()`
 
-Thử nghiệm phương thức `comparePassword` trong unit test hoặc Controller:
+Thực nghiệm hàm so sánh của `HashService`:
 
 ```typescript
-// Test 1: Truyền đúng mật khẩu ban đầu
-const isMatchCorrect = await hashService.comparePassword(
-  'MySuperSecretPassword123!',
+// Kịch bản A: Nhập đúng mật khẩu
+const isCorrect = await hashService.comparePassword(
+  'MySecretPassword123!',
   hashedPasswordInDb,
 );
-console.log('Mật khẩu đúng:', isMatchCorrect); // 🟢 Output: true
+console.log('Khớp mật khẩu:', isCorrect); // 🟢 Output: true
 
-// Test 2: Truyền sai 1 ký tự
-const isMatchWrong = await hashService.comparePassword(
-  'MySuperSecretPassword123', // Thiếu dấu '!'
+// Kịch bản B: Sai 1 ký tự duy nhất
+const isWrong = await hashService.comparePassword(
+  'MySecretPassword123',
   hashedPasswordInDb,
 );
-console.log('Mật khẩu sai:', isMatchWrong); // 🔴 Output: false
+console.log('Khớp mật khẩu:', isWrong); // 🔴 Output: false
 ```
 
-✅ **Kết quả:** `bcrypt.compare()` tự động trích xuất Salt từ chuỗi băm DB và tính toán chính xác tính hợp lệ của mật khẩu!
+✅ **Kết quả:** `bcrypt.compare()` tự động trích xuất Salt, tính toán chính xác mà không cần giải mã CSDL.
+
+---
+
+### 🔴 Kịch Bản 3: Chặn Đứng Đăng Ký Trùng Email (`409 Conflict`)
+
+Gửi lại request đăng ký với cùng email `dev@example.com`:
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "hacker",
+    "email": "dev@example.com",
+    "password": "AnotherPassword456!"
+  }'
+```
+
+📥 **Phản hồi lỗi (`409 Conflict` — Được bọc bởi `HttpExceptionFilter`):**
+
+```json
+{
+  "statusCode": 409,
+  "message": "Email này đã được sử dụng!",
+  "error": "Conflict",
+  "timestamp": "2026-09-19T15:35:00.456Z",
+  "path": "/api/v1/users"
+}
+```
 
 ---
 
@@ -294,32 +342,32 @@ console.log('Mật khẩu sai:', isMatchWrong); // 🔴 Output: false
 ```mermaid
 mindmap
   root(("Password Hashing với bcrypt"))
-    "Nguyên lý An toàn"
-      "KHÔNG BAO GIỜ lưu Plaintext"
-      "Hàm 1 chiều (One-Way Hashing)"
-      "Không thể giải mã ngược"
-    "Cơ chế bcrypt"
-      "Tự động tạo Salt 128-bit"
-      "Chống Rainbow Table Attack"
-      "Cost Factor / Salt Rounds (10)"
-      "Chống GPU Brute-Force"
-    "Triển khai HashService"
-      "hashPassword(plainText)"
-      "comparePassword(plainText, hash)"
-      "@Global() HashModule"
-    "Quy tắc Bảo mật"
+    "Bản Chất Bảo Mật"
+      "CWE-256: Tuyệt đối không lưu Plaintext"
+      "Hàm 1 chiều (One-Way Hashing) không thể dịch ngược"
+      "Phân biệt Hashing vs Encryption 2 chiều"
+    "Cơ Chế bcrypt"
+      "128-bit Salt ngẫu nhiên chống Rainbow Table"
+      "Cost Factor (Salt Rounds = 10) chống GPU Brute-force"
+      "Chuỗi băm chuẩn mực 60 ký tự"
+    "Kiến Trúc Module"
+      "HashService tái sử dụng"
+      "@Global() SharedServicesModule"
+      "So sánh Constant-Time chống Timing Attack"
+    "Quy Tắc Vận Hành"
       "Băm mật khẩu trước khi lưu DB"
-      "Loại bỏ password khỏi Response JSON"
+      "Lọc bỏ thuộc tính password khỏi JSON trả về"
 ```
 
-### ✅ Checklist Ghi Nhớ Bài Học:
+### ✅ Checklist Ghi Nhớ:
 
-- [x] Hiểu lý do tại sao tuyệt đối không được lưu mật khẩu thô (Plaintext) vào Cơ sở dữ liệu.
-- [x] Phân biệt sự khác nhau giữa Mã hóa 2 chiều (Encryption) và Băm 1 chiều (Hashing).
-- [x] Nắm vững cơ chế Salt và Cost Factor (Salt Rounds = 10) trong `bcrypt`.
-- [x] Cài đặt gói `bcrypt` và `@types/bcrypt` thành công.
-- [x] Đóng gói `HashService` trong `HashModule` toàn cục để tái sử dụng sạch sẽ.
-- [x] Tích hợp băm mật khẩu khi tạo User và loại bỏ thuộc tính `password` trước khi trả về Client.
+- [x] Hiểu lý do tại sao tuyệt đối không được lưu mật khẩu Plaintext (nguy cơ CWE-256 & Credential Stuffing).
+- [x] Phân biệt rõ sự khác biệt giữa Encryption (Mã hóa 2 chiều) và Salted Hashing (Băm 1 chiều).
+- [x] Nắm vững cấu trúc 4 phần của chuỗi băm bcrypt 60 ký tự.
+- [x] Cài đặt thành công thư viện `bcrypt` và `@types/bcrypt`.
+- [x] Đóng gói `HashService` trong `SharedServicesModule` toàn cục và đăng ký tại `AppModule`.
+- [x] Tích hợp băm mật khẩu trong `UsersService` và lọc sạch trường `password` trước khi trả về Client.
+- [x] Thực hành kiểm thử thành công 3 kịch bản: Băm mật khẩu, so sánh hợp lệ, và bắt lỗi trùng email.
 
 ---
 
