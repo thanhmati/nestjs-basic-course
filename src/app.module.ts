@@ -11,6 +11,7 @@ import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exce
 import { LoggerMiddleware } from './shared/middleware/logger.middleware';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+import { SharedServiceModule } from './shared/services/shared-service.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
       isGlobal: true,
     }),
     PrismaModule,
+    SharedServiceModule,
     UsersModule,
     PostsModule,
   ],
