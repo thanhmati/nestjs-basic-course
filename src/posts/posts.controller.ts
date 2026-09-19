@@ -13,12 +13,15 @@ import {
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
+import { BypassTransform } from '@/shared/decorators/bypass-transform.decorator';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
+  @ResponseMessage('Tạo bài viết mới thành công')
   createPost(@Body() body: CreatePostDto) {
     return this.postsService.createPost(body);
   }
@@ -30,6 +33,16 @@ export class PostsController {
 
   @Get()
   findAllPosts(
+    @Query('search') search?: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit?: number,
+  ) {
+    return this.postsService.findAllPost({ limit, page, search });
+  }
+
+  @Get('raw')
+  @BypassTransform()
+  findAllPostsRaw(
     @Query('search') search?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit?: number,
