@@ -60,7 +60,7 @@
     <circle cx="120" cy="62" r="6" fill="#10b981"/>
     
     <text x="600" y="67" text-anchor="middle" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="14" font-weight="600">
-      Lesson 3.5: NestJS Interceptors (Transform Success Response &amp; Performance Logging)
+      Lesson 3.6: NestJS TransformInterceptor (Response Mapping &amp; Enterprise JSON Envelope)
     </text>
   </g>
 
@@ -72,45 +72,42 @@
       🚀 CONTROLLER HANDLER
     </text>
     <text x="15" y="55" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11">
-      @Get('users')
+      @Get('posts')
     </text>
     <text x="15" y="78" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11">
-      getUsers()
+      findAll()
     </text>
     <text x="15" y="105" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="11">
-      Trả về Raw Data:
+      Chỉ trả về Raw Data:
     </text>
 
     <rect x="15" y="120" width="230" height="75" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="23" y="140" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="10">[</text>
-    <text x="33" y="158" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">{ "id": 1, "name": "Alex" }</text>
-    <text x="23" y="176" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="10">]</text>
+    <text x="23" y="142" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="10.5">[</text>
+    <text x="33" y="160" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">{ "id": 1, "title": "NestJS" }</text>
+    <text x="23" y="178" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="10.5">]</text>
   </g>
 
-  <!-- Arrow 1: Controller -> Interceptors -->
+  <!-- Arrow 1: Controller -> Interceptor -->
   <g transform="translate(340, 205)">
     <path d="M 0 0 L 55 0" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="4 3"/>
     <polygon points="55,-5 65,0 55,5" fill="#10b981"/>
   </g>
 
-  <!-- 2. NestJS Interceptors Node -->
+  <!-- 2. NestJS TransformInterceptor Node -->
   <g transform="translate(410, 115)" filter="url(#shadow)">
     <rect width="380" height="210" rx="12" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
     <rect width="380" height="32" rx="12" fill="#047857" fill-opacity="0.4"/>
     <text x="15" y="21" fill="#a7f3d0" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
-      ⚡ NESTJS INTERCEPTOR PIPELINE (RxJS)
+      ⚡ TRANSFORM INTERCEPTOR (RxJS map)
     </text>
     
-    <!-- Sub-card 1: TransformInterceptor -->
-    <rect x="15" y="48" width="350" height="70" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="23" y="68" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">1. TransformInterceptor (map operator)</text>
-    <text x="23" y="88" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">Wrap data ➔ { statusCode, message, data, ... }</text>
-    <text x="23" y="104" fill="#38bdf8" font-family="-apple-system, sans-serif" font-size="9">Check @ResponseMessage() &amp; @BypassTransform()</text>
-
-    <!-- Sub-card 2: LoggingInterceptor -->
-    <rect x="15" y="128" width="350" height="65" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-    <text x="23" y="148" fill="#67e8f9" font-family="-apple-system, sans-serif" font-size="11" font-weight="700">2. LoggingInterceptor (tap operator)</text>
-    <text x="23" y="168" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">Measure: Date.now() - now ➔ Log +14ms</text>
+    <!-- Details -->
+    <rect x="15" y="48" width="350" height="145" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="23" y="72" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="11.5" font-weight="700">next.handle().pipe(map(data => ...))</text>
+    <text x="23" y="96" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">• Đọc Reflector: @ResponseMessage()</text>
+    <text x="23" y="116" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="10">• Kiểm tra bỏ qua: @BypassTransform()</text>
+    <text x="23" y="138" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10">• Đóng gói ApiResponse&lt;T&gt; envelope</text>
+    <text x="23" y="162" fill="#34d399" font-family="-apple-system, sans-serif" font-size="10.5">✨ Đối xứng 100% với HttpExceptionFilter</text>
   </g>
 
   <!-- Arrow 2: Interceptor -> Standard Success JSON -->
@@ -124,7 +121,7 @@
     <rect width="260" height="210" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="1.5"/>
     <rect width="260" height="32" rx="12" fill="#0e7490" fill-opacity="0.4"/>
     <text x="15" y="21" fill="#a5f3fc" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
-      🟢 CLEAN SUCCESS JSON
+      🟢 STANDARDIZED JSON ENVELOPE
     </text>
     <text x="15" y="55" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10">
       {
@@ -133,22 +130,22 @@
       "statusCode": 200,
     </text>
     <text x="25" y="91" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10">
-      "message": "Thành công!",
+      "message": "Thao tác thành công!",
     </text>
     <text x="25" y="109" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10">
       "data": [...],
     </text>
     <text x="25" y="127" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10">
-      "timestamp": "ISO...",
+      "timestamp": "2026-...",
     </text>
     <text x="25" y="145" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10">
-      "path": "/api/v1/users"
+      "path": "/api/v1/posts"
     </text>
     <text x="15" y="165" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10">
       }
     </text>
     <text x="15" y="190" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="9">
-      ⏱️ Logged: +14ms
+      Frontend Interceptor dễ dàng xử lý
     </text>
   </g>
 </svg>
