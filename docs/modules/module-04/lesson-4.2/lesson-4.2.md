@@ -1,4 +1,4 @@
-# Lesson 4.2: JWT Auth — Đăng Ký, Đăng Nhập & Phát Hành Access Token Trong NestJS
+# Lesson 4.2: JWT Auth — Đăng Ký, Đăng Nhập & Cấp Phát Access Token Trong NestJS
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-JWT_Authentication-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS JWT" />
@@ -15,100 +15,120 @@
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng dự kiến:** 15 – 18 phút  
-> 🎯 **Mục tiêu bài học:** Thấu hiểu cơ chế Xác thực không lưu trạng thái (Stateless Authentication) dựa trên JSON Web Token (JWT); phân tích chi tiết 3 phần cốt lõi của JWT: Header, Payload, Signature; cài đặt và cấu hình `@nestjs/jwt` kết hợp `ConfigService` để nạp mã bí mật `JWT_SECRET` và thời hạn `expiresIn`; tự tay triển khai quy trình Đăng ký (Register), Đăng nhập (Login) và phát hành Access Token trong `AuthService` & `AuthController`; thực hành kịch bản kiểm thử mã hóa / giải mã token bằng cURL và jwt.io.
+> ⏱️ **Thời lượng:** 12 – 15 phút thực chiến  
+> 🎯 **Mục tiêu cốt lõi:**
+>
+> 1. Hiểu bản chất vì sao RESTful API bắt buộc phải dùng Token thay vì Session hay gửi Password liên tục.
+> 2. Giải mã cấu trúc 3 phần của JWT: **Header – Payload – Signature**.
+> 3. Cấu hình `@nestjs/jwt` kết hợp `ConfigService` và tái sử dụng `HashService` từ `SharedServiceModule`.
+> 4. Xây dựng hoàn chỉnh luồng Đăng ký / Đăng nhập và thực nghiệm kiểm tra Token trên **jwt.io**.
 
 ---
 
-## 1. Stateful Session vs Stateless JWT Authentication
+## 1. Bản Chất Xác Thực: Tại Sao REST API Chọn JWT?
 
-### 💡 Ẩn Dụ Thực Tế: Thẻ Thành Viên CLB vs Vé Xem Phim QRCode
+### ❓ Câu Hỏi Lớn: "Sau khi đăng nhập, Server nhận diện bạn bằng cách nào?"
 
-Hãy so sánh hai phương thức xác thực người dùng phổ biến nhất trong phát triển ứng dụng Web:
+Giao thức HTTP vốn dĩ **Stateless (Mất trí nhớ giữa các request)**. Mỗi khi bạn gọi một API mới (đăng bài, sửa profile), Server không tự nhớ bạn là ai!
 
-1. **Stateful Session (Phương pháp truyền thống - Thẻ thành viên CLB):**
-   - Lễ tân (Server) phải mở sổ nhật ký lưu vết (Session Store / Redis) để dò tìm tên bạn. Nếu Server có 10 máy tính (Cluster/Microservices), các máy tính phải chia sẻ bộ nhớ Session với nhau.
-   - 🔴 **Nhược điểm:** Tốn tài nguyên RAM trên Server, khó mở rộng hệ thống theo chiều ngang (Horizontal Scaling).
+- ❌ **Cách ngây thơ 1:** Gửi `email & password` trong mọi request? ➔ **Thảm họa:** Mật khẩu dễ lộ qua mạng, và thuật toán `bcrypt` ngốn ~70ms CPU/request sẽ đánh sập máy chủ khi có đông người dùng!
+- ❌ **Cách ngây thơ 2:** Chỉ gửi `userId: 1`? ➔ **Thảm họa:** Hacker đổi số `1` thành số `2` (Admin) là chiếm sạch dữ liệu người khác!
 
-2. **Stateless JWT Authentication (Phương pháp hiện đại - Vé xem phim QRCode):**
-   - Tấm vé (JWT Token) chứa sẵn thông tin của bạn (Tên, Số ghế, Hạn dùng) và được ký bằng **Con dấu chống giả mạo (Signature)**. Khi bạn trình vé, Server chỉ cần tự dùng Secret Key để verify chữ ký mà **không cần truy vấn Database hay Session Store**!
-   - 🟢 **Ưu điểm:** Khả năng mở rộng không giới hạn, cực kỳ phù hợp cho RESTful API, Mobile App và Microservices.
+👉 **Giải pháp:** Sau khi đăng nhập thành công, Server trao cho Client một **"Chứng chỉ danh tính"**.
 
-```mermaid
-flowchart TD
-    subgraph Stateful ["🔴 STATEFUL SESSION (Tốn RAM Server)"]
-        Client1["📱 Client"] -->|"Gửi Session ID"| Server1["🖥️ Server (Cần query Session DB)"]
-        Server1 <--> SessionDB[("🛢️ Session Store / Redis")]
-    end
+### ⚖️ So Sánh Kiến Trúc: Session-Based (Stateful) vs JWT Token-Based (Stateless)
 
-    subgraph Stateless ["🟢 STATELESS JWT AUTH (Tối ưu Microservices)"]
-        Client2["📱 Client"] -->|"Gửi Bearer JWT Token"| Server2["🚀 NestJS API Server"]
-        Server2 -->|"Verify chữ ký Signature offline bằng Secret Key"| Valid{"✅ Hợp lệ?"}
-        Valid -->|"Cho phép truy cập"| Controller["📄 Controller Handler"]
-    end
-```
+<p align="center">
+  <img src="./assets/session_vs_jwt_architecture.jpg" alt="Session vs JWT Architecture Comparison" width="100%" />
+</p>
+
+| Tiêu chí kỹ thuật        | 🔴 Session-Based (Stateful)                            | 🟢 JWT Token-Based (Stateless)                                      |
+| :----------------------- | :----------------------------------------------------- | :------------------------------------------------------------------ |
+| **Nơi lưu trữ dữ liệu**  | **Server-side:** Server lưu session trong RAM / Redis. | **Client-side:** Dữ liệu user đóng gói trực tiếp trong Token.       |
+| **Xác thực mỗi Request** | Phải gọi I/O truy vấn tìm session trong Redis/DB.      | Tự kiểm tra Chữ ký số bằng toán học (~0.01ms, không chạm DB).       |
+| **Mở rộng cụm (Scale)**  | Phức tạp, bắt buộc cấu hình Redis Cluster để đồng bộ.  | **Scale ngang tự do**, bất kỳ server nào cũng tự verify độc lập.    |
+| **Môi trường ứng dụng**  | Gò bó bởi Cookie trình duyệt Web.                      | Chuẩn Header `Bearer Token`, tối ưu cho Mobile App & Microservices. |
 
 ---
 
-### 🔹 Giải Mã Cấu Trúc 3 Phần Của JSON Web Token (JWT)
+### 📱 Giải Phẫu 3 Phần Của JWT: Header • Payload • Signature
 
-Chuỗi JWT gồm 3 phần phân tách nhau bởi dấu chấm (`.`): `Header.Payload.Signature`
+Một chuỗi JWT gồm 3 phần phân cách bằng dấu chấm: `Header.Payload.Signature`
+
+<p align="center">
+  <img src="./assets/jwt_auth_ui_mockup.jpg" alt="JWT Token Inspector & Login UI Mockup" width="95%" />
+</p>
 
 ```text
-  eyJhbGciOiJIUzI1Ni... . eyJzdWIiOiJ1c2VyXzEyMy... . SflKxwRJSMeKKF2QT4fwpMeJf...
+  eyJhbGciOiJIUzI1Ni... . eyJzdWIiOjEsImVtYWls... . SflKxwRJSMeKKF2QT4fwpMeJf...
   └───────────────────┘   └──────────────────────┘   └───────────────────────────┘
             │                        │                             │
-    🔴 1. HEADER             🟣 2. PAYLOAD                 🔵 3. SIGNATURE
-  (Thuật toán & Loại)     (Dữ liệu User & Hạn dùng)     (Chữ ký chống giả mạo)
+     1. HEADER (Đỏ)           2. PAYLOAD (Tím)              3. SIGNATURE (Cyan)
 ```
 
-1. 🔴 **Header:** Khai báo thuật toán mã hóa (ví dụ `HS256`) và loại Token (`JWT`).
-2. 🟣 **Payload (Claims):** Chứa thông tin người dùng được giải mã công khai (ví dụ `sub`: User ID, `email`, `iat`: Ngày phát hành, `exp`: Ngày hết hạn).
-3. 🔵 **Signature:** Chuỗi chữ ký được tạo ra bằng thuật toán:
-   `HMACSHA256(base64UrlEncode(Header) + "." + base64UrlEncode(Payload), JWT_SECRET)`
-   > [!WARNING]
-   > **Lưu ý an toàn:** Dữ liệu trong **Payload** chỉ được mã hóa Base64 chứ **KHÔNG ĐƯỢC mã hóa mật mật**! Do đó, **tuyệt đối không đặt thông tin nhạy cảm** (như Password, OTP hay thẻ tín dụng) vào trong JWT Payload.
+1. 🔴 **Header:** Khai báo loại token và thuật toán ký (thường là `HS256`).
+2. 🟣 **Payload (Claims):** Dữ liệu công khai của người dùng (`sub`: User ID, `email`, `role`, `exp`: Hạn dùng).
+3. 🔵 **Signature (Chữ ký số):** Con dấu bảo an được tính bằng công thức:
+   $$\text{Signature} = \text{HMACSHA256}(\text{Base64}(Header) + "." + \text{Base64}(Payload),\ \text{JWT\_SECRET})$$
+
+> [!CAUTION]
+> **Điểm mấu chốt cần nhớ:**
+>
+> - Payload chỉ được mã hóa **Base64URL** (bất kỳ ai cũng đọc được trên jwt.io). **Tuyệt đối không lưu mật khẩu thô vào Payload!**
+> - **Tại sao hacker không sửa được dữ liệu?** Nếu hacker đổi `role: "USER"` thành `role: "ADMIN"`, chữ ký số tính lại sẽ lệch với con dấu cũ ➔ Server từ chối ngay lập tức!
 
 ---
 
-## 2. Luồng Hoạt Động Của AuthService Trong NestJS
+## 2. Quy Trình Đăng Nhập & Cấp Phát Token (Auth Flow)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as 📱 Mobile / Web Client
-    participant Ctrl as 📄 AuthController
-    participant AuthSvc as ⚡ AuthService
-    participant HashSvc as 🔐 HashService
-    participant JwtSvc as 🔑 JwtService
-    participant DB as 🛢️ PostgreSQL (Prisma)
+    actor Client as "📱 Client (App / Postman)"
+    participant Ctrl as "📄 AuthController"
+    participant AuthSvc as "⚡ AuthService"
+    participant HashSvc as "🔐 HashService"
+    participant JwtSvc as "🔑 JwtService"
 
-    Note over Client,DB: QUY TRÌNH ĐĂNG NHẬP (LOGIN FLOW)
-    Client->>Ctrl: POST /api/v1/auth/login { email, password }
-    Ctrl->>AuthSvc: login(loginDto)
-    AuthSvc->>DB: findUnique({ where: { email } })
-    DB-->>AuthSvc: Trả về bản ghi User (kèm hashedPassword)
+    Client->>Ctrl: "POST /api/v1/auth/login { email, password }"
+    Ctrl->>AuthSvc: "login(loginDto)"
+    AuthSvc->>HashSvc: "comparePassword(password, dbPassword)"
 
-    AuthSvc->>HashSvc: comparePassword(password, hashedPassword)
-
-    alt Mật khẩu KHÔNG CHÍNH XÁC
+    alt Mật khẩu KHÔNG KHỚP
         HashSvc-->>AuthSvc: false
-        AuthSvc-->>Client: 🔴 401 Unauthorized ('Email hoặc mật khẩu không đúng!')
-    else Mật khẩu CHÍNH XÁC
+        AuthSvc-->>Client: "🔴 401 Unauthorized"
+    else Mật khẩu KHỚP
         HashSvc-->>AuthSvc: true
-        AuthSvc->>JwtSvc: signAsync({ sub: user.id, email: user.email })
-        JwtSvc-->>AuthSvc: Trả về chuỗi JWT Access Token
-        AuthSvc-->>Client: 🟢 200 OK { accessToken: "eyJhbG...", user: {...} }
+        AuthSvc->>JwtSvc: "signAsync({ sub, email, role })"
+        JwtSvc-->>AuthSvc: "Chuỗi signed JWT accessToken"
+        AuthSvc-->>Client: "🟢 200 OK { user, accessToken }"
     end
 ```
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Cài Đặt & Triển Khai JWT Auth
+## 3. Hướng Dẫn Thực Hành Step-by-Step
 
-### 📌 Bước 0: Cài Đặt Thư Viện NestJS JWT & Passport
+### 📂 Cấu Trúc File Triển Khai
 
-Mở Terminal tại thư mục gốc dự án và cài đặt bộ thư viện xác thực:
+```
+src/
+├── auth/
+│   ├── dto/
+│   │   ├── register.dto.ts          👈 DTO validation đăng ký
+│   │   └── login.dto.ts             👈 DTO validation đăng nhập
+│   ├── auth.controller.ts           👈 API endpoints /auth/register & /login
+│   ├── auth.service.ts              👈 Nghiệp vụ băm pass & ký phát JWT
+│   └── auth.module.ts               👈 JwtModule.registerAsync() với ConfigService
+├── shared/services/
+│   ├── hash.service.ts              👈 HashService tái sử dụng (Lesson 4.1)
+│   └── shared-service.module.ts     👈 @Global() module
+└── app.module.ts                    👈 Đăng ký AuthModule vào root
+```
+
+---
+
+### 📌 Bước 0: Cài Đặt Thư Viện
 
 ```bash
 pnpm add @nestjs/jwt @nestjs/passport passport passport-jwt
@@ -117,25 +137,37 @@ pnpm add -D @types/passport-jwt
 
 ---
 
-### 📌 Bước 1: Khai Báo Biến Môi Trường JWT Trong `.env`
-
-Mở file `.env` và thêm chuỗi bí mật cùng thời gian hết hạn token:
+### 📌 Bước 1: Khai Báo Biến Môi Trường JWT
 
 📄 **`.env`**
 
 ```env
-# JWT Secret Key (Trong thực tế cần dùng chuỗi ngẫu nhiên đủ dài và bảo mật)
-JWT_SECRET="nest_basic_course_super_secret_key_2026"
+JWT_SECRET="nestjs_basic_course_super_secret_jwt_key_2026"
 JWT_EXPIRES_IN="1d"
+```
+
+Cập nhật schema xác thực trong 📄 **`src/config/env.validation.ts`**:
+
+```typescript
+import * as Joi from 'joi';
+
+export const envValidationSchema = Joi.object({
+  NODE_ENV: Joi.string()
+    .valid('development', 'preprod', 'prod')
+    .default('development'),
+  PORT: Joi.number().default(3000),
+  DATABASE_URL: Joi.string().required(),
+  GLOBAL_PREFIX: Joi.string().default('api'),
+  VERSION_API: Joi.string().default('1'),
+  VERSION_PREFIX: Joi.string().default('v'),
+  JWT_SECRET: Joi.string().required(),
+  JWT_EXPIRES_IN: Joi.string().default('1d'),
+});
 ```
 
 ---
 
 ### 📌 Bước 2: Tạo DTOs Cho Đăng Ký & Đăng Nhập
-
-Tạo thư mục `src/auth/dto/` và triển khai các DTO validation:
-
-#### 1. DTO Đăng Ký (`RegisterDto`):
 
 📄 **`src/auth/dto/register.dto.ts`**
 
@@ -149,7 +181,7 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @IsEmail({}, { message: 'Email không đúng định dạng chuẩn!' })
+  @IsEmail({}, { message: 'Email không đúng định dạng!' })
   @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
 
@@ -159,12 +191,10 @@ export class RegisterDto {
   password: string;
 
   @IsOptional()
-  @IsString({ message: 'Họ và tên phải là chuỗi ký tự!' })
+  @IsString({ message: 'Họ tên phải là chuỗi ký tự!' })
   name?: string;
 }
 ```
-
-#### 2. DTO Đăng Nhập (`LoginDto`):
 
 📄 **`src/auth/dto/login.dto.ts`**
 
@@ -172,7 +202,7 @@ export class RegisterDto {
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Email không đúng định dạng chuẩn!' })
+  @IsEmail({}, { message: 'Email không đúng định dạng!' })
   @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
 
@@ -187,8 +217,6 @@ export class LoginDto {
 
 ### 📌 Bước 3: Cấu Hình `AuthModule` Với `JwtModule.registerAsync()`
 
-Tạo tệp `src/auth/auth.module.ts` nạp cấu hình `JWT_SECRET` từ `ConfigService`:
-
 📄 **`src/auth/auth.module.ts`**
 
 ```typescript
@@ -200,7 +228,7 @@ import { AuthService } from './auth.service';
 
 @Module({
   imports: [
-    // Kích hoạt JwtModule bất đồng bộ để đọc được biến môi trường từ ConfigService
+    // Nạp JWT_SECRET và JWT_EXPIRES_IN bất đồng bộ từ ConfigService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -214,16 +242,17 @@ import { AuthService } from './auth.service';
   ],
   controllers: [AuthController],
   providers: [AuthService],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
 ```
 
+> [!TIP]
+> Nhờ `SharedServiceModule` đã gắn `@Global()` tại `AppModule`, `AuthModule` có thể tiêm trực tiếp `HashService` mà **không cần import lại**.
+
 ---
 
-### 📌 Bước 4: Triển Khai `AuthService` Băm Mật Khẩu & Phát Hành Token
-
-Tạo tệp `src/auth/auth.service.ts` chứa nghiệp vụ xử lý chính:
+### 📌 Bước 4: Triển Khai `AuthService`
 
 📄 **`src/auth/auth.service.ts`**
 
@@ -234,8 +263,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { HashService } from '../shared/services/hash.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
+import { HashService } from '@/shared/services/hash.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -248,56 +277,51 @@ export class AuthService {
   ) {}
 
   /**
-   * Xử lý đăng ký tài khoản mới
+   * Đăng ký tài khoản & phát hành Access Token
    */
   async register(registerDto: RegisterDto) {
     const { email, password, name } = registerDto;
 
-    // 1. Kiểm tra email đã tồn tại trong CSDL chưa
+    // 1. Kiểm tra email duy nhất
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
     if (existingUser) {
-      throw new ConflictException('Email này đã được đăng ký!');
+      throw new ConflictException('Email này đã được sử dụng!');
     }
 
     // 2. Băm mật khẩu bằng HashService
     const hashedPassword = await this.hashService.hashPassword(password);
 
-    // 3. Lưu người dùng vào CSDL (Khớp với User Model trong schema.prisma)
+    // 3. Tạo User trong CSDL (loại bỏ trường password)
     const user = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      },
+      data: { email, password: hashedPassword, name },
+      omit: { password: true },
     });
 
-    // 4. Phát hành JWT Access Token
-    const accessToken = await this.generateAccessToken(user.id, user.email);
+    // 4. Phát hành Token
+    const accessToken = await this.generateAccessToken(
+      user.id,
+      user.email,
+      user.role,
+    );
 
-    const { password: _, ...userWithoutPassword } = user;
-    return {
-      user: userWithoutPassword,
-      accessToken,
-    };
+    return { user, accessToken };
   }
 
   /**
-   * Xử lý đăng nhập hệ thống
+   * Đăng nhập hệ thống & kiểm tra mật khẩu
    */
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    // 1. Tìm người dùng theo email
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    // 1. Tìm user theo email
+    const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
       throw new UnauthorizedException('Email hoặc mật khẩu không chính xác!');
     }
 
-    // 2. So sánh mật khẩu bằng HashService
+    // 2. So khớp mật khẩu với HashService
     const isPasswordValid = await this.hashService.comparePassword(
       password,
       user.password,
@@ -306,24 +330,26 @@ export class AuthService {
       throw new UnauthorizedException('Email hoặc mật khẩu không chính xác!');
     }
 
-    // 3. Phát hành JWT Access Token
-    const accessToken = await this.generateAccessToken(user.id, user.email);
-
+    // 3. Phát hành Token & ẩn password
+    const accessToken = await this.generateAccessToken(
+      user.id,
+      user.email,
+      user.role,
+    );
     const { password: _, ...userWithoutPassword } = user;
-    return {
-      user: userWithoutPassword,
-      accessToken,
-    };
+
+    return { user: userWithoutPassword, accessToken };
   }
 
   /**
-   * Helper phát hành JWT Access Token
+   * Helper ký JWT Access Token
    */
   private async generateAccessToken(
     userId: number,
     email: string,
-  ): Promise<string> {
-    const payload = { sub: userId, email };
+    role: string,
+  ) {
+    const payload = { sub: userId, email, role };
     return this.jwtService.signAsync(payload);
   }
 }
@@ -331,9 +357,7 @@ export class AuthService {
 
 ---
 
-### 📌 Bước 5: Triển Khai `AuthController` Cho Endpoint `/auth`
-
-Tạo tệp `src/auth/auth.controller.ts`:
+### 📌 Bước 5: Triển Khai `AuthController`
 
 📄 **`src/auth/auth.controller.ts`**
 
@@ -346,7 +370,7 @@ import {
   Post,
   Version,
 } from '@nestjs/common';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -374,25 +398,55 @@ export class AuthController {
 
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+### 📌 Bước 6: Đăng Ký `AuthModule` Vào `AppModule`
 
-### 🟢 Kịch Bản 1: Thành Công — Đăng Ký & Đăng Nhập Nhận JWT Access Token
+📄 **`src/app.module.ts`**
 
-Khởi động ứng dụng NestJS và mở Terminal gửi lệnh cURL:
+```typescript
+import { Module } from '@nestjs/common';
+import { AuthModule } from './auth/auth.module';
+import { PostsModule } from './posts/posts.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { SharedServiceModule } from './shared/services/shared-service.module';
+import { UsersModule } from './users/users.module';
 
-#### 1. Đăng ký tài khoản mới:
+@Module({
+  imports: [
+    PrismaModule,
+    SharedServiceModule,
+    AuthModule, // 👈 Khai báo AuthModule
+    UsersModule,
+    PostsModule,
+  ],
+})
+export class AppModule {}
+```
+
+---
+
+## 4. Kịch Bản Kiểm Tra & Thực Nghiệm (Hands-on Lab)
+
+Khởi động server:
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/register \
+pnpm start:dev
+```
+
+---
+
+### 🟢 Kịch Bản 1: Đăng Ký & Nhận JWT Access Token
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "alex@example.com",
+    "email": "dev@example.com",
     "password": "Password123!",
-    "name": "Alex Johnson"
+    "name": "Dev Hero"
   }'
 ```
 
-📥 **Phản hồi HTTP trả về (`201 Created` kèm `accessToken`):**
+📥 **Phản hồi từ Server (`201 Created`):**
 
 ```json
 {
@@ -401,93 +455,64 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
   "data": {
     "user": {
       "id": 1,
-      "email": "alex@example.com",
-      "name": "Alex Johnson",
+      "email": "dev@example.com",
+      "name": "Dev Hero",
       "role": "USER",
-      "createdAt": "2026-08-13T15:35:00.000Z",
-      "updatedAt": "2026-08-13T15:35:00.000Z"
+      "createdAt": "2026-09-20T00:15:00.000Z"
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSI..."
-  },
-  "timestamp": "2026-08-13T15:35:00.000Z",
-  "path": "/api/v1/auth/register"
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NzAwMDAwMDAsImV4cCI6MTc3MDA4NjQwMH0.X9J2..."
+  }
 }
 ```
 
-#### 2. Đăng nhập hệ thống:
+---
+
+### 🟢 Kịch Bản 2: Đăng Nhập & Khám Phá Bí Mật Trên jwt.io
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -i -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "alex@example.com",
+    "email": "dev@example.com",
     "password": "Password123!"
   }'
 ```
 
-📥 **Phản hồi HTTP nhận được (`200 OK`):**
+🔍 **Thực nghiệm ngay trên [jwt.io](https://jwt.io):**
 
-```json
-{
-  "statusCode": 200,
-  "message": "Đăng nhập thành công!",
-  "data": {
-    "user": {
-      "id": 1,
-      "email": "alex@example.com",
-      "name": "Alex Johnson",
-      "role": "USER",
-      "createdAt": "2026-08-13T15:35:00.000Z",
-      "updatedAt": "2026-08-13T15:35:00.000Z"
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-🔍 **Kiểm tra và giải mã Token trên website [jwt.io](https://jwt.io):**
-
-- Copy chuỗi `accessToken` vừa nhận được dán vào ô Debugger của jwt.io.
-- **Payload nhận được:**
-  ```json
-  {
-    "sub": 1,
-    "email": "alex@example.com",
-    "iat": 1770910500,
-    "exp": 1770996900
-  }
-  ```
-
-✅ **Kết quả:** JWT Token được ký và phát hành chính xác với các thuộc tính claim chuẩn mực.
+1. Copy chuỗi `accessToken` nhận được và dán vào ô **Debugger** trên trang web.
+2. Bạn sẽ thấy Payload được giải mã tức thì:
+   ```json
+   {
+     "sub": 1,
+     "email": "dev@example.com",
+     "role": "USER",
+     "iat": 1770000000,
+     "exp": 1770086400
+   }
+   ```
+3. Phía dưới hiển thị: **`Signature Verified`** (Con dấu hợp lệ!).
+4. 🧪 **Thử nghiệm nghịch ngợm:** Thử sửa `sub: 1` thành `sub: 2` trong ô Payload. Chữ ký lập tức chuyển sang màu đỏ: **`Invalid Signature`**! Điều này chứng minh không ai có thể làm giả Token nếu không có `JWT_SECRET`.
 
 ---
 
-### 🔴 Kịch Bản 2: Kiểm Thử Lỗi — Đăng Nhập Sai Mật Khẩu Hoặc Trùng Email
-
-#### Test 1: Đăng nhập với mật khẩu sai:
+### 🔴 Kịch Bản 3: Đăng Nhập Sai Mật Khẩu (`401 Unauthorized`)
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
+curl -i -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "alex@example.com",
-    "password": "WrongPassword!"
-  }'
+  -d '{ "email": "dev@example.com", "password": "WrongPassword!" }'
 ```
 
-📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
+📥 **Phản hồi lỗi (`401 Unauthorized`):**
 
 ```json
 {
   "statusCode": 401,
   "message": "Email hoặc mật khẩu không chính xác!",
-  "error": "Unauthorized",
-  "timestamp": "2026-08-13T15:35:10.000Z",
-  "path": "/api/v1/auth/login"
+  "error": "Unauthorized"
 }
 ```
-
-✅ **Kết quả:** Hệ thống bảo vệ an toàn, không phát hành token khi sai mật khẩu.
 
 ---
 
@@ -496,31 +521,30 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 ```mermaid
 mindmap
   root(("NestJS JWT Authentication"))
-    "Cơ chế Stateless"
-      "Không tốn RAM Session Store"
-      "Dễ dàng mở rộng Microservices"
-      "Gửi qua Header Authorization Bearer"
-    "Cấu trúc JWT"
-      "Header (Algorithm HS256)"
-      "Payload (sub, email, iat, exp)"
-      "Signature (Secret Key Sign)"
-    "Cấu hình NestJS"
-      "JwtModule.registerAsync()"
-      "Đọc JWT_SECRET từ ConfigService"
-      "Thiết lập expiresIn: 1d"
+    "Bản Chất & Nhu Cầu"
+      "HTTP Stateless: Không lưu trạng thái giữa các request"
+      "Stateful Session: Tốn RAM và khó scale cụm"
+      "Stateless JWT: Token tự chứa thông tin và verify offline"
+    "Cấu Trúc Token"
+      "Header: Thuật toán HS256"
+      "Payload: Dữ liệu user (sub, email, role)"
+      "Signature: Chữ ký số HMAC-SHA256"
+    "Cấu Hình NestJS"
+      "JwtModule.registerAsync() nạp từ ConfigService"
+      "Inject HashService từ SharedServiceModule"
     "Luồng Nghiệp Vụ"
-      "register(): Băm pass -> Lưu DB -> Sign Token"
-      "login(): So sánh pass -> Sign Token"
+      "register(): Băm pass -> Tạo user -> Ký Token"
+      "login(): So khớp bcrypt -> Ký Token"
 ```
 
-### ✅ Checklist Ghi Nhớ Bài Học:
+### ✅ Checklist Ghi Nhớ:
 
-- [x] Phân biệt được sự khác nhau giữa Stateful Session và Stateless JWT Authentication.
-- [x] Nắm vững cấu trúc 3 phần của JWT Token (Header, Payload, Signature).
-- [x] Cài đặt các gói `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`.
-- [x] Cấu hình `JwtModule.registerAsync()` nạp `JWT_SECRET` và `JWT_EXPIRES_IN` từ `ConfigService`.
-- [x] Triển khai thành công hai phương thức `register()` và `login()` trong `AuthService`.
-- [x] Thử nghiệm thành công cURL nhận về Access Token và kiểm tra payload trên jwt.io.
+- [x] Hiểu bản chất vì sao RESTful API chọn JWT Stateless thay vì Session truyền thống.
+- [x] Nắm rõ cấu trúc 3 phần: Header, Payload (Base64URL) và Signature (Chữ ký số).
+- [x] Biết lý do vì sao hacker không thể tự ý sửa đổi nội dung của JWT Token.
+- [x] Cài đặt và cấu hình `JwtModule.registerAsync()` trong NestJS.
+- [x] Kết hợp `HashService` từ `SharedServiceModule` để hoàn thiện API đăng ký / đăng nhập.
+- [x] Biết cách dùng `jwt.io` để kiểm tra Payload và thẩm định tính toàn vẹn của chữ ký số.
 
 ---
 
