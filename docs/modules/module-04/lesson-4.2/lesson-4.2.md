@@ -18,42 +18,63 @@
 > ⏱️ **Thời lượng:** 12 – 15 phút thực chiến  
 > 🎯 **Mục tiêu cốt lõi:**
 >
-> 1. Hiểu bản chất vì sao RESTful API bắt buộc phải dùng Token thay vì Session hay gửi Password liên tục.
+> 1. Hiểu bản chất JWT là gì, vì sao RESTful API cần JWT để định danh người dùng an toàn trên giao thức HTTP Stateless.
 > 2. Giải mã cấu trúc 3 phần của JWT: **Header – Payload – Signature**.
 > 3. Cấu hình `@nestjs/jwt` kết hợp `ConfigService` và tái sử dụng `HashService` từ `SharedServiceModule`.
 > 4. Xây dựng hoàn chỉnh luồng Đăng ký / Đăng nhập và thực nghiệm kiểm tra Token trên **jwt.io**.
 
 ---
 
-## 1. Bản Chất Xác Thực: Tại Sao REST API Chọn JWT?
+## 1. Bản Chất Vấn Đề: JWT Là Gì & Tại Sao Lại Cần Nó?
 
-### ❓ Câu Hỏi Lớn: "Sau khi đăng nhập, Server nhận diện bạn bằng cách nào?"
+### ❓ Vấn Đề Thực Tế: Server Nhận Diện Bạn Bằng Cách Nào?
 
-Giao thức HTTP vốn dĩ **Stateless (Mất trí nhớ giữa các request)**. Mỗi khi bạn gọi một API mới (đăng bài, sửa profile), Server không tự nhớ bạn là ai!
+Giao thức HTTP vốn dĩ mang đặc tính **Stateless (Không lưu trạng thái)**: Mỗi request gửi lên máy chủ đều độc lập hoàn toàn. Khi bạn vừa đăng nhập thành công xong và gửi tiếp một request khác (như xem trang cá nhân, đăng bài viết), Server hoàn toàn "mất trí nhớ", không tự động biết bạn là ai!
 
-- ❌ **Cách ngây thơ 1:** Gửi `email & password` trong mọi request? ➔ **Thảm họa:** Mật khẩu dễ lộ qua mạng, và thuật toán `bcrypt` ngốn ~70ms CPU/request sẽ đánh sập máy chủ khi có đông người dùng!
-- ❌ **Cách ngây thơ 2:** Chỉ gửi `userId: 1`? ➔ **Thảm họa:** Hacker đổi số `1` thành số `2` (Admin) là chiếm sạch dữ liệu người khác!
+Nếu không có một cơ chế định danh an toàn, chúng ta sẽ rơi vào các bẫy chết người:
 
-👉 **Giải pháp:** Sau khi đăng nhập thành công, Server trao cho Client một **"Chứng chỉ danh tính"**.
+- ❌ **Bắt Client gửi `email & password` ở mọi request?** ➔ **Thảm họa:** Mật khẩu rất dễ bị lộ trên đường truyền, và việc chạy thuật toán `bcrypt` ngốn ~70ms CPU cho từng request sẽ đánh sập máy chủ ngay khi có đông người dùng.
+- ❌ **Chỉ gửi kèm `userId: 1`?** ➔ **Lỗ hổng bảo mật chết người:** Kẻ tấn công chỉ cần đổi số `1` thành số `2` (Admin) là chiếm trọn dữ liệu và quyền hạn của người khác!
 
-### ⚖️ So Sánh Kiến Trúc: Session-Based (Stateful) vs JWT Token-Based (Stateless)
+---
+
+### 💡 JWT (JSON Web Token) Là Gì?
+
+**JSON Web Token (JWT)** là một tiêu chuẩn mở (RFC 7519) dùng để truyền tải thông tin an toàn giữa Client và Server dưới dạng một **chuỗi ký tự nén gọn (compact string)** có chứa **Chữ ký số (Digital Signature)**.
 
 <p align="center">
-  <img src="./assets/session_vs_jwt_architecture.jpg" alt="Session vs JWT Architecture Comparison" width="100%" />
+  <img src="./assets/jwt_concept_metaphor.jpg" alt="JWT Concept Metaphor: High-tech Wristband vs JSON Web Token" width="90%" />
 </p>
 
-| Tiêu chí kỹ thuật        | 🔴 Session-Based (Stateful)                            | 🟢 JWT Token-Based (Stateless)                                      |
-| :----------------------- | :----------------------------------------------------- | :------------------------------------------------------------------ |
-| **Nơi lưu trữ dữ liệu**  | **Server-side:** Server lưu session trong RAM / Redis. | **Client-side:** Dữ liệu user đóng gói trực tiếp trong Token.       |
-| **Xác thực mỗi Request** | Phải gọi I/O truy vấn tìm session trong Redis/DB.      | Tự kiểm tra Chữ ký số bằng toán học (~0.01ms, không chạm DB).       |
-| **Mở rộng cụm (Scale)**  | Phức tạp, bắt buộc cấu hình Redis Cluster để đồng bộ.  | **Scale ngang tự do**, bất kỳ server nào cũng tự verify độc lập.    |
-| **Môi trường ứng dụng**  | Gò bó bởi Cookie trình duyệt Web.                      | Chuẩn Header `Bearer Token`, tối ưu cho Mobile App & Microservices. |
+#### 🎟️ Ẩn Dụ Thực Tế: "Chiếc Vòng Tay Công Viên Nước Có Tem Chống Giả"
+
+Để hiểu sâu sắc cơ chế hoạt động của JWT, hãy so sánh từng bước của chiếc vòng đeo tay tại khu du lịch với luồng xử lý API trong NestJS:
+
+| Quy Trình                  | 🎟️ Ẩn Dụ: Vòng Tay Công Viên Nước                               | 💻 Thực Tế Kỹ Thuật: JSON Web Token (JWT)                                                          |
+| :------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------------------------------------------------- |
+| **1. Xác thực ban đầu**    | Mua vé tại quầy: Xuất trình CCCD & Trả tiền vé.                 | Gửi `POST /auth/login` kèm Email & Mật khẩu để Server kiểm tra.                                    |
+| **2. Cấp phát định danh**  | Ban quản lý dập tem và phát cho bạn **chiếc vòng tay**.         | Server ký bảo mật và trả về chuỗi **`accessToken`** cho Client lưu giữ.                            |
+| **3. Thông tin mang theo** | Tên bạn, Mã vé, Hạn dùng, Quyền vào khu VIP / Thường.           | **Payload (Claims):** Chứa `{ sub: 1, email: '...', role: 'VIP', exp: ... }`.                      |
+| **4. Con dấu bảo an**      | Tem dập nổi độc quyền bằng khuôn dập bí mật của ban quản lý.    | **Chữ ký số (Signature):** Được sinh bằng thuật toán băm bí mật `JWT_SECRET`.                      |
+| **5. Khi dùng dịch vụ**    | Soát vé trò chơi chỉ cần soi tem nổi còn nguyên vẹn là cho vào. | Client kẹp Header `Authorization: Bearer <token>`, Server verify trong **0.01ms (không chạm DB)**. |
+
+---
+
+### 🎯 3 Lý Do Sống Còn Chúng Ta Cần Sử Dụng JWT Cho REST API
+
+Bảng so sánh dưới đây giải thích vì sao JWT đã thay thế hoàn toàn các phương thức truyền thống để trở thành tiêu chuẩn vàng của ngành:
+
+| Siêu Năng Lực Của JWT                                           | ⚠️ Nếu KHÔNG Dùng JWT                                                                                                               | 🚀 Khi Có JWT Bảo Vệ                                                                                                                             |
+| :-------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **⚡ 1. Hoàn toàn Stateless**<br>_(Zero Server Memory)_         | Server phải mở RAM lưu trữ phiên làm việc (Session) hoặc tốn kém duy trì Redis Cluster. Khi có triệu user, máy chủ dễ cạn kiệt RAM. | Server **không cần nhớ gì cả**. Thông tin user nằm sẵn trong Token do Client giữ, giải phóng 100% tài nguyên bộ nhớ cho Server.                  |
+| **🛡️ 2. Chống giả mạo tuyệt đối**<br>_(Tamper-Proof Signature)_ | Kẻ gian có thể đổi `userId: 1` thành `2` để đánh cắp tài khoản, hoặc Server phải truy vấn Database ở mọi request để đối chiếu.      | Bất kỳ ký tự nào trong Token bị chỉnh sửa sẽ làm **sai lệch Chữ ký số** ➔ Server phát hiện gian lận ngay tức thì mà không cần truy vấn Database. |
+| **🌐 3. Chuẩn hóa & Đa nền tảng**<br>_(Cross-Platform Bearer)_  | Bị trói buộc bởi Cookie trình duyệt Web; ứng dụng Mobile (Flutter, React Native) hay Microservices rất khó tích hợp.                | Truyền gọn gàng qua HTTP Header `Authorization: Bearer <token>`, dùng chung hoàn hảo cho **Web, Mobile App và Microservices**.                   |
 
 ---
 
 ### 📱 Giải Phẫu 3 Phần Của JWT: Header • Payload • Signature
 
-Một chuỗi JWT gồm 3 phần phân cách bằng dấu chấm: `Header.Payload.Signature`
+Một chuỗi JWT hoàn chỉnh được tạo thành từ 3 phần phân cách bởi dấu chấm: `Header.Payload.Signature`
 
 <p align="center">
   <img src="./assets/jwt_auth_ui_mockup.jpg" alt="JWT Token Inspector & Login UI Mockup" width="95%" />
@@ -66,16 +87,37 @@ Một chuỗi JWT gồm 3 phần phân cách bằng dấu chấm: `Header.Payloa
      1. HEADER (Đỏ)           2. PAYLOAD (Tím)              3. SIGNATURE (Cyan)
 ```
 
-1. 🔴 **Header:** Khai báo loại token và thuật toán ký (thường là `HS256`).
-2. 🟣 **Payload (Claims):** Dữ liệu công khai của người dùng (`sub`: User ID, `email`, `role`, `exp`: Hạn dùng).
-3. 🔵 **Signature (Chữ ký số):** Con dấu bảo an được tính bằng công thức:
+1. 🔴 **Header (Tiêu đề):** Khai báo kiểu token (`typ: "JWT"`) và thuật toán ký mã hóa (phổ biến nhất là `HS256`).
+2. 🟣 **Payload (Nội dung / Claims):** Chứa các thông tin công khai của người dùng được mã hóa Base64URL:
+   - `sub` (Subject): Mã định danh duy nhất của người dùng (`userId`).
+   - `email`: Email của người dùng.
+   - `role`: Phân quyền (ví dụ: `USER` hoặc `ADMIN`).
+   - `exp` (Expiration Time): Thời điểm hết hạn của token (tính bằng giây timestamp).
+3. 🔵 **Signature (Chữ ký số):** Con dấu bảo an được Server tạo ra bằng thuật toán băm kết hợp với chuỗi khóa bí mật `JWT_SECRET`:
    $$\text{Signature} = \text{HMACSHA256}(\text{Base64}(Header) + "." + \text{Base64}(Payload),\ \text{JWT\_SECRET})$$
 
 > [!CAUTION]
-> **Điểm mấu chốt cần nhớ:**
+> **2 Nguyên Tắc Bảo Mật Vàng Khi Làm Việc Với JWT:**
 >
-> - Payload chỉ được mã hóa **Base64URL** (bất kỳ ai cũng đọc được trên jwt.io). **Tuyệt đối không lưu mật khẩu thô vào Payload!**
-> - **Tại sao hacker không sửa được dữ liệu?** Nếu hacker đổi `role: "USER"` thành `role: "ADMIN"`, chữ ký số tính lại sẽ lệch với con dấu cũ ➔ Server từ chối ngay lập tức!
+> 1. **Payload chỉ được mã hóa Base64URL, KHÔNG PHẢI MÃ HÓA BÍ MẬT:** Bất kỳ ai có token đều có thể dán lên [jwt.io](https://jwt.io) để đọc toàn bộ dữ liệu trong Payload. **Tuyệt đối không lưu mật khẩu, thông tin thẻ tín dụng hay dữ liệu nhạy cảm vào Payload!**
+> 2. **Chìa khóa bí mật `JWT_SECRET` là tài sản sống còn:** Nếu để lộ `JWT_SECRET`, kẻ tấn công có thể tự ký cấp phát các token giả mạo danh phận bất kỳ ai (kể cả Super Admin) để chiếm đoạt toàn bộ hệ thống!
+
+---
+
+### 💡 Góc Nhìn Mở Rộng: Tại Sao REST API Ưu Tiên JWT Hơn Session Truyền Thống?
+
+Trước khi JWT trở thành chuẩn mực, các ứng dụng Web nguyên khối thường dùng cơ chế **Session-Based (Stateful)**. Bảng so sánh và sơ đồ kiến trúc dưới đây giúp bạn thấy rõ bước tiến vượt bậc của JWT:
+
+<p align="center">
+  <img src="./assets/session_vs_jwt_architecture.jpg" alt="Session vs JWT Architecture Comparison" width="100%" />
+</p>
+
+| Tiêu chí so sánh           | 🔴 Session-Based (Stateful)                               | 🟢 JWT Token-Based (Stateless)                                           |
+| :------------------------- | :-------------------------------------------------------- | :----------------------------------------------------------------------- |
+| **Nơi lưu trữ trạng thái** | **Phía Server:** Server phải lưu Session trong RAM/Redis. | **Phía Client:** Dữ liệu user đóng gói trực tiếp trong Token.            |
+| **Xác thực mỗi Request**   | Phải gọi I/O truy vấn Redis/Database để tìm Session.      | Tự kiểm tra Chữ ký số bằng thuật toán toán học (~0.01ms, không chạm DB). |
+| **Mở rộng cụm (Scale)**    | Cồng kềnh, bắt buộc cấu hình Redis Cluster để đồng bộ.    | **Scale ngang tự do**, bất kỳ server nào có Secret Key đều verify được.  |
+| **Phù hợp ứng dụng**       | Web MVC truyền thống sử dụng Cookie trình duyệt.          | Chuẩn `Bearer Token`, tối ưu hoàn hảo cho Mobile App & Microservices.    |
 
 ---
 
