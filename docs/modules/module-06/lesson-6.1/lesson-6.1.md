@@ -176,14 +176,14 @@ WebSocket Gateway cung cấp 3 interfaces quản lý trọn vẹn vòng đời k
 
 ### Bước 1: Cài Đặt Thư Viện WebSockets & Socket.IO Bằng `pnpm`
 
-Mở Terminal và thực thi lệnh cài đặt các gói cần thiết:
+Mở Terminal và thực thi lệnh cài đặt các gói cần thiết (lưu ý chỉ định phiên bản `@^11.0.0` để đồng bộ hoàn toàn với phiên bản NestJS 11 của toàn bộ dự án, tránh bị npm tự động cài bản NestJS v12 gây xung đột):
 
 ```bash
-pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
+pnpm add @nestjs/websockets@^11.0.0 @nestjs/platform-socket.io@^11.0.0 socket.io
 ```
 
-- `@nestjs/websockets`: Module cốt lõi của NestJS cung cấp các decorators: `@WebSocketGateway`, `@WebSocketServer`, `@SubscribeMessage`, `@MessageBody`, `@ConnectedSocket`.
-- `@nestjs/platform-socket.io`: Adapter cầu nối chuyên biệt giữa kiến trúc NestJS và Socket.IO engine.
+- `@nestjs/websockets@^11.0.0`: Module cốt lõi của NestJS cung cấp các decorators: `@WebSocketGateway`, `@WebSocketServer`, `@SubscribeMessage`, `@MessageBody`, `@ConnectedSocket`.
+- `@nestjs/platform-socket.io@^11.0.0`: Adapter cầu nối chuyên biệt giữa kiến trúc NestJS và Socket.IO engine.
 - `socket.io`: Thư viện máy chủ Socket.IO chính thức (từ bản v3/v4 đã tích hợp sẵn TypeScript definitions chính chủ, **không cần** cài thêm `@types/socket.io`).
 
 ---
