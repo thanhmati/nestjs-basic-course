@@ -231,16 +231,13 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { CreateChatMessageDto } from './dto/chat-message.dto';
-import { Public } from '../shared/decorators/public.decorator';
 
 /**
  * Cấu hình Gateway:
- * - @Public(): Cho phép truy cập công khai ở bài học này (tránh bị Global JwtAuthGuard từ Lesson 4.4 chặn trước khi tích hợp WebSocket Auth ở Lesson 6.2)
- * - cors: Cho phép tất cả các nguồn truy cập (có thể giới hạn domain frontend ở production)
+ * - cors: Cho phép các nguồn truy cập (tránh lỗi CORS khi kết nối từ frontend khác port)
  * - namespace: Tách biệt kênh '/chat' với các gateway khác trong hệ thống
  * - Port: Mặc định chia sẻ chung HTTP port của NestJS (Port 3000)
  */
-@Public()
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -356,6 +353,7 @@ export class ChatGateway
 > - `@MessageBody()`: Trích xuất phần dữ liệu (payload) gửi kèm trong sự kiện.
 > - `@ConnectedSocket()`: Lấy instance `Socket` của client vừa gửi yêu cầu (để lấy `client.id`, IP, hoặc gửi tin riêng).
 > - **Cơ chế Acknowledgment (ACK):** Khi hàm `@SubscribeMessage` trả về giá trị (`return { status: 'OK' }` hoặc `return 'pong'`), NestJS sẽ gửi giá trị này trực tiếp về **Callback function** của Client. Nếu Client gọi `socket.emit('event', data, (ack) => { ... })`, tham số `ack` chính là giá trị được `return`.
+> - **Global Guard (`APP_GUARD`) Có Ảnh Hưởng Đến WebSocket Không?** Không! Trong NestJS, các Guard đăng ký qua token `APP_GUARD` (như `JwtAuthGuard` ở Module 4) chỉ tự động áp dụng cho HTTP Controllers. `SocketModule` của NestJS hoàn toàn độc lập và không áp đặt `APP_GUARD` lên các sự kiện WebSocket. Do đó, bạn không cần phải gắn `@Public()` lên `ChatGateway`.
 > - **Custom Ping-Pong vs Engine.IO Heartbeat:** Hàm `handlePing` ở đây là sự kiện tùy biến ở tầng ứng dụng để client chủ động đo Round-Trip Latency (độ trễ mạng), hoàn toàn độc lập với cơ chế Heartbeat Ping/Pong ngầm định mà Socket.IO tự thực thi để duy trì kết nối.
 
 ---
