@@ -32,14 +32,14 @@
 
 Để hiểu vì sao các ứng dụng hiện đại như Facebook Messenger, Telegram hay Binance chuyển sang **WebSocket**, hãy cùng xem phép ẩn dụ đời thực:
 
-| Tiêu Chí                  | 📬 Mô Hình HTTP (Gửi Thư Bưu Điện)                                                                                              | 📞 Mô Hình WebSocket (Cuộc Gọi Trực Tiếp)                                                              |
-| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------- |
-| **Cách thức hoạt động**   | Mỗi lần muốn nói chuyện, bạn phải viết thư, dán tem (**Header ~1KB**), gửi đi và ngồi chờ thư hồi âm.                           | Bấm số gọi một lần (**Handshake 101**). Sau đó giữ máy liên tục để trò chuyện qua lại.                 |
-| **Bên chủ động**          | **Chỉ có bạn (Client):** Bưu điện (Server) không bao giờ tự ý gửi thư nếu bạn không hỏi trước.                                  | **Cả hai bên:** Bất kỳ ai có tin mới đều có thể lên tiếng ngay lập tức (**Push data**).                |
-| **Khi làm ứng dụng Chat** | Cứ mỗi 2 giây phải gửi thư hỏi: _"Có tin mới không?"_ (**Polling**) → 99% bưu tá báo _"Không có"_ → Cạn kiệt sức lực (CPU/RAM). | Đường dây mở sẵn: Người bên kia vừa gõ phím gửi tin là điện thoại bạn rung chuông tức thì (**< 5ms**). |
+| Tiêu Chí                  | 📬 Mô Hình HTTP (Gửi Thư Bưu Điện)                                                                                                                                              | 📞 Mô Hình WebSocket (Cuộc Gọi Trực Tiếp)                                                              |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------- |
+| **Cách thức hoạt động**   | Mỗi lần muốn nói chuyện, bạn phải viết thư, dán tem (**Header ~1KB**), gửi đi và ngồi chờ thư hồi âm.                                                                           | Bấm số gọi một lần (**Handshake 101**). Sau đó giữ máy liên tục để trò chuyện qua lại.                 |
+| **Bên chủ động**          | **Chỉ có bạn (Client):** Giống như nộp đơn hành chính — Server chỉ thụ lý và phản hồi đúng theo từng lượt hỏi của bạn, không bao giờ tự động báo tin nếu bạn không gửi thư hỏi. | **Cả hai bên:** Bất kỳ ai có tin mới đều có thể lên tiếng ngay lập tức (**Push data**).                |
+| **Khi làm ứng dụng Chat** | Cứ mỗi 2 giây phải gửi thư hỏi: _"Có tin mới không?"_ (**Polling**) → 99% bưu tá báo _"Không có"_ → Cạn kiệt sức lực (CPU/RAM).                                                 | Đường dây mở sẵn: Người bên kia vừa gõ phím gửi tin là điện thoại bạn rung chuông tức thì (**< 5ms**). |
 
 <p align="center">
-  <img src="./assets/http_vs_websocket.svg" alt="HTTP vs WebSockets Comparison" width="100%" />
+  <img src="./assets/http_vs_websocket_metaphor.jpg" alt="HTTP vs WebSocket Metaphor: Postal Mail vs Direct Phone Call" width="85%" />
 </p>
 
 ---
@@ -49,14 +49,14 @@
 Ra đời năm 2011 theo chuẩn **RFC 6455**, WebSocket loại bỏ hoàn toàn cơ chế "hỏi - đáp" ngắt quãng của HTTP và thay thế bằng một **đường ống dữ liệu liên tục**:
 
 <p align="center">
-  <img src="./assets/websocket_concept_explained.jpg" alt="WebSocket Persistent Connection Concept" width="70%" />
+  <img src="./assets/websocket_concept_explained.jpg" alt="WebSocket Persistent Connection Concept" width="85%" />
 </p>
 
 Ba giá trị cốt lõi làm nên sức mạnh vượt trội của WebSocket:
 
-- 🤝 **Bắt tay duy nhất 1 lần (Handshake Upgrade):** Khởi đầu bằng một HTTP request thông thường có header `Upgrade: websocket`. Khi Server đồng thuận, cả hai nâng cấp kết nối lên mã `101 Switching Protocols` rồi chuyển hoàn toàn sang giao thức TCP nhị phân.
-- ⚡ **Luồng dữ liệu hai chiều bền vững (Persistent Pipe):** Kết nối TCP được duy trì xuyên suốt. Server có thể chủ động đẩy (Push) thông báo xuống Client bất kỳ lúc nào mà không cần Client phải "kéo" (Pull).
-- 🪶 **Khung tin siêu nhẹ (Overhead ~2 bytes):** Khác với HTTP luôn kèm theo 500 – 1500 bytes headers cồng kềnh ở mỗi lượt gửi, khung tin WebSocket chỉ tiêu tốn từ **2 đến 10 bytes**.
+- 🤝 **Bắt tay duy nhất 1 lần (Handshake Upgrade):** WebSocket bắt đầu bằng một HTTP request với header `Upgrade: websocket`. Nếu Server đồng thuận, nó phản hồi mã `101 Switching Protocols`. Từ thời điểm này, kênh giao tiếp được chuyển sang sử dụng **WebSocket protocol trên kết nối TCP hiện tại**.
+- ⚡ **Luồng dữ liệu hai chiều bền vững (Persistent Connection):** Kết nối TCP được duy trì xuyên suốt phiên làm việc. Cả Client và Server đều có thể chủ động đẩy (Push) dữ liệu cho nhau bất kỳ lúc nào mà không cần tạo thêm HTTP request mới. Nhờ đó, Server có thể Push dữ liệu tức thì xuống Client thay vì Client phải liên tục Pull.
+- 🪶 **Khung tin siêu nhẹ (Minimal Frame Overhead):** Khác với HTTP luôn kèm theo 500 – 1500 bytes headers cồng kềnh (Cookie, User-Agent, Auth Token...) ở mỗi lượt gửi, gói tin WebSocket (Frame) chỉ tiêu tốn từ **2 đến 10 bytes** overhead cho phần header nhị phân.
 
 ---
 
@@ -70,6 +70,10 @@ Ba giá trị cốt lõi làm nên sức mạnh vượt trội của WebSocket:
 | **Độ trễ (Latency)**      | 100ms – 500ms                                  | Phụ thuộc vào chu kỳ lặp (polling interval)      | **Tức thì (< 5ms)** sau khi đã handshake           |
 | **Tải tài nguyên Server** | Thấp khi ít user; đóng kết nối ngay            | Cực kỳ nặng nề, dễ làm nghẽn connection pool     | Rất nhẹ; duy trì qua Event Loop không chặn luồng   |
 | **Ứng dụng tiêu biểu**    | Đăng ký, Đăng nhập, CRUD bài viết, Upload file | Chỉ dùng dự phòng khi mạng chặn WebSockets       | **Chat app, Live Notification, Chứng khoán, Game** |
+
+<p align="center">
+  <img src="./assets/http_polling_vs_websocket.jpg" alt="HTTP Polling vs WebSocket Mechanism Comparison" width="85%" />
+</p>
 
 ---
 
@@ -95,13 +99,13 @@ Ba tính năng cốt lõi tạo nên trải nghiệm mượt mà này:
 
 Nếu như **Controller** là "cửa ngõ" của thế giới HTTP REST API, thì **Gateway** chính là "trung tâm điều phối" của thế giới sự kiện Real-Time:
 
-| Tiêu Chí                 | 🏢 HTTP Controller                           | 🌐 WebSocket Gateway                                          |
-| :----------------------- | :------------------------------------------- | :------------------------------------------------------------ |
-| **Decorator định nghĩa** | `@Controller('posts')`                       | `@WebSocketGateway({ namespace: '/chat' })`                   |
-| **Giao thức nền tảng**   | HTTP / HTTPS (Request - Response)            | WebSockets / TCP (Event-Driven Stream)                        |
-| **Cơ chế bắt dữ liệu**   | `@Get()`, `@Post()`, `@Put()`, `@Delete()`   | `@SubscribeMessage('event_name')`                             |
-| **Cơ chế phát dữ liệu**  | Trả về `return data` cho một client duy nhất | `server.emit()` phát tin cho toàn bộ hoặc từng nhóm client    |
-| **Vòng đời kết nối**     | Đóng ngay sau khi gửi xong Response          | **Kéo dài liên tục** cho đến khi Client tắt máy hoặc mất mạng |
+| Tiêu Chí                 | 🏢 HTTP Controller                           | 🌐 WebSocket Gateway                                                                                                                                                 |
+| :----------------------- | :------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Decorator định nghĩa** | `@Controller('posts')`                       | `@WebSocketGateway({ namespace: '/chat' })`                                                                                                                          |
+| **Giao thức nền tảng**   | HTTP / HTTPS (Request - Response trên TCP)   | WebSocket (ws://, wss:// - Song công trên TCP)                                                                                                                       |
+| **Cơ chế bắt dữ liệu**   | `@Get()`, `@Post()`, `@Put()`, `@Delete()`   | `@SubscribeMessage('event_name')`                                                                                                                                    |
+| **Cơ chế phát dữ liệu**  | Trả về `return data` cho một client duy nhất | **Linh hoạt:** Gửi 1-1 cho chính client (`client.emit()` hoặc `return ACK`), gửi cho người khác (`client.broadcast.emit()`), hoặc gửi toàn bộ (`this.server.emit()`) |
+| **Vòng đời kết nối**     | Đóng ngay sau khi gửi xong Response          | **Kéo dài liên tục** cho đến khi Client tắt máy hoặc mất mạng                                                                                                        |
 
 ---
 
@@ -113,6 +117,10 @@ NestJS hỗ trợ 2 adapters: `ws` (chuẩn RFC thuần túy) và `Socket.IO`. B
 - 🛡️ **Fallback Linh Hoạt:** Nếu tường lửa công ty chặn cổng WebSockets, client tự động chuyển mượt mà về HTTP Long-Polling để đảm bảo app không bị gián đoạn.
 - 🚪 **Hỗ Trợ Room & Namespace Sẵn Có:** Phân chia người dùng vào các phòng chat (`socket.join('room-123')`) cực kỳ đơn giản chỉ với một dòng lệnh.
 - 💓 **Tích Hợp Heartbeat Ping-Pong:** Tự động phát hiện các kết nối "chết" (zombie connection) để giải phóng RAM cho server.
+
+> [!IMPORTANT]
+> **Socket.IO Không Phải Là WebSocket Thuần Túy (Pure WebSocket):**  
+> Socket.IO là giải pháp giao tiếp thời gian thực bậc cao được xây dựng _trên nền_ WebSocket và Engine.IO protocol. Nó có cấu trúc đóng gói tin riêng, cơ chế Heartbeat ping/pong ngầm tự động, và khả năng fallback. Vì vậy, một client dùng WebSocket native của trình duyệt (`new WebSocket('ws://...')`) sẽ **không thể kết nối trực tiếp** vào máy chủ Socket.IO nếu không dùng đúng client thư viện tương ứng.
 
 ---
 
@@ -172,12 +180,11 @@ Mở Terminal và thực thi lệnh cài đặt các gói cần thiết:
 
 ```bash
 pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
-pnpm add -D @types/socket.io
 ```
 
-- `@nestjs/websockets`: Module cốt lõi chứa các decorators `@WebSocketGateway`, `@SubscribeMessage`, `@MessageBody`.
-- `@nestjs/platform-socket.io`: Adapter cầu nối giữa NestJS và Socket.IO.
-- `socket.io`: Thư viện máy chủ Socket.IO chính thức.
+- `@nestjs/websockets`: Module cốt lõi của NestJS cung cấp các decorators: `@WebSocketGateway`, `@WebSocketServer`, `@SubscribeMessage`, `@MessageBody`, `@ConnectedSocket`.
+- `@nestjs/platform-socket.io`: Adapter cầu nối chuyên biệt giữa kiến trúc NestJS và Socket.IO engine.
+- `socket.io`: Thư viện máy chủ Socket.IO chính thức (từ bản v3/v4 đã tích hợp sẵn TypeScript definitions chính chủ, **không cần** cài thêm `@types/socket.io`).
 
 ---
 
@@ -224,12 +231,16 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { CreateChatMessageDto } from './dto/chat-message.dto';
+import { Public } from '../shared/decorators/public.decorator';
 
 /**
  * Cấu hình Gateway:
+ * - @Public(): Cho phép truy cập công khai ở bài học này (tránh bị Global JwtAuthGuard từ Lesson 4.4 chặn trước khi tích hợp WebSocket Auth ở Lesson 6.2)
  * - cors: Cho phép tất cả các nguồn truy cập (có thể giới hạn domain frontend ở production)
  * - namespace: Tách biệt kênh '/chat' với các gateway khác trong hệ thống
+ * - Port: Mặc định chia sẻ chung HTTP port của NestJS (Port 3000)
  */
+@Public()
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -338,12 +349,14 @@ export class ChatGateway
 ```
 
 > [!TIP]
-> **Giải Mã Các Decorators Cốt Lõi:**
+> **Giải Mã Các Decorators & Pattern Truyền Dữ Liệu Cốt Lõi:**
 >
-> - `@WebSocketServer()`: Tiêm đối tượng `Server` của Socket.IO. Cực kỳ quan trọng khi bạn muốn phát tin nhắn tới **toàn bộ phòng** (`this.server.to('room1').emit(...)`) hoặc **tất cả người dùng** (`this.server.emit(...)`).
-> - `@SubscribeMessage('event_name')`: Đăng ký phương thức xử lý mỗi khi có sự kiện tên là `'event_name'` bắn lên từ Client.
-> - `@MessageBody()`: Trích xuất phần dữ liệu (payload) mà Client gửi kèm trong sự kiện.
-> - `@ConnectedSocket()`: Lấy chính xác instance `Socket` của người gửi yêu cầu (để lấy `client.id`, các headers, hay gửi tin nhắn phản hồi riêng).
+> - `@WebSocketServer()`: Tiêm instance `Server` của Socket.IO. Dùng khi muốn phát broadcast tới **toàn bộ phòng** (`this.server.to('room1').emit(...)`) hoặc **toàn bộ server** (`this.server.emit(...)`).
+> - `@SubscribeMessage('event_name')`: Đăng ký phương thức xử lý mỗi khi Client phát sự kiện `'event_name'`.
+> - `@MessageBody()`: Trích xuất phần dữ liệu (payload) gửi kèm trong sự kiện.
+> - `@ConnectedSocket()`: Lấy instance `Socket` của client vừa gửi yêu cầu (để lấy `client.id`, IP, hoặc gửi tin riêng).
+> - **Cơ chế Acknowledgment (ACK):** Khi hàm `@SubscribeMessage` trả về giá trị (`return { status: 'OK' }` hoặc `return 'pong'`), NestJS sẽ gửi giá trị này trực tiếp về **Callback function** của Client. Nếu Client gọi `socket.emit('event', data, (ack) => { ... })`, tham số `ack` chính là giá trị được `return`.
+> - **Custom Ping-Pong vs Engine.IO Heartbeat:** Hàm `handlePing` ở đây là sự kiện tùy biến ở tầng ứng dụng để client chủ động đo Round-Trip Latency (độ trễ mạng), hoàn toàn độc lập với cơ chế Heartbeat Ping/Pong ngầm định mà Socket.IO tự thực thi để duy trì kết nối.
 
 ---
 
@@ -385,6 +398,10 @@ export class AppModule {}
 ---
 
 ### Bước 5: Tạo File Client HTML Kiểm Thử Tức Thì (Hands-on Client)
+
+> [!NOTE]
+> **`setGlobalPrefix('api')` Có Ảnh Hưởng Đến WebSocket Gateway Không?**  
+> Trong `src/main.ts`, dự án đã thiết lập `app.setGlobalPrefix('api')`. Tuy nhiên, tiền tố toàn cục này **chỉ áp dụng cho các route HTTP REST Controllers**, hoàn toàn **không ảnh hưởng** đến WebSocket Gateway. Do đó, địa chỉ kết nối của Client vẫn là `http://localhost:3000/chat` (với namespace `/chat`) chứ không phải `/api/chat`.
 
 Để thử nghiệm mà không cần dựng cả một dự án React/Next.js phức tạp, bạn có thể tạo một file HTML đơn giản ở thư mục gốc để mở trực tiếp trên trình duyệt:
 
@@ -686,7 +703,7 @@ Kiểm tra khả năng chịu lỗi và dọn dẹp tài nguyên (Garbage Collec
 ```mermaid
 mindmap
   root("WebSockets & Gateway")
-    "Khai Niệm Cốt Lõi"
+    "Khái Niệm Cốt Lõi"
       "Giao thức Full-Duplex"
       "Bắt tay HTTP 101 Upgrade"
       "Overhead cực thấp 2 bytes"
