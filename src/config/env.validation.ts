@@ -9,4 +9,6 @@ export const envValidationSchema = Joi.object({
   GLOBAL_PREFIX: Joi.string().default('api'),
   VERSION_API: Joi.string().default('1'),
   VERSION_PREFIX: Joi.string().default('v'),
+  JWT_SECRET: Joi.string().required(),
+  JWT_EXPIRES_IN: Joi.string().default('1d'),
 });

@@ -12,6 +12,7 @@ import { LoggerMiddleware } from './shared/middleware/logger.middleware';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
 import { SharedServiceModule } from './shared/services/shared-service.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SharedServiceModule } from './shared/services/shared-service.module';
     SharedServiceModule,
     UsersModule,
     PostsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
