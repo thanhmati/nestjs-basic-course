@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserData } from '@/auth/interfaces/jwt.interface';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -18,12 +18,11 @@ export class UsersController {
     return this.usersService.create(body);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Req() req: Request) {
+  getProfile(@CurrentUser() userData: UserData) {
     return {
-      message: 'Xác thực tài khoản thành công qua NativeAuthGuard!',
-      user: req['user'] as UserData,
+      message: 'Xác thực tài khoản thành công',
+      user: userData,
     };
   }
 }
