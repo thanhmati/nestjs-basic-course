@@ -424,4 +424,4 @@ mindmap
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 4.5: Auth Decorators & Global Guard — Vận Dụng @CurrentUser() & @Public() Bảo Vệ Toàn Diện Hệ Thống](../lesson-4.5/lesson-4.5.md)
+👉 **Bài tiếp theo:** [Lesson 4.5: Google OAuth2 — Tích Hợp Đăng Nhập Mạng Xã Hội Đa Chiến Lược Với Passport Trong NestJS](../lesson-4.5/lesson-4.5.md)
