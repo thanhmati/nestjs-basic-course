@@ -10,6 +10,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Role } from '@/generated/prisma/enums';
 import { JwtPayload } from './interfaces/jwt.interface';
+import { GoogleUser } from './interfaces/google-user.interface';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -74,5 +76,37 @@ export class AuthService {
     );
 
     return { accessToken };
+  }
+
+  async socialLogin(googleUser: GoogleUser) {
+    const { email, name } = googleUser;
+
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword =
+        await this.hashService.hashPassword(randomPassword);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+        },
+      });
+    }
+
+    const accessToken = await this.generateAccessToken(
+      user.id,
+      user.email,
+      user.role,
+    );
+
+    return {
+      accessToken,
+    };
   }
 }
