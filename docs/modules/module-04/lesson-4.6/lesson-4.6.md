@@ -5,6 +5,7 @@
   <img src="https://img.shields.io/badge/Reflector-Metadata-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Reflector Metadata" />
   <img src="https://img.shields.io/badge/Security-Secure_by_Default-10B981?style=for-the-badge&logo=security&logoColor=white" alt="Secure by Default" />
   <img src="https://img.shields.io/badge/Global_Guard-APP_GUARD-F59E0B?style=for-the-badge&logo=json&logoColor=white" alt="Global Guard" />
+  <img src="https://img.shields.io/badge/TypeScript-Type_Safe-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,77 +17,93 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Vận dụng kỹ thuật Custom Decorators đã học từ **Lesson 3.5** để giải quyết bài toán cốt lõi trong hệ thống Authentication: loại bỏ hoàn toàn mùi code (Code Smell) `@Request() req: any` bằng Custom Param Decorator `@CurrentUser()`; áp dụng Route Decorator `@Public()` với `SetMetadata` kết hợp `Reflector` để tạo cơ chế bypass Global `JwtAuthGuard` cho các Route công khai; thiết lập kiến trúc bảo mật "Secure by Default" cho toàn bộ ứng dụng bằng token `APP_GUARD`.
+> 🎯 **Mục tiêu bài học:** Vận dụng kỹ thuật Custom Decorators đã học từ **Lesson 3.5** để giải quyết triệt để 2 bài toán cốt lõi trong hệ thống Authentication:
+>
+> 1. Loại bỏ hoàn toàn mùi code (Code Smell) `@Req() req: Request` bằng Custom Param Decorator `@CurrentUser()` hỗ trợ trích xuất dữ liệu Type-Safe 100%.
+> 2. Đánh dấu các Route công khai với Custom Route Decorator `@Public()` kết hợp `Reflector`.
+> 3. Thiết lập kiến trúc bảo mật **"Secure by Default"** cho toàn bộ ứng dụng bằng token `APP_GUARD`, khóa mặc định mọi API nhạy cảm và chỉ mở cửa cho các Route được chỉ định.
 
 ---
 
-## 1. Đặt Vấn Đề: Tối Ưu Hóa Trải Nghiệm Lập Trình & Bảo Mật Với Decorators
+## 1. Đặt Vấn Đề: 2 "Cơn Ác Mộng" Trong Hệ Thống Authentication & Giải Pháp
 
-Trong **Lesson 4.4 (Passport.js & JwtStrategy)**, sau khi người dùng xác thực thành công qua JWT Token, `JwtStrategy` sẽ gán đối tượng payload vào `req.user`. Khi muốn lấy thông tin này ở Controller, chúng ta thường phải viết:
+Sau khi hoàn thành xác thực bằng JWT (Lesson 4.4) và Google OAuth2 (Lesson 4.5), hệ thống backend của chúng ta đã có thể nhận diện người dùng. Tuy nhiên, khi đưa vào dự án thực tế với hàng chục Controllers, bạn sẽ lập tức đối mặt với **2 vấn đề nghiêm trọng**:
+
+### 🔴 Vấn Đề 1: Mùi Code (Code Smell) Khi Lấy Thông Tin Người Dùng
+
+Mỗi khi một Controller Handler cần thông tin của người dùng đang đăng nhập (ví dụ: `userId`, `email`), cách viết thông thường là tiêm toàn bộ đối tượng Request của Express:
 
 ```typescript
-// 🔴 MÙI CODE (CODE SMELL): Phải tiêm cả Request object và ép kiểu thủ công
+// ❌ MÙI CODE (CODE SMELL): Phải tiêm cả Request object và ép kiểu thủ công
 @Get('profile')
-getProfile(@Request() req: any) {
-  const user = req.user;
+getProfile(@Req() req: Request) {
+  const user = req['user'] as UserData;
   return user;
 }
 ```
 
-Cách làm trên bộc lộ 3 nhược điểm lớn:
+<p align="center">
+  <img src="./assets/current_user_code_smell_vs_clean_mockup.jpg" alt="Legacy Code Smell vs Clean Type Safe Decorator" width="85%" />
+</p>
 
-1. **Lặp code (Boilerplate Code):** Mọi Handler cần thông tin người dùng đều phải tiêm `@Request() req: any`.
-2. **Mất Type-Safety:** Việc dùng kiểu `any` làm mất tính năng autocomplete gợi ý code của TypeScript.
-3. **Phụ thuộc vào Express Request Object:** Làm mã nguồn bị gắn chặt với tầng HTTP bên dưới.
-
-Đồng thời, việc phải gắn `@UseGuards(JwtAuthGuard)` lên **từng Controller** rất dễ dẫn đến rủi ro: Lập trình viên quên gắn Guard ở một Controller mới tạo, vô tình biến API nhạy cảm thành công khai!
-
-Vận dụng nền tảng **Custom Param Decorator** và **Metadata Decorator** đã học ở **Lesson 3.5**, chúng ta sẽ giải quyết triệt để 2 bài toán này:
-
-- **`@CurrentUser()` (Custom Param Decorator):** Tự động trích xuất `req.user` từ `ExecutionContext` với đầy đủ Type-Safe.
-- **`@Public()` (Custom Route Decorator):** Gán nhãn "Bỏ qua kiểm tra JWT" cho các Route công khai, cho phép biến `JwtAuthGuard` thành **Global Guard** bảo vệ mặc định toàn bộ ứng dụng (_Secure by Default_).
-
-```mermaid
-flowchart TD
-    subgraph BadPractice ["🔴 CÁCH LÀM THỦ CÔNG (Code Smell & Rủi Ro)"]
-        ReqAny["@Request() req: any"] --> ReadUser["const user = req.user"]
-        ManualGuard["Quên gắn @UseGuards() trên Controller"] --> SecurityRisk["⚠️ Rò rỉ dữ liệu (Unprotected Route)"]
-    end
-
-    subgraph GoodPractice ["🟢 AUTH DECORATORS & GLOBAL GUARD (Clean & Secure)"]
-        DecUser["@CurrentUser() user: JwtPayload"] --> CleanCode["Gọn gàng, Type-Safe 100%"]
-        DecPublic["@Public() trên Route công khai"] --> GlobalProtection["🛡️ Mặc định bảo vệ 100% routes với APP_GUARD"]
-    end
-```
+| Tiêu Chí So Sánh              | Cách Làm Cũ (`@Req() req: Request`)                         | Giải Pháp `@CurrentUser()`                                         |
+| :---------------------------- | :---------------------------------------------------------- | :----------------------------------------------------------------- |
+| **Độ gọn gàng (Cleanliness)** | Cồng kềnh, phải tiêm cả đối tượng HTTP Request đồ sộ.       | Gọn gàng, chỉ trích xuất đúng đối tượng User hoặc trường cần lấy.  |
+| **Type-Safety**               | Phải tự ép kiểu thủ công (`as UserData`), dễ sai lệch.      | Tự động có gợi ý code (IntelliSense) từ TypeScript.                |
+| **Tính độc lập tầng HTTP**    | Gắn chặt mã nguồn với tầng HTTP nền tảng (Express/Fastify). | Trừu tượng hóa hoàn toàn thông qua NestJS `ExecutionContext`.      |
+| **Khả năng Unit Testing**     | Phải tạo mock phức tạp cho toàn bộ đối tượng `Request`.     | Chỉ cần truyền trực tiếp object `user` giả lập vào hàm Controller. |
 
 ---
 
-## 2. Luồng Hoạt Động Của Global JwtAuthGuard Khi Kết Hợp Với `@Public()` & `@CurrentUser()`
+### 🔴 Vấn Đề 2: Lỗ Hổng "Lập Trình Viên Hay Quên" (The Forgetful Developer Risk)
 
-Khi biến `JwtAuthGuard` thành **Global Guard** (áp dụng cho TOÀN BỘ các API trong ứng dụng), luồng xử lý sẽ diễn ra như sau:
+Nếu chúng ta tiếp tục dùng cách bảo vệ thủ công bằng cách gắn `@UseGuards(JwtAuthGuard)` trên từng Controller hoặc từng Route:
+
+- Dự án có 50 Controllers ➔ Bạn phải nhớ gõ `@UseGuards(JwtAuthGuard)` đúng 50 lần.
+- **Rủi ro chí mạng:** Trong môi trường teamwork, một lập trình viên mới tạo thêm `BillingController` hoặc `UserSettingsController` nhưng **quên gắn Guard**. Kết quả là các API nhạy cảm đó lập tức bị phơi bày ra ngoài Internet mà không ai hay biết!
+
+> [!CAUTION]
+> **Triết Lý "Secure by Default" (Bảo Mật Mặc Định):**  
+> Một hệ thống phần mềm chuyên nghiệp luôn phải tuân thủ nguyên tắc **"Mặc định KHÓA TOÀN BỘ"**. Tất cả các Route sinh ra trong hệ thống đều phải được tự động bảo vệ bởi `JwtAuthGuard`. Chỉ những Route nào được gắn cờ công khai rõ ràng bằng `@Public()` (như `/auth/login`, `/auth/register`, `/health`) mới được phép bỏ qua xác thực token.
+
+---
+
+## 2. Kiến Trúc "Secure by Default" & Cơ Chế Metadata Với Reflector
+
+Để hiện thực hóa triết lý "Secure by Default", chúng ta kết hợp 3 thành phần cốt lõi của NestJS:
+
+1. **`APP_GUARD` (Global Guard):** Đăng ký `JwtAuthGuard` ở cấp độ toàn cục thông qua NestJS Dependency Injection. Mọi HTTP Request khi đi vào ứng dụng đều phải đi qua cánh cổng này trước tiên.
+2. **`@Public()` (Custom Route Decorator):** Sử dụng `SetMetadata()` để gán một nhãn đánh dấu `IS_PUBLIC_KEY = true` lên các Route không cần đăng nhập.
+3. **`Reflector`:** Công cụ của NestJS giúp Guard đọc lại nhãn metadata từ Route Handler hoặc Controller Class để quyết định mở luồng xanh hay bắt buộc kiểm tra JWT Token.
+
+<p align="center">
+  <img src="./assets/auth_decorators_architecture_mockup.jpg" alt="Secure by Default Architecture Mockup" width="85%" />
+</p>
+
+### 🔄 Luồng Xử Lý Request Chi Tiết (Sequence Flow):
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as 📱 HTTP Client
-    participant Guard as 🛡️ Global JwtAuthGuard
-    participant Reflector as 🔍 Reflector Metadata
-    participant Controller as 📄 Controller Handler
+    actor Client as "📱 HTTP Client"
+    participant Guard as "🛡️ Global JwtAuthGuard"
+    participant Reflector as "🔍 Reflector (Metadata Reader)"
+    participant Controller as "📄 Controller Handler"
 
-    Client->>Guard: 1. Gửi HTTP Request tới Endpoint
-    Guard->>Reflector: 2. Lấy metadata 'IS_PUBLIC_KEY' từ Route Handler / Class
+    Client->>Guard: "1. Gửi HTTP Request tới Endpoint"
+    Guard->>Reflector: "2. Đọc metadata 'IS_PUBLIC_KEY' từ Handler & Class"
 
-    alt Route có gắn @Public()
-        Reflector-->>Guard: isPublic = true
-        Guard->>Controller: 🟢 3a. Cho phép đi tiếp (Bỏ qua verify Bearer Token)
-    else Route KHÔNG có @Public() (Mặc định riêng tư)
-        Reflector-->>Guard: isPublic = false / undefined
-        Note over Guard: Verify Bearer Token trong Header Authorization
-        alt Token KHÔNG hợp lệ / Thiếu Token
-            Guard-->>Client: 🔴 3b. Trả về 401 Unauthorized Response
-        else Token HỢP LỆ
-            Guard->>Controller: 🟢 3c. Cho phép đi tiếp (Gắn user vào req.user)
-            Note over Controller: Handler lấy user nhanh bằng @CurrentUser()
+    alt "Route có gắn nhãn @Public() (Ví dụ: /auth/login)"
+        Reflector-->>Guard: "isPublic = true"
+        Guard->>Controller: "🟢 Cho phép đi tiếp ngay (Bypass verify Token)"
+    else "Route KHÔNG gắn @Public() (Mặc định riêng tư, ví dụ: /users/profile)"
+        Reflector-->>Guard: "isPublic = false / undefined"
+        Note over Guard: "Kích hoạt super.canActivate(context) của Passport"
+        alt "Token hợp lệ"
+            Guard->>Controller: "🟢 Cho phép truy cập (Tự gán user vào req.user)"
+            Note over Controller: "Handler lấy dữ liệu nhanh qua @CurrentUser()"
+        else "Thiếu token hoặc Token hết hạn"
+            Guard-->>Client: "🔴 Chặn đứng với 401 Unauthorized Response"
         end
     end
 ```
@@ -95,49 +112,29 @@ sequenceDiagram
 
 ## 3. Hướng Dẫn Thực Hành Step-by-Step
 
-### 📌 Bước 1: Triển Khai Custom Param Decorator `@CurrentUser()`
+### 📌 Bước 1: Khai Báo Khóa Metadata Trong `metadata.constant.ts`
 
-Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng hàm `createParamDecorator()`:
+Tuân thủ kiến trúc đã thiết lập ở Module 3 (cùng với `RESPONSE_MESSAGE_KEY` và `BYPASS_TRANSFORM_KEY`), chúng ta bổ sung khóa `IS_PUBLIC_KEY` vào tệp hằng số chung:
 
-📄 **`src/shared/decorators/current-user.decorator.ts`**
+📄 **`src/shared/constants/metadata.constant.ts`**
 
 ```typescript
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserData } from '../interfaces/auth.interface';
-
-/**
- * Custom Param Decorator trích xuất thông tin User từ Request Object (do JwtStrategy gán vào)
- *
- * Cách sử dụng:
- * 1. Lấy toàn bộ đối tượng: getProfile(@CurrentUser() user: UserData)
- * 2. Lấy 1 trường cụ thể: getUserId(@CurrentUser('userId') userId: string)
- */
-export const CurrentUser = createParamDecorator(
-  (data: keyof UserData | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<Express.Request>();
-    const user = request.user as UserData;
-
-    if (!user) {
-      return null;
-    }
-
-    return data ? user[data] : user;
-  },
-);
+export const RESPONSE_MESSAGE_KEY = 'RESPONSE_MESSAGE_KEY';
+export const BYPASS_TRANSFORM_KEY = 'BYPASS_TRANSFORM_KEY';
+export const IS_PUBLIC_KEY = 'IS_PUBLIC_KEY';
 ```
 
 ---
 
 ### 📌 Bước 2: Triển Khai Custom Route Decorator `@Public()`
 
-Tạo tệp `src/shared/decorators/public.decorator.ts` sử dụng `SetMetadata()`:
+Tạo tệp `src/shared/decorators/public.decorator.ts` sử dụng hàm `SetMetadata()` kết hợp khóa vừa khai báo:
 
 📄 **`src/shared/decorators/public.decorator.ts`**
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
-
-export const IS_PUBLIC_KEY = 'IS_PUBLIC_KEY';
+import { IS_PUBLIC_KEY } from '../constants/metadata.constant';
 
 /**
  * Custom Route Decorator đánh dấu Route Handler hoặc Controller là công khai (Public)
@@ -148,9 +145,48 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 ---
 
-### 📌 Bước 3: Nâng Cấp `JwtAuthGuard` Kết Hợp `Reflector` Đọc Metadata
+### 📌 Bước 3: Triển Khai Custom Param Decorator `@CurrentUser()`
 
-Mở tệp `src/auth/guards/jwt-auth.guard.ts` và tích hợp `Reflector` để kiểm tra cờ `IS_PUBLIC_KEY`:
+Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng `createParamDecorator()` của NestJS, kết nối trực tiếp với kiểu dữ liệu `UserData` từ `src/auth/interfaces/jwt.interface.ts`:
+
+📄 **`src/shared/decorators/current-user.decorator.ts`**
+
+```typescript
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { UserData } from '@/auth/interfaces/jwt.interface';
+
+/**
+ * Custom Param Decorator trích xuất dữ liệu người dùng từ Request Object (do JwtStrategy gán vào)
+ *
+ * Cách sử dụng linh hoạt:
+ * 1. Lấy toàn bộ UserData: @CurrentUser() user: UserData
+ * 2. Lấy 1 trường cụ thể:  @CurrentUser('userId') userId: number
+ *                         @CurrentUser('email') email: string
+ */
+export const CurrentUser = createParamDecorator(
+  (data: keyof UserData | undefined, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user as UserData;
+
+    // Nếu không có thông tin user (ví dụ gọi ở route public), trả về null
+    if (!user) {
+      return null;
+    }
+
+    // Nếu truyền tên trường (data), chỉ trả về giá trị trường đó; ngược lại trả về toàn bộ user
+    return data ? user[data] : user;
+  },
+);
+```
+
+> [!TIP]
+> Nhờ khai báo `data: keyof UserData | undefined`, TypeScript sẽ tự động gợi ý chính xác các thuộc tính có trong `UserData` (`'userId' | 'email'`). Nếu bạn gõ `@CurrentUser('invalidField')`, trình biên dịch sẽ báo lỗi ngay lập tức!
+
+---
+
+### 📌 Bước 4: Nâng Cấp `JwtAuthGuard` Tích Hợp `Reflector`
+
+Mở tệp `src/auth/guards/jwt-auth.guard.ts`. Chúng ta giữ nguyên logic xử lý lỗi chi tiết (`TokenExpiredError`, `JsonWebTokenError`) đã xây dựng từ Lesson 4.4, và bổ sung `Reflector` để kiểm tra cờ `IS_PUBLIC_KEY`:
 
 📄 **`src/auth/guards/jwt-auth.guard.ts`**
 
@@ -162,7 +198,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../../shared/decorators/public.decorator';
+import { IS_PUBLIC_KEY } from '@/shared/constants/metadata.constant';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -171,60 +207,80 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   override canActivate(context: ExecutionContext) {
-    // 1. Trích xuất cờ 'IS_PUBLIC_KEY' từ Route Handler hoặc Controller Class
+    // 1. Kiểm tra xem Route Handler hoặc Class Controller có được gắn @Public() không
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
+      context.getHandler(), // Ưu tiên kiểm tra method handler trước
+      context.getClass(), // Nếu method không có, kiểm tra class controller
     ]);
 
-    // 2. Nếu Route được gắn @Public(), cho phép truy cập ngay mà không cần verify JWT Token
+    // 2. Nếu là Route công khai -> Cho phép đi qua ngay mà không cần Token
     if (isPublic) {
       return true;
     }
 
-    // 3. Nếu là Route riêng tư, tiếp tục kích hoạt quy trình kiểm tra Token của Passport
+    // 3. Nếu là Route riêng tư -> Kích hoạt cơ chế xác thực JWT chuẩn của Passport
     return super.canActivate(context);
   }
 
-  override handleRequest(err: any, user: any, info: any) {
+  override handleRequest<TUser = any>(
+    err: unknown,
+    user: TUser | false | null | undefined,
+    info: unknown,
+  ): TUser {
     if (err || !user) {
-      throw (
-        err ||
-        new UnauthorizedException(
-          'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
-        )
+      if (info instanceof Error && info.name === 'TokenExpiredError') {
+        throw new UnauthorizedException(
+          'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!',
+        );
+      }
+
+      if (info instanceof Error && info.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Mã xác thực (Token) không hợp lệ!');
+      }
+
+      if (err instanceof Error) {
+        throw err;
+      }
+
+      throw new UnauthorizedException(
+        'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
       );
     }
+
     return user;
   }
 }
 ```
 
+> [!IMPORTANT]
+> **Phương thức `reflector.getAllAndOverride()`:**  
+> Ta truyền vào mảng `[context.getHandler(), context.getClass()]`. NestJS sẽ ưu tiên đọc metadata ở cấp độ hàm (Handler) trước. Nếu ở hàm có khai báo, nó sẽ ghi đè (override) cấu hình ở cấp độ Class Controller. Điều này giúp bạn có thể linh hoạt gắn `@Public()` cho 1 Route duy nhất trong một Controller riêng tư, hoặc gắn `@Public()` cho cả Controller.
+
 ---
 
-### 📌 Bước 4: Đăng Ký `JwtAuthGuard` Làm Global Guard Trong `AppModule`
+### 📌 Bước 5: Đăng Ký `JwtAuthGuard` Làm Global Guard Trong `AppModule`
 
-Thay vì gắn `@UseGuards(JwtAuthGuard)` trên từng Controller thủ công, chúng ta đăng ký nó làm **Global Guard** với token `APP_GUARD` trong `AppModule`. Toàn bộ ứng dụng mặc định sẽ được bảo vệ:
+Thay vì gắn `@UseGuards(JwtAuthGuard)` thủ công trên từng Controller, chúng ta đăng ký nó làm **Global Guard** bằng token `APP_GUARD` trong `AppModule`:
 
 📄 **`src/app.module.ts`**
 
 ```typescript
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
+import { envValidationSchema } from './config/env.validation';
+import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { envValidationSchema } from './config/env.validation';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { AuthModule } from './auth/auth.module';
+import { SharedServiceModule } from './shared/services/shared-service.module';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
 import { LoggerMiddleware } from './shared/middleware/logger.middleware';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
-import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
-import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
 import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -233,28 +289,20 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
       isGlobal: true,
     }),
     PrismaModule,
-    AuthModule,
+    SharedServiceModule,
     UsersModule,
     PostsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // 🛡️ 1. Đăng ký JwtAuthGuard làm Global Guard cho TOÀN BỘ ứng dụng
+    // 🛡️ ĐĂNG KÝ GLOBAL GUARD: Bảo vệ mặc định 100% routes trong toàn bộ ứng dụng
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    // 2. Global Interceptors
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
-    // 3. Global Exception Filters
+    // Global Filters & Interceptors
     {
       provide: APP_FILTER,
       useClass: PrismaClientExceptionFilter,
@@ -263,23 +311,36 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
   ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
-      .exclude({ path: 'health', method: RequestMethod.GET })
-      .forRoutes('*');
+      .exclude({
+        path: 'health',
+        method: RequestMethod.GET,
+      })
+      .forRoutes('{*path}');
   }
 }
 ```
 
+> [!TIP]
+> **Tại sao dùng `APP_GUARD` trong `AppModule` thay vì `app.useGlobalGuards()` trong `main.ts`?**  
+> Khi gọi `app.useGlobalGuards(new JwtAuthGuard(...))` ở `main.ts`, Guard nằm ngoài vùng kiểm soát của NestJS Dependency Injection, bạn sẽ không thể tự động inject `Reflector` hay các Service khác vào Guard. Dùng `APP_GUARD` giúp Guard trở thành một phần của DI Container, tận dụng trọn vẹn khả năng inject dependencies!
+
 ---
 
-### 📌 Bước 5: Áp Dụng Decorators Gọn Gàng Trong Controllers
+### 📌 Bước 6: Áp Dụng Thực Chiến Trong Controllers
 
-#### 1. Áp dụng `@Public()` trong `AuthController`:
+#### 1. Áp Dụng `@Public()` Trong `AuthController`:
+
+Tất cả các API đăng ký, đăng nhập và Google OAuth cần mở công khai cho người dùng chưa đăng nhập. Bạn có thể gắn `@Public()` lên từng route hoặc gắn trực tiếp ở cấp Controller:
 
 📄 **`src/auth/auth.controller.ts`**
 
@@ -287,65 +348,94 @@ export class AppModule {
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Version,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { Public } from '../shared/decorators/public.decorator';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { GoogleUser } from './interfaces/google-user.interface';
+import { Public } from '@/shared/decorators/public.decorator';
 
+@Public() // 🔓 Gắn cấp Class: Toàn bộ routes trong AuthController đều là Public
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public() // 🔓 Route công khai: Người dùng chưa có tài khoản có thể Đăng ký
-  @Version('1')
   @Post('register')
+  @ResponseMessage('Đăng ký tài khoản thành công!')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  @Public() // 🔓 Route công khai: Đăng nhập để lấy Access Token
-  @Version('1')
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Đăng nhập thành công!')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuthCallback(@Req() req: Request) {
+    const googleUser = req['user'] as GoogleUser;
+    return this.authService.socialLogin(googleUser);
   }
 }
 ```
 
-#### 2. Áp dụng `@CurrentUser()` trong `UsersController`:
+---
+
+#### 2. Áp Dụng `@CurrentUser()` Trong `UsersController`:
+
+Trong `UsersController`, chúng ta **xóa bỏ hoàn toàn** `@UseGuards(JwtAuthGuard)` vì Global Guard đã tự động bảo vệ route này. Đồng thời thay thế `@Req() req: Request` bằng `@CurrentUser()`:
 
 📄 **`src/users/users.controller.ts`**
 
 ```typescript
-import { Controller, Get, Version } from '@nestjs/common';
-import {
-  CurrentUser,
-  JwtPayload,
-} from '../shared/decorators/current-user.decorator';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { UserData } from '@/auth/interfaces/jwt.interface';
 
 @Controller('users')
 export class UsersController {
-  // 🔒 Route này mặc định được bảo vệ bởi Global JwtAuthGuard
-  @Version('1')
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @Post()
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
+  }
+
+  // 🔒 Route này mặc định được bảo vệ bởi Global Guard (không cần @UseGuards)
   @Get('profile')
-  getProfile(@CurrentUser() user: JwtPayload) {
-    // ✨ Clean Code: Trích xuất user trực tiếp, không cần @Request() req: any
+  getProfile(@CurrentUser() user: UserData) {
+    // ✨ Clean Code: Trích xuất user trực tiếp, an toàn và đầy đủ gợi ý kiểu dữ liệu
     return {
-      message: 'Thông tin tài khoản xác thực từ Token',
+      message: 'Lấy thông tin tài khoản thành công qua @CurrentUser()',
       user,
     };
   }
 
-  // 💡 Trích xuất trực tiếp một trường dữ liệu cụ thể:
-  @Version('1')
+  // 💡 Trích xuất trực tiếp một trường dữ liệu cụ thể (userId có kiểu number)
   @Get('my-id')
-  getMyId(@CurrentUser('userId') userId: string) {
+  getMyId(@CurrentUser('userId') userId: number) {
     return { myUserId: userId };
   }
 }
@@ -357,7 +447,7 @@ export class UsersController {
 
 ### 🟢 Kịch Bản 1: Kiểm Thử Route Public (`@Public()`) KHÔNG Cần Gửi Token
 
-Gửi yêu cầu Đăng nhập mà KHÔNG kèm Header Authorization:
+Thực hiện gọi API đăng nhập mà không truyền bất kỳ Bearer Token nào:
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
@@ -365,76 +455,76 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email": "alex@example.com", "password": "Password123!"}'
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+📥 **Phản hồi nhận được (`200 OK`) qua `TransformInterceptor`:**
 
 ```json
 {
   "statusCode": 200,
-  "message": "Thao tác thực hiện thành công!",
+  "message": "Đăng nhập thành công!",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg5..."
   },
-  "timestamp": "2026-08-13T16:00:00.000Z",
+  "timestamp": "2026-09-22T11:10:00.000Z",
   "path": "/api/v1/auth/login"
 }
 ```
 
-✅ **Kết quả:** Global Guard phát hiện decorator `@Public()`, tự động cho phép request đi qua mà không bắt lỗi 401!
+✅ **Kết quả:** Global Guard đọc thấy metadata `@Public()`, tự động cho phép request đi qua mà không báo lỗi 401!
 
 ---
 
 ### 🟢 Kịch Bản 2: Kiểm Thử Route Protected Sử Dụng `@CurrentUser()`
 
-Gửi yêu cầu tới Endpoint `/api/v1/users/profile` kèm Bearer Token hợp lệ:
+Gửi yêu cầu tới Endpoint `/api/v1/users/profile` kèm Bearer Token hợp lệ vừa lấy được:
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+📥 **Phản hồi nhận được (`200 OK`):**
 
 ```json
 {
   "statusCode": 200,
-  "message": "Thao tác thực hiện thành công!",
+  "message": "Thao tác thực hiện thành công",
   "data": {
-    "message": "Thông tin tài khoản xác thực từ Token",
+    "message": "Lấy thông tin tài khoản thành công qua @CurrentUser()",
     "user": {
-      "userId": "clx890xyz123",
+      "userId": 1,
       "email": "alex@example.com"
     }
   },
-  "timestamp": "2026-08-13T16:05:00.000Z",
+  "timestamp": "2026-09-22T11:12:00.000Z",
   "path": "/api/v1/users/profile"
 }
 ```
 
-✅ **Kết quả:** `@CurrentUser()` trích xuất chính xác payload người dùng từ token và truyền trực tiếp vào Handler với đầy đủ gợi ý Type-Safety của TypeScript!
+✅ **Kết quả:** `@CurrentUser()` trích xuất chính xác payload người dùng và truyền trực tiếp vào Handler mà không cần gọi `req['user']`!
 
 ---
 
-### 🔴 Kịch Bản 3: Kiểm Thử Route Protected Nhưng KHÔNG Gửi Token (Bị Global Guard Chặn)
+### 🔴 Kịch Bản 3: Kiểm Thử Route Protected Nhưng KHÔNG Gửi Token (Bị Chặn)
 
-Thử gọi API Profile nhưng KHÔNG gửi Bearer Token:
+Thử gọi API Profile nhưng không gửi kèm Token trong Header:
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile
 ```
 
-📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
+📥 **Phản hồi nhận được (`401 Unauthorized`) qua `HttpExceptionFilter`:**
 
 ```json
 {
   "statusCode": 401,
   "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
   "error": "Unauthorized",
-  "timestamp": "2026-08-13T16:10:00.000Z",
+  "timestamp": "2026-09-22T11:15:00.000Z",
   "path": "/api/v1/users/profile"
 }
 ```
 
-✅ **Kết quả:** Mọi API trong hệ thống mặc định đều được bảo vệ an toàn bởi Global Guard trừ khi được gắn cờ `@Public()`.
+✅ **Kết quả:** Kiến trúc "Secure by Default" hoạt động hoàn hảo! Bất kỳ Route nào không có `@Public()` đều tự động được khóa chặt.
 
 ---
 
@@ -444,29 +534,29 @@ curl -X GET http://localhost:3000/api/v1/users/profile
 mindmap
   root(("Auth Decorators & Global Guard"))
     "Kiến Trúc Secure by Default"
-      "Đăng ký JwtAuthGuard qua APP_GUARD"
-      "Mặc định bảo vệ 100% Routes"
-      "Loại bỏ rủi ro quên gắn Guard"
+      "Đăng ký JwtAuthGuard bằng APP_GUARD"
+      "Mặc định bảo vệ 100% routes"
+      "Triệt tiêu rủi ro quên gắn Guard"
     "Custom Param Decorator"
-      "createParamDecorator()"
-      "@CurrentUser() lấy toàn bộ user"
+      "@CurrentUser() trích xuất req.user"
       "@CurrentUser('userId') lấy 1 trường"
-      "Loại bỏ @Request() req: any"
+      "Loại bỏ mùi code @Req() req: Request"
+      "Type-Safe 100% với UserData"
     "Custom Route Decorator"
-      "SetMetadata(IS_PUBLIC_KEY, true)"
+      "@Public() gắn nhãn IS_PUBLIC_KEY"
       "Reflector.getAllAndOverride()"
-      "Bypass kiểm tra token cho Public APIs"
+      "Mở luồng xanh cho Login, Register, Google"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu rõ lợi ích của kiến trúc "Secure by Default" khi đăng ký Global Guard qua `APP_GUARD`.
-- [x] Vận dụng kỹ thuật `createParamDecorator` (từ Lesson 3.5) để tạo `@CurrentUser()`.
-- [x] Hỗ trợ trích xuất toàn bộ object hoặc 1 thuộc tính cụ thể với `@CurrentUser('userId')`.
-- [x] Vận dụng kỹ thuật `SetMetadata` (từ Lesson 3.5) để tạo `@Public()`.
-- [x] Nâng cấp `JwtAuthGuard` tích hợp `Reflector` để đọc cờ `IS_PUBLIC_KEY`.
-- [x] Đăng ký `JwtAuthGuard` làm Global Guard trong `AppModule` bằng token `APP_GUARD`.
-- [x] Thử nghiệm cURL thành công cho cả Route Public, Route Protected dùng `@CurrentUser()` và Route bị chặn 401.
+- [x] Hiểu sâu triết lý kiến trúc **"Secure by Default"** và vì sao nên ưu tiên khóa mặc định toàn bộ API.
+- [x] Nắm rõ cơ chế hoạt động của token **`APP_GUARD`** trong `AppModule` kết hợp NestJS Dependency Injection.
+- [x] Tự tay xây dựng Custom Param Decorator **`@CurrentUser()`** hỗ trợ trích xuất toàn bộ user hoặc từng thuộc tính cụ thể với gợi ý kiểu dữ liệu TypeScript.
+- [x] Tự tay xây dựng Custom Route Decorator **`@Public()`** sử dụng `SetMetadata`.
+- [x] Nâng cấp `JwtAuthGuard` sử dụng **`Reflector.getAllAndOverride()`** để kiểm tra metadata ở cả cấp độ Handler và Controller Class.
+- [x] Thực hành cấu hình `@Public()` cho `AuthController` và `@CurrentUser()` cho `UsersController`.
+- [x] Kiểm thử cURL thành công cả 3 kịch bản: Route Public (200 OK), Route Protected có token (200 OK), và Route Protected không token (401 Unauthorized).
 
 ---
 
