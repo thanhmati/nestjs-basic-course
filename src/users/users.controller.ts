@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { NativeAuthGuard } from '@/auth/guards/native-auth.guard';
 import { UserData } from '@/auth/interfaces/jwt.interface';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -18,7 +18,7 @@ export class UsersController {
     return this.usersService.create(body);
   }
 
-  @UseGuards(NativeAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Req() req: Request) {
     return {
