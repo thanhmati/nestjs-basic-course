@@ -1,10 +1,10 @@
-# Lesson 4.5: Auth Decorators & Global Guard — Vận Dụng @CurrentUser() & @Public() Bảo Vệ Toàn Diện Hệ Thống
+# Lesson 4.5: Google OAuth2 — Tích Hợp Đăng Nhập Mạng Xã Hội Đa Chiến Lược Với Passport Trong NestJS
 
 <p align="center">
-  <img src="https://img.shields.io/badge/NestJS-Auth_Decorators-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Auth Decorators" />
-  <img src="https://img.shields.io/badge/Reflector-Metadata-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Reflector Metadata" />
-  <img src="https://img.shields.io/badge/Security-Secure_by_Default-10B981?style=for-the-badge&logo=security&logoColor=white" alt="Secure by Default" />
-  <img src="https://img.shields.io/badge/Global_Guard-APP_GUARD-F59E0B?style=for-the-badge&logo=json&logoColor=white" alt="Global Guard" />
+  <img src="https://img.shields.io/badge/NestJS-Framework-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" />
+  <img src="https://img.shields.io/badge/Passport.js-Multi_Strategy-34A853?style=for-the-badge&logo=google&logoColor=white" alt="Passport.js Multi Strategy" />
+  <img src="https://img.shields.io/badge/OAuth2.0-Social_Login-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="OAuth 2.0" />
+  <img src="https://img.shields.io/badge/TypeScript-Language-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,458 +16,467 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Vận dụng kỹ thuật Custom Decorators đã học từ **Lesson 3.5** để giải quyết bài toán cốt lõi trong hệ thống Authentication: loại bỏ hoàn toàn mùi code (Code Smell) `@Request() req: any` bằng Custom Param Decorator `@CurrentUser()`; áp dụng Route Decorator `@Public()` với `SetMetadata` kết hợp `Reflector` để tạo cơ chế bypass Global `JwtAuthGuard` cho các Route công khai; thiết lập kiến trúc bảo mật "Secure by Default" cho toàn bộ ứng dụng bằng token `APP_GUARD`.
+> 🎯 **Mục tiêu bài học:** Chứng minh sức mạnh vượt trội của kiến trúc đa chiến lược (Pluggable Multi-Strategy) trong Passport.js bằng cách tích hợp tính năng **Đăng nhập bằng Google (Google OAuth2 Social Login)**; hiểu rõ luồng trao đổi mã ủy quyền (Authorization Code Flow); xây dựng `GoogleStrategy` và `GoogleAuthGuard`; xử lý đồng bộ dữ liệu người dùng (Upsert User) trong cơ sở dữ liệu và phát hành chuỗi JWT Access Token đồng nhất với hệ thống xác thực đã xây dựng từ Lesson 4.2 & Lesson 4.4.
 
 ---
 
-## 1. Đặt Vấn Đề: Tối Ưu Hóa Trải Nghiệm Lập Trình & Bảo Mật Với Decorators
+## 1. Đặt Vấn Đề: Tại Sao Cần Social Login & Sức Mạnh "Cắm Rút" Của Passport.js
 
-Trong **Lesson 4.4 (Passport.js & JwtStrategy)**, sau khi người dùng xác thực thành công qua JWT Token, `JwtStrategy` sẽ gán đối tượng payload vào `req.user`. Khi muốn lấy thông tin này ở Controller, chúng ta thường phải viết:
+Trong thực tế phát triển sản phẩm số, tính năng **Đăng nhập qua Mạng xã hội (Social Login)** như Google, Facebook, Apple, GitHub là tiêu chuẩn bắt buộc nhằm:
+
+- **Tăng tỷ lệ chuyển đổi (Conversion Rate):** Người dùng không cần phải nhớ thêm mật khẩu hoặc điền form đăng ký dài dòng, chỉ cần 1 click là có thể sử dụng ứng dụng ngay.
+- **Nâng cao độ tin cậy:** Địa chỉ email từ tài khoản Google đã được Google xác thực (Verified Email), giảm thiểu tài khoản ảo và spam.
+
+<p align="center">
+  <img src="./assets/google_oauth_flow_mockup.jpg" alt="Google OAuth Passport Flow Mockup" width="100%" />
+</p>
+
+### ⚖️ So Sánh: Tự Code Thủ Công (Native OAuth2) vs. Passport Strategy
+
+Khi tự viết luồng OAuth2 thủ công (Native OAuth2), bạn phải tự quản lý hàng loạt endpoint chuyển hướng (Redirect URI), mã hóa state phòng chống tấn công CSRF, tự gửi HTTP request trao đổi `code` lấy Google Token, rồi lại gọi Google API lấy thông tin Profile.
+
+Với **Passport.js**, toàn bộ quy trình này được module hóa thành một **Chiến lược (Strategy)** độc lập:
+
+| Tiêu Chí So Sánh       | Tự Code Thủ Công (Native OAuth2)                                   | Sử Dụng Passport Google Strategy                                                                   |
+| :--------------------- | :----------------------------------------------------------------- | :------------------------------------------------------------------------------------------------- |
+| **Kiến trúc mã nguồn** | Rải rác khắp Controller, Service, Guard gây rối loạn codebase.     | Đóng gói trọn vẹn trong `GoogleStrategy` & `GoogleAuthGuard`.                                      |
+| **Khả năng mở rộng**   | Thêm đăng nhập Facebook, Apple phải viết lại toàn bộ luồng từ đầu. | Giữ nguyên kiến trúc, chỉ cần cài thêm strategy tương ứng (`passport-facebook`, `passport-apple`). |
+| **Tính độc lập**       | Dễ ảnh hưởng hoặc làm vỡ luồng xác thực JWT hiện tại.              | **Cắm - Rút (Pluggable):** JWT Strategy và Google Strategy hoạt động song song mà không xung đột.  |
+| **Dữ liệu trả về**     | Phải tự chuẩn hóa JSON thô từ các API khác nhau của Google.        | Hàm `validate()` nhận sẵn đối tượng `Profile` đã được parse chuẩn mực.                             |
+
+> [!TIP]
+> **Điểm cốt lõi:** Khi người dùng đăng nhập bằng Google thành công, hệ thống backend của chúng ta vẫn phát hành chuỗi **JWT Access Token của chính ứng dụng** (giống hệt kết quả đăng nhập thông thường ở Lesson 4.2). Nhờ đó, tất cả các API được bảo vệ bởi `JwtAuthGuard` (ở Lesson 4.4) hoàn toàn không cần sửa đổi dù người dùng đăng nhập bằng cách nào!
+
+---
+
+## 2. Thiết Lập Google Cloud Console & Biến Môi Trường (.env)
+
+Để ứng dụng NestJS có thể giao tiếp với hệ thống ủy quyền của Google, chúng ta cần đăng ký ứng dụng trên **Google Cloud Console** để lấy cặp khóa nhận diện (`Client ID` và `Client Secret`).
+
+<p align="center">
+  <img src="./assets/google_oauth_consent_mockup.jpg" alt="Google Cloud Console Credentials & OAuth Consent Screen" width="100%" />
+</p>
+
+### Các Bước Cấu Hình Trên Google Cloud Console:
+
+1. **Tạo Project mới:** Truy cập [Google Cloud Console](https://console.cloud.google.com/), tạo một dự án mới (ví dụ: `NestJS Social Auth`).
+2. **Cấu hình OAuth Consent Screen:**
+   - Chọn loại User Type: **External**.
+   - Điền App Name (ví dụ: `NestJS Course App`) và Developer Contact Email.
+   - Thêm Scopes cơ bản: `.../auth/userinfo.email` và `.../auth/userinfo.profile`.
+3. **Tạo OAuth 2.0 Client ID:**
+   - Vào menu **Credentials** ➔ Click **Create Credentials** ➔ Chọn **OAuth client ID**.
+   - Application type: **Web application**.
+   - **Authorized JavaScript origins:** `http://localhost:3000`
+   - **Authorized redirect URIs (Quan trọng):**  
+     `http://localhost:3000/api/v1/auth/google/callback`
+   - Nhấn **Create**, bạn sẽ nhận được `Client ID` và `Client Secret`.
+
+### Cấu Hình Biến Môi Trường:
+
+Mở tệp `.env` của dự án và bổ sung 3 thông số vừa tạo:
+
+📄 **`.env`**
+
+```env
+# ==========================================
+# GOOGLE OAUTH2 CREDENTIALS
+# ==========================================
+GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="GOCSPX-YOUR_GOOGLE_CLIENT_SECRET"
+GOOGLE_CALLBACK_URL="http://localhost:3000/api/v1/auth/google/callback"
+```
+
+> [!IMPORTANT]
+> `GOOGLE_CALLBACK_URL` trong file `.env` phải trùng khớp 100% với đường dẫn bạn đã khai báo trong danh sách **Authorized redirect URIs** trên Google Cloud Console. Nếu sai lệch dù chỉ một ký tự hoặc dấu gạch chéo `/`, Google sẽ lập tức trả về lỗi `redirect_uri_mismatch` (400).
+
+---
+
+## 3. Cài Đặt Thư Viện & Xây Dựng GoogleStrategy & GoogleAuthGuard
+
+### Bước 1: Cài Đặt Thư Viện Passport Google OAuth2
+
+Chúng ta sử dụng package chính thức và phổ biến nhất của Passport dành cho Google OAuth 2.0:
+
+```bash
+pnpm add passport-google-oauth20
+pnpm add -D @types/passport-google-oauth20
+```
+
+---
+
+### Bước 2: Định Nghĩa Kiểu Dữ Liệu Google User Payload
+
+Tạo tệp định nghĩa dữ liệu trích xuất từ Google Profile để đảm bảo Type-Safety trong TypeScript:
+
+📄 **`src/auth/interfaces/google-user.interface.ts`**
 
 ```typescript
-// 🔴 MÙI CODE (CODE SMELL): Phải tiêm cả Request object và ép kiểu thủ công
-@Get('profile')
-getProfile(@Request() req: any) {
-  const user = req.user;
-  return user;
+export interface GoogleUser {
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  provider: 'google';
 }
 ```
 
-Cách làm trên bộc lộ 3 nhược điểm lớn:
-
-1. **Lặp code (Boilerplate Code):** Mọi Handler cần thông tin người dùng đều phải tiêm `@Request() req: any`.
-2. **Mất Type-Safety:** Việc dùng kiểu `any` làm mất tính năng autocomplete gợi ý code của TypeScript.
-3. **Phụ thuộc vào Express Request Object:** Làm mã nguồn bị gắn chặt với tầng HTTP bên dưới.
-
-Đồng thời, việc phải gắn `@UseGuards(JwtAuthGuard)` lên **từng Controller** rất dễ dẫn đến rủi ro: Lập trình viên quên gắn Guard ở một Controller mới tạo, vô tình biến API nhạy cảm thành công khai!
-
-Vận dụng nền tảng **Custom Param Decorator** và **Metadata Decorator** đã học ở **Lesson 3.5**, chúng ta sẽ giải quyết triệt để 2 bài toán này:
-
-- **`@CurrentUser()` (Custom Param Decorator):** Tự động trích xuất `req.user` từ `ExecutionContext` với đầy đủ Type-Safe.
-- **`@Public()` (Custom Route Decorator):** Gán nhãn "Bỏ qua kiểm tra JWT" cho các Route công khai, cho phép biến `JwtAuthGuard` thành **Global Guard** bảo vệ mặc định toàn bộ ứng dụng (_Secure by Default_).
-
-```mermaid
-flowchart TD
-    subgraph BadPractice ["🔴 CÁCH LÀM THỦ CÔNG (Code Smell & Rủi Ro)"]
-        ReqAny["@Request() req: any"] --> ReadUser["const user = req.user"]
-        ManualGuard["Quên gắn @UseGuards() trên Controller"] --> SecurityRisk["⚠️ Rò rỉ dữ liệu (Unprotected Route)"]
-    end
-
-    subgraph GoodPractice ["🟢 AUTH DECORATORS & GLOBAL GUARD (Clean & Secure)"]
-        DecUser["@CurrentUser() user: JwtPayload"] --> CleanCode["Gọn gàng, Type-Safe 100%"]
-        DecPublic["@Public() trên Route công khai"] --> GlobalProtection["🛡️ Mặc định bảo vệ 100% routes với APP_GUARD"]
-    end
-```
-
 ---
 
-## 2. Luồng Hoạt Động Của Global JwtAuthGuard Khi Kết Hợp Với `@Public()` & `@CurrentUser()`
+### Bước 3: Hiện Thực GoogleStrategy
 
-Khi biến `JwtAuthGuard` thành **Global Guard** (áp dụng cho TOÀN BỘ các API trong ứng dụng), luồng xử lý sẽ diễn ra như sau:
+Tương tự như `JwtStrategy` ở Lesson 4.4, `GoogleStrategy` kế thừa từ `PassportStrategy(Strategy, 'google')`:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as 📱 HTTP Client
-    participant Guard as 🛡️ Global JwtAuthGuard
-    participant Reflector as 🔍 Reflector Metadata
-    participant Controller as 📄 Controller Handler
-
-    Client->>Guard: 1. Gửi HTTP Request tới Endpoint
-    Guard->>Reflector: 2. Lấy metadata 'IS_PUBLIC_KEY' từ Route Handler / Class
-
-    alt Route có gắn @Public()
-        Reflector-->>Guard: isPublic = true
-        Guard->>Controller: 🟢 3a. Cho phép đi tiếp (Bỏ qua verify Bearer Token)
-    else Route KHÔNG có @Public() (Mặc định riêng tư)
-        Reflector-->>Guard: isPublic = false / undefined
-        Note over Guard: Verify Bearer Token trong Header Authorization
-        alt Token KHÔNG hợp lệ / Thiếu Token
-            Guard-->>Client: 🔴 3b. Trả về 401 Unauthorized Response
-        else Token HỢP LỆ
-            Guard->>Controller: 🟢 3c. Cho phép đi tiếp (Gắn user vào req.user)
-            Note over Controller: Handler lấy user nhanh bằng @CurrentUser()
-        end
-    end
-```
-
----
-
-## 3. Hướng Dẫn Thực Hành Step-by-Step
-
-### 📌 Bước 1: Triển Khai Custom Param Decorator `@CurrentUser()`
-
-Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng hàm `createParamDecorator()`:
-
-📄 **`src/shared/decorators/current-user.decorator.ts`**
+📄 **`src/auth/strategies/google.strategy.ts`**
 
 ```typescript
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserData } from '../interfaces/auth.interface';
-
-/**
- * Custom Param Decorator trích xuất thông tin User từ Request Object (do JwtStrategy gán vào)
- *
- * Cách sử dụng:
- * 1. Lấy toàn bộ đối tượng: getProfile(@CurrentUser() user: UserData)
- * 2. Lấy 1 trường cụ thể: getUserId(@CurrentUser('userId') userId: string)
- */
-export const CurrentUser = createParamDecorator(
-  (data: keyof UserData | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<Express.Request>();
-    const user = request.user as UserData;
-
-    if (!user) {
-      return null;
-    }
-
-    return data ? user[data] : user;
-  },
-);
-```
-
----
-
-### 📌 Bước 2: Triển Khai Custom Route Decorator `@Public()`
-
-Tạo tệp `src/shared/decorators/public.decorator.ts` sử dụng `SetMetadata()`:
-
-📄 **`src/shared/decorators/public.decorator.ts`**
-
-```typescript
-import { SetMetadata } from '@nestjs/common';
-
-export const IS_PUBLIC_KEY = 'IS_PUBLIC_KEY';
-
-/**
- * Custom Route Decorator đánh dấu Route Handler hoặc Controller là công khai (Public)
- * Giúp bypass quy trình kiểm tra Token của Global JwtAuthGuard
- */
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
-```
-
----
-
-### 📌 Bước 3: Nâng Cấp `JwtAuthGuard` Kết Hợp `Reflector` Đọc Metadata
-
-Mở tệp `src/auth/guards/jwt-auth.guard.ts` và tích hợp `Reflector` để kiểm tra cờ `IS_PUBLIC_KEY`:
-
-📄 **`src/auth/guards/jwt-auth.guard.ts`**
-
-```typescript
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../../shared/decorators/public.decorator';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { GoogleUser } from '../interfaces/google-user.interface';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private readonly reflector: Reflector) {
-    super();
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  constructor(private readonly configService: ConfigService) {
+    super({
+      clientID: configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
+      clientSecret: configService.getOrThrow<string>('GOOGLE_CLIENT_SECRET'),
+      callbackURL: configService.getOrThrow<string>('GOOGLE_CALLBACK_URL'),
+      scope: ['email', 'profile'],
+    });
   }
 
-  override canActivate(context: ExecutionContext) {
-    // 1. Trích xuất cờ 'IS_PUBLIC_KEY' từ Route Handler hoặc Controller Class
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+  validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    done: VerifyCallback,
+  ) {
+    const { name, emails, photos } = profile;
 
-    // 2. Nếu Route được gắn @Public(), cho phép truy cập ngay mà không cần verify JWT Token
-    if (isPublic) {
-      return true;
-    }
+    const email = emails?.[0]?.value;
+    const fullName =
+      `${name?.familyName || ''} ${name?.givenName || ''}`.trim() ||
+      profile.displayName;
+    const avatarUrl = photos?.[0]?.value;
 
-    // 3. Nếu là Route riêng tư, tiếp tục kích hoạt quy trình kiểm tra Token của Passport
-    return super.canActivate(context);
-  }
-
-  override handleRequest(err: any, user: any, info: any) {
-    if (err || !user) {
-      throw (
-        err ||
-        new UnauthorizedException(
-          'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
-        )
+    if (!email) {
+      return done(
+        new Error('Không tìm thấy thông tin email từ tài khoản Google!'),
+        false,
       );
     }
-    return user;
+
+    const user: GoogleUser = {
+      email,
+      name: fullName,
+      avatarUrl,
+      provider: 'google',
+    };
+
+    done(null, user);
   }
 }
 ```
 
+> [!TIP]
+>
+> - `scope: ['email', 'profile']`: Yêu cầu Google cấp quyền truy cập email và thông tin tài khoản cơ bản.
+> - `done(null, user)`: Báo hiệu xác thực thông tin profile thành công. Passport sẽ tự động gán đối tượng `user` này vào `req.user`.
+
 ---
 
-### 📌 Bước 4: Đăng Ký `JwtAuthGuard` Làm Global Guard Trong `AppModule`
+### Bước 4: Tạo Guard Chuyên Dụng GoogleAuthGuard
 
-Thay vì gắn `@UseGuards(JwtAuthGuard)` trên từng Controller thủ công, chúng ta đăng ký nó làm **Global Guard** với token `APP_GUARD` trong `AppModule`. Toàn bộ ứng dụng mặc định sẽ được bảo vệ:
+Kế thừa `AuthGuard('google')` để tự động hóa toàn bộ cơ chế chuyển hướng và bắt mã code:
 
-📄 **`src/app.module.ts`**
+📄 **`src/auth/guards/google-auth.guard.ts`**
 
 ```typescript
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { PostsModule } from './posts/posts.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { envValidationSchema } from './config/env.validation';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { LoggerMiddleware } from './shared/middleware/logger.middleware';
-import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
-import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
-import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
-import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 
-@Module({
-  imports: [
-    ConfigModule.forRoot({
-      validationSchema: envValidationSchema,
-      isGlobal: true,
-    }),
-    PrismaModule,
-    AuthModule,
-    UsersModule,
-    PostsModule,
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    // 🛡️ 1. Đăng ký JwtAuthGuard làm Global Guard cho TOÀN BỘ ứng dụng
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    // 2. Global Interceptors
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
-    // 3. Global Exception Filters
-    {
-      provide: APP_FILTER,
-      useClass: PrismaClientExceptionFilter,
-    },
-    {
-      provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
-    },
-  ],
-})
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoggerMiddleware)
-      .exclude({ path: 'health', method: RequestMethod.GET })
-      .forRoutes('*');
+@Injectable()
+export class GoogleAuthGuard extends AuthGuard('google') {
+  // AuthGuard('google') tự động làm 2 việc:
+  // 1. Khi gọi GET /auth/google: Tự chuyển hướng trình duyệt sang trang đăng nhập của Google.
+  // 2. Khi Google gọi về GET /auth/google/callback?code=...: Tự bắt mã code và kích hoạt GoogleStrategy.validate().
+}
+```
+
+---
+
+## 4. Tích Hợp AuthService, AuthController & Đăng Ký AuthModule
+
+Sau khi Google xác nhận người dùng hợp lệ và `GoogleStrategy` trích xuất được email và tên, việc tiếp theo của hệ thống Backend là:
+
+1. Tìm xem email này đã có tài khoản trong Database chưa.
+2. Nếu chưa có ➔ Tự động tạo mới (Upsert).
+3. Phát hành **Access Token JWT của chính hệ thống chúng ta** để client dùng cho tất cả các API sau này.
+
+### Bước 1: Bổ Sung Phương Thức `socialLogin` Trong AuthService
+
+Mở tệp `src/auth/auth.service.ts` và thêm phương thức xử lý tài khoản Google:
+
+📄 **`src/auth/auth.service.ts`**
+
+```typescript
+import { GoogleUser } from './interfaces/google-user.interface';
+import * as crypto from 'crypto';
+
+// Bổ sung vào class AuthService:
+@Injectable()
+export class AuthService {
+  // ... các phương thức register, login, generateAccessToken hiện có ...
+
+  /**
+   * Xử lý đăng nhập bằng tài khoản mạng xã hội (Google)
+   * Tự động tạo tài khoản mới nếu chưa tồn tại trong cơ sở dữ liệu
+   */
+  async socialLogin(googleUser: GoogleUser) {
+    const { email, name, avatarUrl } = googleUser;
+
+    // 1. Kiểm tra xem người dùng đã tồn tại trong DB chưa
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // 2. Nếu chưa tồn tại -> Tạo user mới (Social Account)
+    if (!user) {
+      // Do schema DB yêu cầu password, ta tự sinh mật khẩu ngẫu nhiên an toàn và mã hóa
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword =
+        await this.hashService.hashPassword(randomPassword);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+        },
+      });
+    }
+
+    // 3. Phát hành JWT Access Token của hệ thống (đồng bộ với Lesson 4.2 & 4.4)
+    const accessToken = await this.generateAccessToken(
+      user.id,
+      user.email,
+      user.role,
+    );
+
+    return {
+      accessToken,
+    };
   }
 }
 ```
 
 ---
 
-### 📌 Bước 5: Áp Dụng Decorators Gọn Gàng Trong Controllers
+### Bước 2: Khai Báo 2 Endpoints Trong AuthController
 
-#### 1. Áp dụng `@Public()` trong `AuthController`:
+Chúng ta cần 2 routes:
+
+1. `GET /auth/google`: Điểm kích hoạt đăng nhập (chuyển hướng người dùng sang Google).
+2. `GET /auth/google/callback`: Điểm Google gọi về kèm mã xác nhận.
 
 📄 **`src/auth/auth.controller.ts`**
 
 ```typescript
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Version,
-} from '@nestjs/common';
-import { Public } from '../shared/decorators/public.decorator';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { GoogleUser } from './interfaces/google-user.interface';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public() // 🔓 Route công khai: Người dùng chưa có tài khoản có thể Đăng ký
-  @Version('1')
-  @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  // ... các routes register, login hiện có ...
+
+  /**
+   * Route 1: Kích hoạt luồng đăng nhập Google
+   * Client hoặc trình duyệt gọi vào đây sẽ được chuyển hướng tới trang cấp quyền của Google
+   */
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {
+    // Luồng chuyển hướng được xử lý tự động hoàn toàn bởi GoogleAuthGuard
   }
 
-  @Public() // 🔓 Route công khai: Đăng nhập để lấy Access Token
-  @Version('1')
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
-}
-```
-
-#### 2. Áp dụng `@CurrentUser()` trong `UsersController`:
-
-📄 **`src/users/users.controller.ts`**
-
-```typescript
-import { Controller, Get, Version } from '@nestjs/common';
-import {
-  CurrentUser,
-  JwtPayload,
-} from '../shared/decorators/current-user.decorator';
-
-@Controller('users')
-export class UsersController {
-  // 🔒 Route này mặc định được bảo vệ bởi Global JwtAuthGuard
-  @Version('1')
-  @Get('profile')
-  getProfile(@CurrentUser() user: JwtPayload) {
-    // ✨ Clean Code: Trích xuất user trực tiếp, không cần @Request() req: any
-    return {
-      message: 'Thông tin tài khoản xác thực từ Token',
-      user,
-    };
-  }
-
-  // 💡 Trích xuất trực tiếp một trường dữ liệu cụ thể:
-  @Version('1')
-  @Get('my-id')
-  getMyId(@CurrentUser('userId') userId: string) {
-    return { myUserId: userId };
+  /**
+   * Route 2: Callback tiếp nhận mã ủy quyền từ Google
+   * Sau khi người dùng nhấn 'Cho phép', Google sẽ chuyển hướng về route này
+   */
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuthCallback(@Req() req: Request) {
+    // req.user chứa dữ liệu trả về từ GoogleStrategy.validate()
+    const googleUser = req['user'] as GoogleUser;
+    return this.authService.socialLogin(googleUser);
   }
 }
 ```
 
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+### Bước 3: Đăng Ký GoogleStrategy Trong AuthModule
 
-### 🟢 Kịch Bản 1: Kiểm Thử Route Public (`@Public()`) KHÔNG Cần Gửi Token
+Cập nhật `AuthModule` để NestJS Dependency Injection nhận diện và khởi tạo Strategy mới:
 
-Gửi yêu cầu Đăng nhập mà KHÔNG kèm Header Authorization:
+📄 **`src/auth/auth.module.ts`**
 
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "alex@example.com", "password": "Password123!"}'
+```typescript
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+
+@Module({
+  imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRES_IN'),
+        },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    JwtAuthGuard,
+    JwtStrategy,
+    GoogleStrategy,
+    GoogleAuthGuard,
+  ],
+  exports: [JwtModule, PassportModule, JwtAuthGuard],
+})
+export class AuthModule {}
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+> [!IMPORTANT]
+> Hãy nhìn lại toàn bộ quá trình vừa thực hiện: Chúng ta vừa bổ sung thêm một cơ chế đăng nhập cực kỳ phức tạp (OAuth 2.0) mà **không phải sửa đổi dù chỉ 1 dòng code** trong `JwtStrategy`, `JwtAuthGuard` hay bất kỳ API nào khác! Đây chính là minh chứng sống động nhất cho nguyên lý **Open/Closed Principle** mà Passport mang lại.
+
+---
+
+## 5. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+
+### 🟢 Kịch Bản 1: Đăng Nhập Thành Công Bằng Google & Sử Dụng Access Token
+
+#### Bước 1: Khởi động Server
+
+```bash
+pnpm start:dev
+```
+
+#### Bước 2: Mở Trình Duyệt & Đăng Nhập
+
+Mở trình duyệt (Chrome/Brave) và truy cập vào đường dẫn:
+
+```text
+http://localhost:3000/api/v1/auth/google
+```
+
+- Trình duyệt sẽ tự động chuyển hướng sang trang đăng nhập tài khoản Google.
+- Bạn chọn tài khoản và nhấn nút **Cho phép (Allow)**.
+- Google chuyển hướng trở lại `http://localhost:3000/api/v1/auth/google/callback`.
+- Màn hình trình duyệt hiển thị kết quả JSON:
 
 ```json
 {
-  "statusCode": 200,
-  "message": "Thao tác thực hiện thành công!",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  },
-  "timestamp": "2026-08-13T16:00:00.000Z",
-  "path": "/api/v1/auth/login"
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsImVtYWlsIjoic3R1ZGVudC5kZW1vQGdtYWlsLmNvbSIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg5..."
 }
 ```
 
-✅ **Kết quả:** Global Guard phát hiện decorator `@Public()`, tự động cho phép request đi qua mà không bắt lỗi 401!
+#### Bước 3: Dùng Token Vừa Nhận Để Gọi Protected Route (Chứng Minh Tính Đồng Bộ)
 
----
-
-### 🟢 Kịch Bản 2: Kiểm Thử Route Protected Sử Dụng `@CurrentUser()`
-
-Gửi yêu cầu tới Endpoint `/api/v1/users/profile` kèm Bearer Token hợp lệ:
+Sao chép chuỗi `accessToken` ở trên và thực hiện lệnh gọi cURL vào endpoint `/users/profile` (được bảo vệ bởi `JwtAuthGuard` từ Lesson 4.4):
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+**Kết Quả Trả Về (200 OK):**
 
 ```json
 {
-  "statusCode": 200,
-  "message": "Thao tác thực hiện thành công!",
-  "data": {
-    "message": "Thông tin tài khoản xác thực từ Token",
-    "user": {
-      "userId": "clx890xyz123",
-      "email": "alex@example.com"
-    }
-  },
-  "timestamp": "2026-08-13T16:05:00.000Z",
-  "path": "/api/v1/users/profile"
+  "userId": 5,
+  "email": "student.demo@gmail.com",
+  "role": "USER"
 }
 ```
 
-✅ **Kết quả:** `@CurrentUser()` trích xuất chính xác payload người dùng từ token và truyền trực tiếp vào Handler với đầy đủ gợi ý Type-Safety của TypeScript!
+🎉 **Thành công vượt trội:** Tài khoản tạo từ Google đã được tích hợp hoàn hảo vào hệ sinh thái JWT của ứng dụng!
 
 ---
 
-### 🔴 Kịch Bản 3: Kiểm Thử Route Protected Nhưng KHÔNG Gửi Token (Bị Global Guard Chặn)
+### 🔴 Kịch Bản 2: Kiểm Thử Lỗi & Ngăn Chặn (Blocked/Error Flow)
 
-Thử gọi API Profile nhưng KHÔNG gửi Bearer Token:
+#### Tình huống A: Người dùng nhấn "Cancel" hoặc từ chối cấp quyền trên màn hình Google
 
-```bash
-curl -X GET http://localhost:3000/api/v1/users/profile
-```
-
-📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
+- **Hiện tượng:** Google sẽ redirect về callback với tham số query `?error=access_denied`.
+- **Hành vi của Passport:** `GoogleAuthGuard` tự động chặn lại và trả về mã lỗi HTTP `401 Unauthorized`.
 
 ```json
 {
   "statusCode": 401,
-  "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
-  "error": "Unauthorized",
-  "timestamp": "2026-08-13T16:10:00.000Z",
-  "path": "/api/v1/users/profile"
+  "message": "Unauthorized"
 }
 ```
 
-✅ **Kết quả:** Mọi API trong hệ thống mặc định đều được bảo vệ an toàn bởi Global Guard trừ khi được gắn cờ `@Public()`.
+#### Tình huống B: Khai báo sai Callback URL hoặc Client Secret
+
+- **Hiện tượng:** Nếu `GOOGLE_CALLBACK_URL` trong `.env` không trùng với Google Cloud Console, Google sẽ từ chối chuyển hướng ngay từ trang đầu tiên với màn hình báo lỗi:
+  > **400. That’s an error. Error: redirect_uri_mismatch**
+- **Cách khắc phục:** Kiểm tra lại từng ký tự cổng (port), giao thức (`http` vs `https`) và tiền tố đường dẫn (`/api/v1/auth/google/callback`).
 
 ---
 
-## 5. Tổng Kết Bài Học & Checklist Ghi Nhớ
+## 6. Tổng Kết Bài Học & Checklist Ghi Nhớ
 
 ```mermaid
 mindmap
-  root(("Auth Decorators & Global Guard"))
-    "Kiến Trúc Secure by Default"
-      "Đăng ký JwtAuthGuard qua APP_GUARD"
-      "Mặc định bảo vệ 100% Routes"
-      "Loại bỏ rủi ro quên gắn Guard"
-    "Custom Param Decorator"
-      "createParamDecorator()"
-      "@CurrentUser() lấy toàn bộ user"
-      "@CurrentUser('userId') lấy 1 trường"
-      "Loại bỏ @Request() req: any"
-    "Custom Route Decorator"
-      "SetMetadata(IS_PUBLIC_KEY, true)"
-      "Reflector.getAllAndOverride()"
-      "Bypass kiểm tra token cho Public APIs"
+  root(("Google OAuth2 Social Login"))
+    "Strategy Pattern"
+      "passport-google-oauth20"
+      "Cắm rút độc lập"
+      "Không ảnh hưởng JWT hiện tại"
+    "Google Cloud Setup"
+      "OAuth Consent Screen"
+      "Client ID & Client Secret"
+      "Authorized Redirect URI"
+    "Triển Khai Code"
+      "GoogleStrategy validate() lấy profile"
+      "GoogleAuthGuard chuyển hướng & bắt code"
+      "AuthService.socialLogin() Upsert User"
+    "Kết Quả Cuối Cùng"
+      "User được tạo trong Database"
+      "Phát hành App JWT Access Token đồng bộ"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu rõ lợi ích của kiến trúc "Secure by Default" khi đăng ký Global Guard qua `APP_GUARD`.
-- [x] Vận dụng kỹ thuật `createParamDecorator` (từ Lesson 3.5) để tạo `@CurrentUser()`.
-- [x] Hỗ trợ trích xuất toàn bộ object hoặc 1 thuộc tính cụ thể với `@CurrentUser('userId')`.
-- [x] Vận dụng kỹ thuật `SetMetadata` (từ Lesson 3.5) để tạo `@Public()`.
-- [x] Nâng cấp `JwtAuthGuard` tích hợp `Reflector` để đọc cờ `IS_PUBLIC_KEY`.
-- [x] Đăng ký `JwtAuthGuard` làm Global Guard trong `AppModule` bằng token `APP_GUARD`.
-- [x] Thử nghiệm cURL thành công cho cả Route Public, Route Protected dùng `@CurrentUser()` và Route bị chặn 401.
+- [x] Hiểu sâu luồng ủy quyền **Authorization Code Flow** của chuẩn OAuth 2.0.
+- [x] Thấy rõ giá trị thực tế của **Passport Strategy Pattern** khi cắm thêm phương thức xác thực mới vào hệ thống mà không làm ảnh hưởng code cũ.
+- [x] Đăng ký ứng dụng và cấu hình thành công Credentials trên Google Cloud Console.
+- [x] Triển khai `GoogleStrategy` kế thừa `PassportStrategy(Strategy, 'google')` và trích xuất thông tin profile chuẩn xác.
+- [x] Sử dụng `GoogleAuthGuard` để tự động hóa việc chuyển hướng và nhận callback.
+- [x] Xây dựng logic **Upsert User** trong `AuthService` và phát hành JWT Token đồng bộ với toàn bộ hệ thống.
+- [x] Kiểm nghiệm thành công việc sử dụng chuỗi JWT của user Google để truy cập Protected Route của `JwtAuthGuard`.
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 4.6: Rate Limiting — Giới Hạn Lượt Gọi API Với @nestjs/throttler](../lesson-4.6/lesson-4.6.md)
+👉 **Bài tiếp theo:** [Lesson 4.6: Auth Decorators & Global Guard — Vận Dụng @CurrentUser() & @Public() Bảo Vệ Toàn Diện Hệ Thống](../lesson-4.6/lesson-4.6.md)

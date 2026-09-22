@@ -85,14 +85,15 @@ timeline
 ### Module 4: Authentication, Security & Rate-Limiting
 
 > [!CAUTION]  
-> **Mục tiêu:** Bảo mật hệ thống với JWT Access Token và chống Brute-force/Spam.
+> **Mục tiêu:** Bảo mật hệ thống với JWT Access Token, Google OAuth2 Social Login và chống Brute-force/Spam.
 
 - **4.1** [_Hash Password:_ Mã hóa mật khẩu an toàn với `bcrypt`.](./modules/module-04/lesson-4.1/lesson-4.1.md)
 - **4.2** [_JWT Auth:_ Đăng ký, Đăng nhập & phát hành Access Token.](./modules/module-04/lesson-4.2/lesson-4.2.md)
 - **4.3** [_Guards Nền Tảng:_ Kiểm soát quyền truy cập với `CanActivate` & `ExecutionContext`.](./modules/module-04/lesson-4.3/lesson-4.3.md)
 - **4.4** [_Passport.js & JwtStrategy:_ Chuẩn hóa xác thực API & Strategy Pattern với `@nestjs/passport`.](./modules/module-04/lesson-4.4/lesson-4.4.md)
-- **4.5** [_Auth Decorators:_ Vận dụng Custom Decorators tạo `@CurrentUser()` & `@Public()` kết hợp `Reflector` thiết lập Global `JwtAuthGuard`.](./modules/module-04/lesson-4.5/lesson-4.5.md)
-- **4.6** [_Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.](./modules/module-04/lesson-4.6/lesson-4.6.md)
+- **4.5** [_Google OAuth2 Social Login:_ Tích hợp đăng nhập mạng xã hội đa chiến lược với Passport trong NestJS.](./modules/module-04/lesson-4.5/lesson-4.5.md)
+- **4.6** [_Auth Decorators:_ Vận dụng Custom Decorators tạo `@CurrentUser()` & `@Public()` kết hợp `Reflector` thiết lập Global `JwtAuthGuard`.](./modules/module-04/lesson-4.6/lesson-4.6.md)
+- **4.7** [_Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.](./modules/module-04/lesson-4.7/lesson-4.7.md)
 
 ---
 
