@@ -20,7 +20,6 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, password, name } = registerDto;
 
-    // 1. Kiểm tra email duy nhất
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -29,16 +28,13 @@ export class AuthService {
       throw new ConflictException('Email này đã được sử dụng!');
     }
 
-    // 2. Băm mật khẩu bằng HashService
     const hashedPassword = await this.hashService.hashPassword(password);
 
-    // 3. Tạo User trong CSDL (loại bỏ trường password)
     const user = await this.prisma.user.create({
       data: { email, password: hashedPassword, name },
       omit: { password: true },
     });
 
-    // 4. Phát hành Token
     const accessToken = await this.generateAccessToken(
       user.id,
       user.email,
@@ -60,13 +56,11 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    // 1. Tìm user theo email
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
       throw new UnauthorizedException('Email không chính xác!');
     }
 
-    // 2. So khớp mật khẩu với HashService
     const isPasswordValid = await this.hashService.comparePassword(
       password,
       user.password,
@@ -75,7 +69,6 @@ export class AuthService {
       throw new UnauthorizedException('Mật khẩu không chính xác!');
     }
 
-    // 3. Phát hành Token & ẩn password
     const accessToken = await this.generateAccessToken(
       user.id,
       user.email,

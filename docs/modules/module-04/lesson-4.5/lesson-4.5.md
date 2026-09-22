@@ -1,10 +1,10 @@
-# Lesson 4.5: Rate Limiting — Giới Hạn Lượt Gọi Request Với @nestjs/throttler Trong NestJS
+# Lesson 4.5: Auth Decorators & Global Guard — Vận Dụng @CurrentUser() & @Public() Bảo Vệ Toàn Diện Hệ Thống
 
 <p align="center">
-  <img src="https://img.shields.io/badge/NestJS-Rate_Limiting-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Rate Limiting" />
-  <img src="https://img.shields.io/badge/Security-Throttler-3178C6?style=for-the-badge&logo=security&logoColor=white" alt="Throttler" />
-  <img src="https://img.shields.io/badge/Protection-Anti_Spam_|_DDoS-10B981?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Anti Spam" />
-  <img src="https://img.shields.io/badge/HTTP_Header-X--RateLimit--*-F59E0B?style=for-the-badge&logo=http&logoColor=white" alt="X-RateLimit" />
+  <img src="https://img.shields.io/badge/NestJS-Auth_Decorators-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Auth Decorators" />
+  <img src="https://img.shields.io/badge/Reflector-Metadata-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Reflector Metadata" />
+  <img src="https://img.shields.io/badge/Security-Secure_by_Default-10B981?style=for-the-badge&logo=security&logoColor=white" alt="Secure by Default" />
+  <img src="https://img.shields.io/badge/Global_Guard-APP_GUARD-F59E0B?style=for-the-badge&logo=json&logoColor=white" alt="Global Guard" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,181 +16,270 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững giải pháp bảo vệ hệ thống khỏi các cuộc tấn công Brute-force Login, Spam API và DoS/DDoS ở tầng ứng dụng bằng kỹ thuật Rate Limiting; làm chủ thư viện chính chủ `@nestjs/throttler`; tự tay cấu hình nhiều khung thời gian Rate Limit linh hoạt (Named Throttlers `short`, `medium`, `long`); tùy biến thắt chặt hoặc nới lỏng giới hạn bằng `@Throttle()` và `@SkipThrottle()`; tùy chỉnh Custom `ThrottlerGuard` trả về thông báo lỗi `429 Too Many Requests` tiếng Việt chuyên nghiệp; thực hành kịch bản kiểm thử gửi spam request dồn dập và quan sát HTTP Headers `X-RateLimit-*`.
+> 🎯 **Mục tiêu bài học:** Vận dụng kỹ thuật Custom Decorators đã học từ **Lesson 3.5** để giải quyết bài toán cốt lõi trong hệ thống Authentication: loại bỏ hoàn toàn mùi code (Code Smell) `@Request() req: any` bằng Custom Param Decorator `@CurrentUser()`; áp dụng Route Decorator `@Public()` với `SetMetadata` kết hợp `Reflector` để tạo cơ chế bypass Global `JwtAuthGuard` cho các Route công khai; thiết lập kiến trúc bảo mật "Secure by Default" cho toàn bộ ứng dụng bằng token `APP_GUARD`.
 
 ---
 
-## 1. Tại Sao Mọi API Enterprise Đều Cần Rate Limiting?
+## 1. Đặt Vấn Đề: Tối Ưu Hóa Trải Nghiệm Lập Trình & Bảo Mật Với Decorators
 
-### 💡 Ẩn Dụ Thực Tế: Cửa Xoay Kiểm Soát Đám Đông Tại Sân Vận Động
+Trong **Lesson 4.4 (Passport.js & JwtStrategy)**, sau khi người dùng xác thực thành công qua JWT Token, `JwtStrategy` sẽ gán đối tượng payload vào `req.user`. Khi muốn lấy thông tin này ở Controller, chúng ta thường phải viết:
 
-Hãy tưởng tượng trang web của bạn như một **Sân Vận Động Quốc Gia**:
+```typescript
+// 🔴 MÙI CODE (CODE SMELL): Phải tiêm cả Request object và ép kiểu thủ công
+@Get('profile')
+getProfile(@Request() req: any) {
+  const user = req.user;
+  return user;
+}
+```
 
-- Nếu không có **Cửa Xoay Kiểm Soát (Rate Limiter)** ở cổng vào, hàng ngàn người có thể tràn vào cùng một lúc, gây giẫm đạp và sập toàn bộ cổng ra vào.
-- Cửa xoay được cài đặt quy tắc: Mỗi người (IP Address) chỉ được đi qua 1 lần mỗi 2 giây, và tối đa 5 người trong 1 phút.
-- Nếu một đối tượng cố tình lao vào cửa xoay liên tục (Spam / Botnet), cửa xoay sẽ tự động khóa lại và thông báo: _"Bạn đã di chuyển quá nhanh! Hãy kiên nhẫn chờ 60 giây nữa."_ (`429 Too Many Requests`).
+Cách làm trên bộc lộ 3 nhược điểm lớn:
+
+1. **Lặp code (Boilerplate Code):** Mọi Handler cần thông tin người dùng đều phải tiêm `@Request() req: any`.
+2. **Mất Type-Safety:** Việc dùng kiểu `any` làm mất tính năng autocomplete gợi ý code của TypeScript.
+3. **Phụ thuộc vào Express Request Object:** Làm mã nguồn bị gắn chặt với tầng HTTP bên dưới.
+
+Đồng thời, việc phải gắn `@UseGuards(JwtAuthGuard)` lên **từng Controller** rất dễ dẫn đến rủi ro: Lập trình viên quên gắn Guard ở một Controller mới tạo, vô tình biến API nhạy cảm thành công khai!
+
+Vận dụng nền tảng **Custom Param Decorator** và **Metadata Decorator** đã học ở **Lesson 3.5**, chúng ta sẽ giải quyết triệt để 2 bài toán này:
+
+- **`@CurrentUser()` (Custom Param Decorator):** Tự động trích xuất `req.user` từ `ExecutionContext` với đầy đủ Type-Safe.
+- **`@Public()` (Custom Route Decorator):** Gán nhãn "Bỏ qua kiểm tra JWT" cho các Route công khai, cho phép biến `JwtAuthGuard` thành **Global Guard** bảo vệ mặc định toàn bộ ứng dụng (_Secure by Default_).
 
 ```mermaid
 flowchart TD
-    subgraph Danger ["🔴 KHÔNG CÓ RATE LIMITING"]
-        BotnetBad["🤖 Hacker / Botnet Spam"] -->|"Gửi 1.000 requests/giây"| APIBad["📄 Auth API (No Rate Limit)"]
-        APIBad -->|"CPU 100% / DB Sập"| Crash["💥 Server Crash / Cháy RAM"]
+    subgraph BadPractice ["🔴 CÁCH LÀM THỦ CÔNG (Code Smell & Rủi Ro)"]
+        ReqAny["@Request() req: any"] --> ReadUser["const user = req.user"]
+        ManualGuard["Quên gắn @UseGuards() trên Controller"] --> SecurityRisk["⚠️ Rò rỉ dữ liệu (Unprotected Route)"]
     end
 
-    subgraph Secure ["🟢 CÓ NESTJS THROTTLER GUARD"]
-        UserNormal["📱 Người dùng bình thường"] -->|"5 reqs / phút"| Guard{"🛡️ ThrottlerGuard"}
-        BotnetGood["🤖 Botnet Spam"] -->|"100 reqs / phút"| Guard
-        Guard -->|"🟢 Hợp lệ"| Pass["📄 API Handler (200 OK)"]
-        Guard -->|"🔴 Vượt giới hạn"| Block["🔴 HTTP 429 Too Many Requests"]
+    subgraph GoodPractice ["🟢 AUTH DECORATORS & GLOBAL GUARD (Clean & Secure)"]
+        DecUser["@CurrentUser() user: JwtPayload"] --> CleanCode["Gọn gàng, Type-Safe 100%"]
+        DecPublic["@Public() trên Route công khai"] --> GlobalProtection["🛡️ Mặc định bảo vệ 100% routes với APP_GUARD"]
     end
 ```
 
 ---
 
-### 🔹 Các Mối Đe Dọa Mà Rate Limiting Ngăn Chặn
+## 2. Luồng Hoạt Động Của Global JwtAuthGuard Khi Kết Hợp Với `@Public()` & `@CurrentUser()`
 
-1. **Tấn công Brute-force Login:** Hacker dùng từ điển thử hàng triệu mật khẩu vào API `/auth/login`. Rate Limiting sẽ khóa IP đó ngay sau 5 lần thử sai.
-2. **Tấn công Spam API (Resource Exhaustion):** Bot tự động gọi API đăng ký tài khoản, gửi bình luận rác hoặc tải file làm cạn kiệt tài nguyên CSDL & Ổ đĩa.
-3. **Tấn công DoS/DDoS Tầng 7 (Application Layer):** Gửi liên tục các câu truy vấn nặng (Search, Aggregation) khiến CPU máy chủ quá tải.
-4. **Kiểm soát chi phí API bên thứ 3:** Ngăn ngừa nguy cơ bị vọt hóa đơn khi dùng các dịch vụ tính phí theo lượt gọi (OpenAI, Twilio SMS, SendGrid Mail).
-
----
-
-## 2. Luồng Hoạt Động Của ThrottlerGuard Trong NestJS
-
-Thư viện `@nestjs/throttler` sử dụng thuật toán **Sliding Window Log** để đếm số lượng Request dựa trên IP của Client trong một khoảng thời gian `ttl` (Time-To-Live tính bằng miligiây):
+Khi biến `JwtAuthGuard` thành **Global Guard** (áp dụng cho TOÀN BỘ các API trong ứng dụng), luồng xử lý sẽ diễn ra như sau:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as 📱 HTTP Client (IP: 192.168.1.50)
-    participant Guard as 🛡️ CustomThrottlerGuard
-    participant Tracker as 📊 Memory Tracker / Redis
+    actor Client as 📱 HTTP Client
+    participant Guard as 🛡️ Global JwtAuthGuard
+    participant Reflector as 🔍 Reflector Metadata
     participant Controller as 📄 Controller Handler
 
-    Client->>Guard: POST /api/v1/auth/login (Request #1)
-    Guard->>Tracker: Lấy số lượng req của IP 192.168.1.50
-    Tracker-->>Guard: reqCount = 0, limit = 5
-    Note over Guard: reqCount (1) <= limit (5) ➔ Cho qua!
-    Guard->>Controller: Chuyển sang Controller xử lý
-    Controller-->>Client: 200 OK (Header: X-RateLimit-Remaining: 4)
+    Client->>Guard: 1. Gửi HTTP Request tới Endpoint
+    Guard->>Reflector: 2. Lấy metadata 'IS_PUBLIC_KEY' từ Route Handler / Class
 
-    Note over Client,Controller: ... Client gửi dồn dập 5 requests liên tiếp ...
-
-    Client->>Guard: POST /api/v1/auth/login (Request #6 - Vượt limit!)
-    Guard->>Tracker: Lấy số lượng req của IP 192.168.1.50
-    Tracker-->>Guard: reqCount = 5, limit = 5
-    Note over Guard: reqCount (6) > limit (5) ➔ CHẶN BẮT LỖI!
-    Guard-->>Client: 🔴 429 Too Many Requests (Header: Retry-After: 55)
+    alt Route có gắn @Public()
+        Reflector-->>Guard: isPublic = true
+        Guard->>Controller: 🟢 3a. Cho phép đi tiếp (Bỏ qua verify Bearer Token)
+    else Route KHÔNG có @Public() (Mặc định riêng tư)
+        Reflector-->>Guard: isPublic = false / undefined
+        Note over Guard: Verify Bearer Token trong Header Authorization
+        alt Token KHÔNG hợp lệ / Thiếu Token
+            Guard-->>Client: 🔴 3b. Trả về 401 Unauthorized Response
+        else Token HỢP LỆ
+            Guard->>Controller: 🟢 3c. Cho phép đi tiếp (Gắn user vào req.user)
+            Note over Controller: Handler lấy user nhanh bằng @CurrentUser()
+        end
+    end
 ```
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Triển Khai `@nestjs/throttler`
+## 3. Hướng Dẫn Thực Hành Step-by-Step
 
-### 📌 Bước 0: Cài Đặt Thư Viện `@nestjs/throttler`
+### 📌 Bước 1: Triển Khai Custom Param Decorator `@CurrentUser()`
 
-Mở Terminal tại thư mục gốc của dự án và cài đặt gói chính chủ:
+Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng hàm `createParamDecorator()`:
 
-```bash
-pnpm add @nestjs/throttler
-```
-
----
-
-### 📌 Bước 1: Cấu Hình `ThrottlerModule` Trong `AppModule`
-
-NestJS v10+ hỗ trợ cấu hình nhiều bộ đếm (Named Throttlers) cùng lúc cho các khung thời gian khác nhau (giây, phút, giờ).
-
-Mở tệp `src/app.module.ts` và khai báo cấu hình:
-
-📄 **`src/app.module.ts`**
+📄 **`src/shared/decorators/current-user.decorator.ts`**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { AuthModule } from './auth/auth.module';
-import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { UserData } from '../interfaces/auth.interface';
 
-@Module({
-  imports: [
-    AuthModule,
-    // 🛡️ Cấu hình ThrottlerModule bất đồng bộ
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        throttlers: [
-          {
-            name: 'short',
-            ttl: 1000, // 1 giây
-            limit: 3, // Tối đa 3 requests/giây (Chống spam nhấp chuột dồn dập)
-          },
-          {
-            name: 'medium',
-            ttl: 10000, // 10 giây
-            limit: 20, // Tối đa 20 requests/10 giây
-          },
-          {
-            name: 'long',
-            ttl: 60000, // 60 giây (1 phút)
-            limit: 100, // Tối đa 100 requests/phút (Mặc định toàn hệ thống)
-          },
-        ],
-      }),
-    }),
-  ],
-  providers: [
-    // 🛡️ Đăng ký CustomThrottlerGuard làm Global Guard
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-  ],
-})
-export class AppModule {}
+/**
+ * Custom Param Decorator trích xuất thông tin User từ Request Object (do JwtStrategy gán vào)
+ *
+ * Cách sử dụng:
+ * 1. Lấy toàn bộ đối tượng: getProfile(@CurrentUser() user: UserData)
+ * 2. Lấy 1 trường cụ thể: getUserId(@CurrentUser('userId') userId: string)
+ */
+export const CurrentUser = createParamDecorator(
+  (data: keyof UserData | undefined, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest<Express.Request>();
+    const user = request.user as UserData;
+
+    if (!user) {
+      return null;
+    }
+
+    return data ? user[data] : user;
+  },
+);
 ```
 
 ---
 
-### 📌 Bước 2: Viết `CustomThrottlerGuard` Tùy Chỉnh Thông Báo Lỗi Tiếng Việt
+### 📌 Bước 2: Triển Khai Custom Route Decorator `@Public()`
 
-Mặc định `@nestjs/throttler` trả về thông báo lỗi bằng tiếng Anh (`ThrottlerException: Throttler limit exceeded`). Chúng ta sẽ tạo `CustomThrottlerGuard` kế thừa `ThrottlerGuard` để tùy chỉnh phản hồi JSON tiếng Việt chuyên nghiệp:
+Tạo tệp `src/shared/decorators/public.decorator.ts` sử dụng `SetMetadata()`:
 
-Tạo tệp `src/shared/guards/custom-throttler.guard.ts`:
-
-📄 **`src/shared/guards/custom-throttler.guard.ts`**
+📄 **`src/shared/decorators/public.decorator.ts`**
 
 ```typescript
-import { Injectable, ThrottlerException } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'IS_PUBLIC_KEY';
+
+/**
+ * Custom Route Decorator đánh dấu Route Handler hoặc Controller là công khai (Public)
+ * Giúp bypass quy trình kiểm tra Token của Global JwtAuthGuard
+ */
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+```
+
+---
+
+### 📌 Bước 3: Nâng Cấp `JwtAuthGuard` Kết Hợp `Reflector` Đọc Metadata
+
+Mở tệp `src/auth/guards/jwt-auth.guard.ts` và tích hợp `Reflector` để kiểm tra cờ `IS_PUBLIC_KEY`:
+
+📄 **`src/auth/guards/jwt-auth.guard.ts`**
+
+```typescript
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { AuthGuard } from '@nestjs/passport';
+import { IS_PUBLIC_KEY } from '../../shared/decorators/public.decorator';
 
 @Injectable()
-export class CustomThrottlerGuard extends ThrottlerGuard {
-  // Override phương thức quăng ngoại lệ khi người dùng vượt quá Rate Limit
-  protected override async throwThrottlingException(
-    context: any,
-    throttlerLimitDetail: any,
-  ): Promise<void> {
-    const { timeToBlockExpire } = throttlerLimitDetail;
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private readonly reflector: Reflector) {
+    super();
+  }
 
-    // Tính số giây người dùng cần chờ trước khi thử lại
-    const secondsToWait = Math.ceil(timeToBlockExpire / 1000);
+  override canActivate(context: ExecutionContext) {
+    // 1. Trích xuất cờ 'IS_PUBLIC_KEY' từ Route Handler hoặc Controller Class
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    throw new ThrottlerException(
-      `Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau ${secondsToWait} giây.`,
-    );
+    // 2. Nếu Route được gắn @Public(), cho phép truy cập ngay mà không cần verify JWT Token
+    if (isPublic) {
+      return true;
+    }
+
+    // 3. Nếu là Route riêng tư, tiếp tục kích hoạt quy trình kiểm tra Token của Passport
+    return super.canActivate(context);
+  }
+
+  override handleRequest(err: any, user: any, info: any) {
+    if (err || !user) {
+      throw (
+        err ||
+        new UnauthorizedException(
+          'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
+        )
+      );
+    }
+    return user;
   }
 }
 ```
 
 ---
 
-### 📌 Bước 3: Tùy Chỉnh Rate Limit Cho Các API Nhạy Cảm (`@Throttle` & `@SkipThrottle`)
+### 📌 Bước 4: Đăng Ký `JwtAuthGuard` Làm Global Guard Trong `AppModule`
 
-Mở tệp `src/auth/auth.controller.ts` và thắt chặt Rate Limit cho API Đăng nhập/Đăng ký để chống Brute-force:
+Thay vì gắn `@UseGuards(JwtAuthGuard)` trên từng Controller thủ công, chúng ta đăng ký nó làm **Global Guard** với token `APP_GUARD` trong `AppModule`. Toàn bộ ứng dụng mặc định sẽ được bảo vệ:
+
+📄 **`src/app.module.ts`**
+
+```typescript
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { PostsModule } from './posts/posts.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { envValidationSchema } from './config/env.validation';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { LoggerMiddleware } from './shared/middleware/logger.middleware';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
+import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      validationSchema: envValidationSchema,
+      isGlobal: true,
+    }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    PostsModule,
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    // 🛡️ 1. Đăng ký JwtAuthGuard làm Global Guard cho TOÀN BỘ ứng dụng
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    // 2. Global Interceptors
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    // 3. Global Exception Filters
+    {
+      provide: APP_FILTER,
+      useClass: PrismaClientExceptionFilter,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
+})
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .exclude({ path: 'health', method: RequestMethod.GET })
+      .forRoutes('*');
+  }
+}
+```
+
+---
+
+### 📌 Bước 5: Áp Dụng Decorators Gọn Gàng Trong Controllers
+
+#### 1. Áp dụng `@Public()` trong `AuthController`:
 
 📄 **`src/auth/auth.controller.ts`**
 
@@ -203,9 +292,7 @@ import {
   Post,
   Version,
 } from '@nestjs/common';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { Public } from '../common/decorators/public.decorator';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { Public } from '../shared/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -214,110 +301,140 @@ import { RegisterDto } from './dto/register.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 🔒 Thắt chặt riêng cho API Login: Tối đa 5 lần thử trong 60 giây
-  @Public()
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @Version('1')
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Đăng nhập thành công!')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
-
-  @Public()
-  @Throttle({ default: { ttl: 60000, limit: 3 } }) // Tối đa 3 lần đăng ký/phút
+  @Public() // 🔓 Route công khai: Người dùng chưa có tài khoản có thể Đăng ký
   @Version('1')
   @Post('register')
-  @ResponseMessage('Đăng ký tài khoản thành công!')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  // 🔓 Bỏ qua kiểm tra Rate Limit cho API Healthcheck
-  @Public()
-  @SkipThrottle()
+  @Public() // 🔓 Route công khai: Đăng nhập để lấy Access Token
   @Version('1')
-  @Post('health-ping')
-  async ping() {
-    return { status: 'pong' };
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 }
 ```
 
-> [!TIP]
-> **Các Decorator điều khiển Rate Limit:**
->
-> - `@Throttle({ default: { ttl, limit } })`: Thắt chặt hoặc thay đổi tham số Rate Limit riêng cho Route Handler / Controller đó.
-> - `@SkipThrottle()`: Bỏ qua hoàn toàn việc kiểm tra Rate Limit (dành cho API Healthcheck, Webhook từ bên thứ 3 tin tưởng).
+#### 2. Áp dụng `@CurrentUser()` trong `UsersController`:
+
+📄 **`src/users/users.controller.ts`**
+
+```typescript
+import { Controller, Get, Version } from '@nestjs/common';
+import {
+  CurrentUser,
+  JwtPayload,
+} from '../shared/decorators/current-user.decorator';
+
+@Controller('users')
+export class UsersController {
+  // 🔒 Route này mặc định được bảo vệ bởi Global JwtAuthGuard
+  @Version('1')
+  @Get('profile')
+  getProfile(@CurrentUser() user: JwtPayload) {
+    // ✨ Clean Code: Trích xuất user trực tiếp, không cần @Request() req: any
+    return {
+      message: 'Thông tin tài khoản xác thực từ Token',
+      user,
+    };
+  }
+
+  // 💡 Trích xuất trực tiếp một trường dữ liệu cụ thể:
+  @Version('1')
+  @Get('my-id')
+  getMyId(@CurrentUser('userId') userId: string) {
+    return { myUserId: userId };
+  }
+}
+```
 
 ---
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Thành Công — Gọi API Bình Thường & Quan Sát Response Headers
+### 🟢 Kịch Bản 1: Kiểm Thử Route Public (`@Public()`) KHÔNG Cần Gửi Token
 
-Thực hiện 1 câu lệnh cURL tới API Đăng nhập và bật cờ `-i` để xem Response Headers:
+Gửi yêu cầu Đăng nhập mà KHÔNG kèm Header Authorization:
 
 ```bash
-curl -i -X POST http://localhost:3000/api/v1/auth/login \
+curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "alex@example.com", "password": "Password123!"}'
 ```
 
-📥 **Phản hồi HTTP Headers nhận được từ Server:**
-
-```text
-HTTP/1.1 200 OK
-X-RateLimit-Limit-short: 3
-X-RateLimit-Remaining-short: 2
-X-RateLimit-Reset-short: 1
-X-RateLimit-Limit-medium: 20
-X-RateLimit-Remaining-medium: 19
-X-RateLimit-Reset-medium: 10
-X-RateLimit-Limit-default: 5
-X-RateLimit-Remaining-default: 4
-X-RateLimit-Reset-default: 60
-Content-Type: application/json; charset=utf-8
-```
-
-✅ **Kết quả:** NestJS tự động trả về mảng Headers `X-RateLimit-*` giúp Client/Frontend biết chính xác họ còn bao nhiêu lượt gọi API nữa!
-
----
-
-### 🔴 Kịch Bản 2: Spam Request (Blocked Flow) — Gửi 10 Request Dồn Dập Vào API Login
-
-Mở Terminal và chạy vòng lặp Bash Script gửi 10 yêu cầu POST liên tục trong vài giây:
-
-```bash
-for i in {1..8}; do
-  echo "--- Request #$i ---"
-  curl -s -X POST http://localhost:3000/api/v1/auth/login \
-    -H "Content-Type: application/json" \
-    -d '{"email": "hacker@example.com", "password": "wrong_password"}'
-  echo ""
-done
-```
-
-📥 **Kết quả hiển thị tại Terminal:**
-
-- **Request #1 -> #5:** Trả về `401 Unauthorized` (Do sai mật khẩu, hệ thống vẫn cho phép thử).
-- **Request #6 -> #8 (Bị thắt chặt bởi `@Throttle({ default: { limit: 5 } })`):**
+📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
 
 ```json
-HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
-
 {
-  "statusCode": 429,
-  "message": "Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau 58 giây.",
-  "error": "Too Many Requests",
-  "timestamp": "2026-08-13T17:20:00.000Z",
+  "statusCode": 200,
+  "message": "Thao tác thực hiện thành công!",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "timestamp": "2026-08-13T16:00:00.000Z",
   "path": "/api/v1/auth/login"
 }
 ```
 
-✅ **Kết quả:** `CustomThrottlerGuard` phát hiện hành vi spam/brute-force và chặn đứng ngay từ Yêu cầu thứ 6, bảo vệ CSDL khỏi quá tải!
+✅ **Kết quả:** Global Guard phát hiện decorator `@Public()`, tự động cho phép request đi qua mà không bắt lỗi 401!
+
+---
+
+### 🟢 Kịch Bản 2: Kiểm Thử Route Protected Sử Dụng `@CurrentUser()`
+
+Gửi yêu cầu tới Endpoint `/api/v1/users/profile` kèm Bearer Token hợp lệ:
+
+```bash
+curl -X GET http://localhost:3000/api/v1/users/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Thao tác thực hiện thành công!",
+  "data": {
+    "message": "Thông tin tài khoản xác thực từ Token",
+    "user": {
+      "userId": "clx890xyz123",
+      "email": "alex@example.com"
+    }
+  },
+  "timestamp": "2026-08-13T16:05:00.000Z",
+  "path": "/api/v1/users/profile"
+}
+```
+
+✅ **Kết quả:** `@CurrentUser()` trích xuất chính xác payload người dùng từ token và truyền trực tiếp vào Handler với đầy đủ gợi ý Type-Safety của TypeScript!
+
+---
+
+### 🔴 Kịch Bản 3: Kiểm Thử Route Protected Nhưng KHÔNG Gửi Token (Bị Global Guard Chặn)
+
+Thử gọi API Profile nhưng KHÔNG gửi Bearer Token:
+
+```bash
+curl -X GET http://localhost:3000/api/v1/users/profile
+```
+
+📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
+
+```json
+{
+  "statusCode": 401,
+  "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
+  "error": "Unauthorized",
+  "timestamp": "2026-08-13T16:10:00.000Z",
+  "path": "/api/v1/users/profile"
+}
+```
+
+✅ **Kết quả:** Mọi API trong hệ thống mặc định đều được bảo vệ an toàn bởi Global Guard trừ khi được gắn cờ `@Public()`.
 
 ---
 
@@ -325,35 +442,32 @@ Content-Type: application/json
 
 ```mermaid
 mindmap
-  root(("NestJS Rate Limiting"))
-    "Tầm quan trọng"
-      "Chống Brute-force Login"
-      "Chống Spam API & Botnet"
-      "Bảo vệ CPU/RAM Server"
-      "Tiết kiệm chi phí API 3rd party"
-    "Cấu hình ThrottlerModule"
-      "Named Throttlers (short, medium, long)"
-      "ttl (Time-To-Live ms)"
-      "limit (Số lượt tối đa)"
-    "Decorators linh hoạt"
-      "@Throttle() thắt chặt Route"
-      "@SkipThrottle() bỏ qua Route"
-    "CustomThrottlerGuard"
-      "Triển khai Global Guard (APP_GUARD)"
-      "Override throwThrottlingException"
-      "Trả về 429 với message tiếng Việt"
+  root(("Auth Decorators & Global Guard"))
+    "Kiến Trúc Secure by Default"
+      "Đăng ký JwtAuthGuard qua APP_GUARD"
+      "Mặc định bảo vệ 100% Routes"
+      "Loại bỏ rủi ro quên gắn Guard"
+    "Custom Param Decorator"
+      "createParamDecorator()"
+      "@CurrentUser() lấy toàn bộ user"
+      "@CurrentUser('userId') lấy 1 trường"
+      "Loại bỏ @Request() req: any"
+    "Custom Route Decorator"
+      "SetMetadata(IS_PUBLIC_KEY, true)"
+      "Reflector.getAllAndOverride()"
+      "Bypass kiểm tra token cho Public APIs"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Thấu hiểu tầm quan trọng của Rate Limiting trong việc bảo vệ API khỏi tấn công Brute-force và DoS/DDoS.
-- [x] Cài đặt thư viện `@nestjs/throttler` chính chủ.
-- [x] Cấu hình `ThrottlerModule` với mảng các bộ đếm `throttlers` (`short`, `medium`, `long`).
-- [x] Tạo thành công `CustomThrottlerGuard` trả về lỗi HTTP 429 tiếng Việt thân thiện.
-- [x] Đăng ký `CustomThrottlerGuard` làm Global Guard trong `AppModule`.
-- [x] Sử dụng thành thạo `@Throttle()` cho API Đăng nhập/Đăng ký và `@SkipThrottle()` cho API Healthcheck.
-- [x] Thử nghiệm thành công cURL gửi spam request và đọc các HTTP Headers `X-RateLimit-*`.
+- [x] Hiểu rõ lợi ích của kiến trúc "Secure by Default" khi đăng ký Global Guard qua `APP_GUARD`.
+- [x] Vận dụng kỹ thuật `createParamDecorator` (từ Lesson 3.5) để tạo `@CurrentUser()`.
+- [x] Hỗ trợ trích xuất toàn bộ object hoặc 1 thuộc tính cụ thể với `@CurrentUser('userId')`.
+- [x] Vận dụng kỹ thuật `SetMetadata` (từ Lesson 3.5) để tạo `@Public()`.
+- [x] Nâng cấp `JwtAuthGuard` tích hợp `Reflector` để đọc cờ `IS_PUBLIC_KEY`.
+- [x] Đăng ký `JwtAuthGuard` làm Global Guard trong `AppModule` bằng token `APP_GUARD`.
+- [x] Thử nghiệm cURL thành công cho cả Route Public, Route Protected dùng `@CurrentUser()` và Route bị chặn 401.
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 5.1: OpenAPI (Swagger) — Tự Động Sinh Swagger UI Tương Tác (@nestjs/swagger)](../../module-05/lesson-5.1/lesson-5.1.md)
+👉 **Bài tiếp theo:** [Lesson 4.6: Rate Limiting — Giới Hạn Lượt Gọi API Với @nestjs/throttler](../lesson-4.6/lesson-4.6.md)

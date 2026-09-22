@@ -1,10 +1,10 @@
-# Lesson 4.3: Guards — Bảo Vệ REST API Bằng JwtAuthGuard & Passport Strategy Trong NestJS
+# Lesson 4.3: Guards Nền Tảng — Kiểm Soát Quyền Truy Cập Với CanActivate & ExecutionContext Trong NestJS
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Guards-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Guards" />
-  <img src="https://img.shields.io/badge/Passport-JWT_Strategy-3178C6?style=for-the-badge&logo=passport&logoColor=white" alt="Passport Strategy" />
-  <img src="https://img.shields.io/badge/Authorization-Bearer_Token-10B981?style=for-the-badge&logo=opsgenie&logoColor=white" alt="Bearer Token" />
-  <img src="https://img.shields.io/badge/Security-API_Protection-F59E0B?style=for-the-badge&logo=security&logoColor=white" alt="API Security" />
+  <img src="https://img.shields.io/badge/Interface-CanActivate-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="CanActivate" />
+  <img src="https://img.shields.io/badge/Context-ExecutionContext-10B981?style=for-the-badge&logo=node.js&logoColor=white" alt="ExecutionContext" />
+  <img src="https://img.shields.io/badge/Security-Native_Guard-F59E0B?style=for-the-badge&logo=security&logoColor=white" alt="Native Guard" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,193 +16,234 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững khái niệm và vai trò của Guard (Bộ vệ sĩ bảo mật) trong Request Pipeline của NestJS; giải mã sự kết hợp mạnh mẽ giữa `@nestjs/passport` và `passport-jwt`; tự tay triển khai `JwtStrategy` trích xuất và xác thực Token từ Header `Authorization: Bearer <token>`; xây dựng `JwtAuthGuard` để bảo vệ các Endpoint riêng tư; thực hành kịch bản kiểm thử chặn đứng truy cập không hợp lệ (`401 Unauthorized`) và trích xuất thông tin `req.user`.
+> 🎯 **Mục tiêu bài học:** Thấu hiểu bản chất cốt lõi của Guard trong kiến trúc NestJS; giải mã interface `CanActivate` và đối tượng ngữ cảnh `ExecutionContext`; phân biệt rạch ròi sự khác nhau giữa Middleware và Guard; tự tay xây dựng một **Native Guard thuần NestJS** (`NativeAuthGuard`) sử dụng `JwtService` để kiểm tra Bearer Token mà không cần phụ thuộc vào bất kỳ thư viện trung gian nào; thực hành áp dụng `@UseGuards()` bảo vệ Route và chạy kịch bản thử nghiệm bắt lỗi `401 Unauthorized`.
 
 ---
 
 ## 1. Guard Trong NestJS Là Gì? Vị Trí Trong Request Pipeline
 
-### 💡 Ẩn Dụ Thực Tế: Vệ Sĩ Kiểm Tra Vé VIP Tại Cửa Phòng Riêng
+### 💡 Ẩn Dụ Thực Tế: Vệ Sĩ Soát Vé Tại Cửa Phòng VIP
 
-Hãy tưởng tượng hệ thống API của bạn như một **Câu Lạc Bộ Cao Cấp**:
+Hãy tưởng tượng toàn bộ hệ thống API của bạn như một **Câu Lạc Bộ Âm Nhạc Cao Cấp**:
 
-- **Sảnh ngoài (Public Endpoints):** Bất kỳ ai cũng có thể vào xem danh sách sản phẩm hay trang tin tức (API `@Public()`).
-- **Phòng VIP (Protected Endpoints):** Khi khách hàng muốn xem trang Thông tin cá nhân (`/users/profile`) hay Đổi mật khẩu (`/auth/change-password`), họ phải bước qua **Vệ Sĩ Cửa Phòng (JwtAuthGuard)**.
-- Vệ sĩ sẽ kiểm tra xem khách hàng có đeo **Vòng tay VIP hợp lệ (Bearer Token)** hay không:
-  - Nếu vòng tay hợp lệ và chưa hết hạn ➔ Vệ sĩ mở cửa và gắn thông tin khách hàng vào danh sách phục vụ (`req.user`).
-  - Nếu không có vòng tay hoặc vòng tay giả mạo ➔ Vệ sĩ từ chối cho vào ngay lập tức (`401 Unauthorized`).
+- **Cổng vào sảnh ngoài (Public Endpoints):** Bất kỳ ai cũng có thể vào sảnh để xem menu đồ uống hoặc nghe giới thiệu sự kiện (ví dụ: API Đăng ký `/auth/register`, Đăng nhập `/auth/login`).
+- **Cửa phòng VIP (Protected Endpoints):** Khi khách muốn vào khu vực riêng tư như xem Thông tin tài khoản (`/users/profile`) hoặc Đổi mật khẩu (`/auth/change-password`), họ bắt buộc phải đối mặt với **Vệ Sĩ Cửa Phòng (Guard)**.
+- Vệ sĩ chỉ quan tâm đúng một câu hỏi nhị phân: **"Vị khách này có đủ tư cách bước vào hay không?"**:
+  - Nếu khách xuất trình **Vòng tay VIP hợp lệ (Bearer Token)** ➔ Vệ sĩ mở cửa (`return true`), đồng thời gắn thẻ tên khách vào danh sách phục vụ (`req['user'] = payload`).
+  - Nếu khách không có vòng tay hoặc đeo vòng tay giả ➔ Vệ sĩ chặn ngay tại cửa và mời ra ngoài (`throw UnauthorizedException` hoặc `return false` ➔ HTTP `401 Unauthorized`).
 
 ```mermaid
 flowchart LR
-    subgraph Pipeline ["🚀 NestJS Request Pipeline"]
+    subgraph Pipeline ["🚀 NestJS Request Lifecycle"]
         direction LR
-        Client["📱 Client Request<br/><i>Header: Bearer JWT</i>"] --> Middleware["⚙️ Middleware"]
-        Middleware --> Guard{"🛡️ JwtAuthGuard<br/><i>(CanActivate Check)</i>"}
-        Guard -->|"🟢 Token Hợp Lệ"| Pipe["⚡ Pipes / DTO"]
-        Guard -->|"🔴 Không có / Sai Token"| Reject["🔴 401 Unauthorized"]
+        Client["📱 Client Request<br/><i>Header: Bearer Token</i>"] --> Middleware["⚙️ Middleware<br/><i>(Log, CORS, Body)</i>"]
+        Middleware --> Guard{"🛡️ CanActivate Guard<br/><i>(true or false?)</i>"}
+        Guard -->|"🟢 true (Cho phép)"| InterceptorPre["⚡ Interceptors (Pre)"]
+        InterceptorPre --> Pipe["🧪 Pipes / DTO Validation"]
         Pipe --> Controller["📄 Controller Handler"]
+        Guard -->|"🔴 false / Exception"| Reject["🔴 401 Unauthorized"]
     end
 ```
 
 ---
 
-### 🔹 So Sánh Guard vs Middleware Về Mặt Phân Quyền
+### 🔹 So Sánh Guard vs Middleware: Tại Sao Cần Cả Hai?
 
-| Tiêu chí               | Middleware                                       | Guard (NestJS)                                                             |
-| :--------------------- | :----------------------------------------------- | :------------------------------------------------------------------------- |
-| **Vị trí chạy**        | Đầu tiên (Chưa biết Route Handler nào sắp xử lý) | Sau Middleware, **ngay trước khi vào Controller Handler**                  |
-| **Đối tượng ngữ cảnh** | Chỉ truy cập được `req`, `res`, `next()`         | Truy cập `ExecutionContext` (biết rõ Class & Handler sắp gọi)              |
-| **Ứng dụng tối ưu**    | Logging, CORS, Compression, Body Parser          | **Xác thực (Authentication) & Phân quyền (Role/Permission Authorization)** |
+Trong **Lesson 3.3**, chúng ta đã tự tay viết `LoggerMiddleware`. Nhiều lập trình viên thường thắc mắc: _"Tại sao không dùng luôn Middleware để kiểm tra Token và chặn request?"_.
 
----
+Bảng so sánh dưới đây sẽ làm sáng tỏ sự phân công trách nhiệm:
 
-## 2. Kiến Trúc & Vòng Đời Bảo Vệ API Của JwtAuthGuard & JwtStrategy
+| Tiêu chí                          | Middleware (Express/NestJS)                                                                     | Guard (NestJS)                                                                                               |
+| :-------------------------------- | :---------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
+| **Vị trí chạy**                   | Chạy đầu tiên khi request tới Server.                                                           | Chạy **sau Middleware** và **ngay trước Interceptors/Pipes/Handler**.                                        |
+| **Ngữ cảnh (`ExecutionContext`)** | **Mù mờ:** Chỉ biết `req`, `res`, `next()`. Không biết Controller hay Handler nào sắp được gọi. | **Tường minh:** Biết chính xác Class và Handler nào sẽ xử lý request tiếp theo thông qua `ExecutionContext`. |
+| **Cơ chế ra quyết định**          | Phải tự gọi `res.status(401).json(...)` hoặc `next(err)`.                                       | Trả về `boolean` (`true`/`false`) hoặc ném NestJS Exception (`UnauthorizedException`, `ForbiddenException`). |
+| **Nhiệm vụ tối ưu**               | Tác vụ chung: ghi log HTTP, nén dữ liệu (gzip), phân giải Cookie, CORS.                         | **Xác thực (Authentication) & Phân quyền (Authorization / RBAC).**                                           |
 
-Sự kết hợp giữa `@nestjs/passport`, `passport-jwt` và NestJS Guard tạo nên một hệ thống bảo vệ 2 lớp vô cùng chặt chẽ:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as 📱 HTTP Client
-    participant Guard as 🛡️ JwtAuthGuard (AuthGuard)
-    participant Strategy as 🔑 JwtStrategy (Passport)
-    participant Controller as 📄 Controller Handler
-
-    Client->>Guard: GET /api/v1/users/profile (Header: Authorization Bearer <token>)
-    Guard->>Strategy: Chuyển Request tới Passport JwtStrategy
-
-    Note over Strategy: 1. ExtractJwt.fromAuthHeaderAsBearerToken()<br/>2. Decode & Verify signature với JWT_SECRET<br/>3. Kiểm tra hạn dùng (exp)
-
-    alt Token SAI / HẾT HẠN / THIẾU HEADER
-        Strategy-->>Guard: Trả về lỗi Validation / Unauthorized
-        Guard-->>Client: 🔴 401 Unauthorized ("Unauthorized")
-    else Token HỢP LỆ & CÒN HẠN
-        Strategy->>Strategy: Gọi validate(payload)
-        Strategy-->>Guard: Trả về đối tượng user payload
-        Note over Guard: Gắn kết quả vào req.user = user
-        Guard->>Controller: 🟢 Cho phép Request đi tiếp vào Handler
-        Controller-->>Client: 200 OK (Trả về dữ liệu Profile)
-    end
-```
+> [!IMPORTANT]
+> **Điểm mấu chốt:** Guard được thiết kế chuyên biệt cho việc **bảo vệ và phân quyền**. Nhờ có `ExecutionContext`, Guard có thể đọc được Metadata gắn trên từng Controller hoặc Route Handler (chúng ta sẽ tận dụng sức mạnh này ở **Lesson 4.5** với `@Public()` và `Reflector`).
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Viết & Đăng Ký Guard
+## 2. Giải Mã Interface `CanActivate` & Đối Tượng `ExecutionContext`
 
-### 📌 Bước 1: Triển Khai `JwtStrategy` Triết Xuất & Verify Token
+### 1. Interface `CanActivate`
 
-Tạo thư mục `src/auth/strategies/` và tạo tệp `jwt.strategy.ts` kế thừa `PassportStrategy`:
-
-📄 **`src/auth/strategies/jwt.strategy.ts`**
+Mọi Guard trong NestJS bắt buộc phải là một Class được đánh dấu `@Injectable()` và `implements CanActivate`:
 
 ```typescript
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-
-export interface JwtPayload {
-  sub: string;
-  email: string;
-  iat?: number;
-  exp?: number;
+export interface CanActivate {
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean>;
 }
+```
+
+Phương thức `canActivate` có thể xử lý đồng bộ (trả về `boolean`) hoặc bất đồng bộ (trả về `Promise<boolean>` hoặc RxJS `Observable<boolean>`):
+
+- Trả về `true`: Request được phép đi tiếp vào Pipe và Handler.
+- Trả về `false`: NestJS tự động ném ra `ForbiddenException` (HTTP `403 Forbidden`).
+- Ném trực tiếp Exception: Ví dụ `throw new UnauthorizedException(...)` để trả về HTTP `401 Unauthorized` kèm thông điệp rõ ràng.
+
+---
+
+### 2. Đối Tượng `ExecutionContext`
+
+`ExecutionContext` kế thừa từ `ArgumentsHost`, cung cấp phương thức linh hoạt để làm việc đa nền tảng (HTTP REST, WebSockets, Microservices):
+
+```mermaid
+flowchart TD
+    subgraph ExecutionContext ["🧠 ExecutionContext Capabilities"]
+        direction TB
+        EC["ExecutionContext"]
+        EC --> Switch["context.switchToHttp()"]
+        Switch --> GetReq["getRequest() (Express Request)"]
+        Switch --> GetRes["getResponse() (Express Response)"]
+        EC --> TargetClass["context.getClass()<br/><i>(Biết Controller nào: UsersController)</i>"]
+        EC --> TargetHandler["context.getHandler()<br/><i>(Biết Action nào: getProfile)</i>"]
+    end
+```
+
+Nhờ `context.switchToHttp().getRequest()`, Guard có thể trích xuất toàn bộ Headers, Body, Params từ Client gửi lên.
+
+---
+
+## 3. Hướng Dẫn Thực Hành Step-by-Step — Xây Dựng Native Guard Thuần NestJS
+
+Để hiểu 100% nguyên lý hoạt động "dưới mui xe" (Under the hood) mà **không bị phụ thuộc vào bất kỳ thư viện thứ 3 nào (như Passport)**, chúng ta sẽ tự tay triển khai `NativeAuthGuard` sử dụng `JwtService` đã cấu hình từ **Lesson 4.2**.
+
+---
+
+### 📌 Bước 1: Tạo Tệp `native-auth.guard.ts`
+
+Tạo thư mục `src/auth/guards/` và khởi tạo tệp `native-auth.guard.ts`:
+
+📄 **`src/auth/guards/native-auth.guard.ts`**
+
+```typescript
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(configService: ConfigService) {
-    super({
-      // 1. Trích xuất Bearer Token từ Header Authorization: Bearer <token>
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      // 2. Không bỏ qua kiểm tra hạn dùng (Tự động quăng lỗi nếu token hết hạn)
-      ignoreExpiration: false,
-      // 3. Cung cấp Secret Key để Passport verify chữ ký Signature
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'fallback_secret',
-    });
+export class NativeAuthGuard implements CanActivate {
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 1. Lấy đối tượng Request từ ExecutionContext
+    const request = context.switchToHttp().getRequest<Request>();
+
+    // 2. Trích xuất Bearer Token từ Header Authorization
+    const token = this.extractTokenFromHeader(request);
+
+    if (!token) {
+      throw new UnauthorizedException(
+        'Yêu cầu bị từ chối: Thiếu Bearer Token trong Header Authorization!',
+      );
+    }
+
+    try {
+      // 3. Giải mã và verify tính toàn vẹn của Token với Secret Key
+      const secret = this.configService.get<string>('JWT_SECRET');
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret,
+      });
+
+      // 4. Gắn dữ liệu người dùng giải mã được vào request['user']
+      request['user'] = {
+        userId: payload.sub,
+        email: payload.email,
+      };
+    } catch {
+      throw new UnauthorizedException(
+        'Yêu cầu bị từ chối: Token không hợp lệ hoặc đã hết hạn!',
+      );
+    }
+
+    // 5. Trả về true: Vệ sĩ cho phép request bước tiếp vào Controller Handler
+    return true;
   }
 
   /**
-   * Phương thức validate() tự động được gọi sau khi Passport đã verify chữ ký Token thành công
-   * @param payload Dữ liệu đã giải mã từ JWT Payload ({ sub, email })
-   * @returns Đối tượng sẽ được Passport gán tự động vào req.user
+   * Helper trích xuất Token từ định dạng: "Authorization: Bearer <token>"
    */
-  async validate(payload: JwtPayload) {
-    if (!payload || !payload.sub) {
-      throw new UnauthorizedException('Token payload không hợp lệ!');
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const authHeader = request.headers.authorization;
+    if (!authHeader) {
+      return undefined;
     }
 
-    // Giá trị trả về ở đây sẽ xuất hiện tại req.user trong các Controller Handler
+    const [type, token] = authHeader.split(' ');
+    return type === 'Bearer' ? token : undefined;
+  }
+}
+```
+
+> [!TIP]
+> **Giải mã luồng hoạt động:**
+>
+> 1. Trích xuất chuỗi sau từ khóa `Bearer`.
+> 2. Dùng `jwtService.verifyAsync()` để kiểm tra chữ ký số HMAC-SHA256 với `JWT_SECRET`. Nếu ai đó cố tình sửa payload dù chỉ 1 ký tự, hàm sẽ quăng lỗi ngay lập tức.
+> 3. Nếu hợp lệ, gắn `request['user'] = { userId: payload.sub, email: payload.email }`.
+> 4. `return true` để mở cửa cho request đi tiếp.
+
+---
+
+### 📌 Bước 2: Bảo Vệ Endpoint Bằng `@UseGuards(NativeAuthGuard)`
+
+Mở tệp `src/users/users.controller.ts` và gắn Guard lên Endpoint xem thông tin Profile:
+
+📄 **`src/users/users.controller.ts`**
+
+```typescript
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { NativeAuthGuard } from '../auth/guards/native-auth.guard';
+
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @Post()
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
+  }
+
+  // 🛡️ BẢO VỆ ENDPOINT NÀY VỚI NATIVE GUARD
+  @UseGuards(NativeAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req: Request) {
     return {
-      userId: payload.sub,
-      email: payload.email,
+      message: 'Xác thực tài khoản thành công qua NativeAuthGuard!',
+      user: req['user'], // 👈 Dữ liệu do Guard gắn vào
     };
   }
 }
 ```
 
-> [!IMPORTANT]
-> **Cơ chế tự động của Passport:**
-> Khi `validate(payload)` trả về dữ liệu thành công (ví dụ `{ userId, email }`), Passport sẽ tự động gán dữ liệu này vào thuộc tính `req.user` của Request HTTP. Nhờ đó, bạn có thể dễ dàng truy cập thông tin người dùng đang đăng nhập ở bất kỳ Controller nào!
-
 ---
 
-### 📌 Bước 2: Triển Khai `JwtAuthGuard` Class
+### 📌 Bước 3: Đăng Ký Provider & Export `JwtModule`
 
-Tạo thư mục `src/auth/guards/` và tạo tệp `jwt-auth.guard.ts` kế thừa `AuthGuard('jwt')`:
+Vì `NativeAuthGuard` sử dụng `JwtService` và `ConfigService`, khi Controller ở `UsersModule` sử dụng Guard này, NestJS cần quyền truy cập vào `JwtService`.
 
-📄 **`src/auth/guards/jwt-auth.guard.ts`**
-
-```typescript
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { UserData } from '../interfaces/auth.interface';
-
-@Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  canActivate(context: ExecutionContext) {
-    // Add your custom authentication logic here
-    // for example, call super.logIn(request) to establish a session.
-    return super.canActivate(context);
-  }
-
-  handleRequest<TUser = UserData>(
-    err: unknown,
-    user: TUser | false | null | undefined,
-    info: unknown,
-  ): TUser {
-    if (err || !user) {
-      if (info instanceof Error && info.name === 'TokenExpiredError') {
-        throw new UnauthorizedException(
-          'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!',
-        );
-      }
-
-      if (info instanceof Error && info.name === 'JsonWebTokenError') {
-        throw new UnauthorizedException('Mã xác thực (Token) không hợp lệ!');
-      }
-
-      if (err instanceof Error) {
-        throw err;
-      }
-
-      throw new UnauthorizedException(
-        'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
-      );
-    }
-    return user;
-  }
-}
-```
-
----
-
-### 📌 Bước 3: Đăng Ký `JwtStrategy` Trong `AuthModule`
-
-Mở tệp `src/auth/auth.module.ts` và bổ sung `JwtStrategy` cùng `PassportModule` vào khai báo:
+Hãy mở `src/auth/auth.module.ts` và export `JwtModule` cùng `NativeAuthGuard`:
 
 📄 **`src/auth/auth.module.ts`**
 
@@ -210,66 +251,64 @@ Mở tệp `src/auth/auth.module.ts` và bổ sung `JwtStrategy` cùng `Passport
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
+import { NativeAuthGuard } from './guards/native-auth.guard';
 
 @Module({
   imports: [
-    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1d'),
+          expiresIn: configService.get('JWT_EXPIRES_IN', '1d'),
         },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy], // 👈 Đăng ký JwtStrategy làm provider
+  providers: [AuthService, NativeAuthGuard],
+  exports: [AuthService, JwtModule, NativeAuthGuard], // 👈 Export để module khác sử dụng
 })
 export class AuthModule {}
 ```
 
----
+Sau đó import `AuthModule` vào `UsersModule` (nếu chưa có):
 
-### 📌 Bước 4: Bảo Vệ API Endpoints Bằng `@UseGuards(JwtAuthGuard)`
-
-Mở tệp `src/users/users.controller.ts` và sử dụng decorator `@UseGuards(JwtAuthGuard)` để bảo vệ Endpoint lấy thông tin Profile:
-
-📄 **`src/users/users.controller.ts`**
+📄 **`src/users/users.module.ts`**
 
 ```typescript
-import { Controller, Get, Request, UseGuards, Version } from '@nestjs/common';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Module } from '@nestjs/common';
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
+import { AuthModule } from '../auth/auth.module';
 
-@Controller('users')
-export class UsersController {
-  // 🛡️ Bảo vệ Endpoint này: Yêu cầu phải gửi kèm Bearer JWT Token hợp lệ
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  @ResponseMessage('Lấy thông tin cá nhân thành công!')
-  getProfile(@Request() req: Express.Request) {
-    return {
-      message: 'Thông tin tài khoản xác thực từ Token',
-      user: req.user,
-    };
-  }
-}
+@Module({
+  imports: [AuthModule],
+  controllers: [UsersController],
+  providers: [UsersService],
+  exports: [UsersService],
+})
+export class UsersModule {}
 ```
 
 ---
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Thành Công — Truy Cập API Được Bảo Vệ Kèm Bearer Token Hợp Lệ
+Hãy khởi động máy chủ để kiểm tra:
 
-1. **Thực hiện Đăng nhập để lấy Access Token hợp lệ:**
+```bash
+pnpm start:dev
+```
+
+---
+
+### 🟢 Kịch Bản 1: Thành Công (Success Flow) — Gửi Bearer Token Hợp Lệ
+
+1. **Đăng nhập để lấy Access Token hợp lệ:**
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
@@ -277,9 +316,9 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email": "alex@example.com", "password": "Password123!"}'
 ```
 
-_Giả sử bạn nhận được Token:_ `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4OTA...`
+📥 Giả sử bạn nhận được Access Token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4OTA...`
 
-2. **Gọi API `/api/v1/users/profile` kèm Header Authorization:**
+2. **Gọi API `/api/v1/users/profile` kèm Header `Authorization`:**
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile \
@@ -290,27 +329,21 @@ curl -X GET http://localhost:3000/api/v1/users/profile \
 
 ```json
 {
-  "statusCode": 200,
-  "message": "Lấy thông tin cá nhân thành công!",
-  "data": {
-    "message": "Thông tin tài khoản xác thực từ Token",
-    "user": {
-      "userId": "clx890xyz123",
-      "email": "alex@example.com"
-    }
-  },
-  "timestamp": "2026-08-13T16:30:00.000Z",
-  "path": "/api/v1/users/profile"
+  "message": "Xác thực tài khoản thành công qua NativeAuthGuard!",
+  "user": {
+    "userId": "clx890xyz123",
+    "email": "alex@example.com"
+  }
 }
 ```
 
-✅ **Kết quả:** `JwtAuthGuard` xác thực token thành công, trích xuất `req.user` và cho phép Handler trả về thông tin cá nhân.
+✅ **Kết quả:** `NativeAuthGuard` đã trích xuất token, thẩm định chữ ký số thành công, gắn user vào request và trả về dữ liệu Profile chính xác.
 
 ---
 
-### 🔴 Kịch Bản 2: Kiểm Thử Lỗi (Blocked Flow) — Không Gửi Token Hoặc Token Giả Mạo
+### 🔴 Kịch Bản 2: Kiểm Thử Bị Chặn (Blocked Flow) — Thiếu Token Hoặc Token Giả Mạo
 
-#### Test 1: Gọi API nhưng KHÔNG gửi Header Authorization:
+#### Test 1: Gọi API nhưng KHÔNG gửi Header Authorization
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile
@@ -321,18 +354,16 @@ curl -X GET http://localhost:3000/api/v1/users/profile
 ```json
 {
   "statusCode": 401,
-  "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
-  "error": "Unauthorized",
-  "timestamp": "2026-08-13T16:30:05.000Z",
-  "path": "/api/v1/users/profile"
+  "message": "Yêu cầu bị từ chối: Thiếu Bearer Token trong Header Authorization!",
+  "error": "Unauthorized"
 }
 ```
 
-#### Test 2: Gửi Token bị sửa đổi chữ ký (Fake / Tampered Token):
+#### Test 2: Gửi Token bị thay đổi nội dung (Fake Signature / Tampered Token)
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1Ni...FAKE_SIGNATURE"
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.FAKE_PAYLOAD.FAKE_SIGNATURE"
 ```
 
 📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
@@ -340,47 +371,65 @@ curl -X GET http://localhost:3000/api/v1/users/profile \
 ```json
 {
   "statusCode": 401,
-  "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
-  "error": "Unauthorized",
-  "timestamp": "2026-08-13T16:30:10.000Z",
-  "path": "/api/v1/users/profile"
+  "message": "Yêu cầu bị từ chối: Token không hợp lệ hoặc đã hết hạn!",
+  "error": "Unauthorized"
 }
 ```
 
-✅ **Kết quả:** `JwtAuthGuard` phát hiện chữ ký giả mạo và chặn đứng yêu cầu ngay lập tức ở cửa ngõ API!
+✅ **Kết quả:** Vệ sĩ đã phát hiện token giả mạo và từ chối ngay lập tức ở cửa ngõ, không cho phép request chạm vào Controller Handler!
 
 ---
 
-## 5. Tổng Kết Bài Học & Checklist Ghi Nhớ
+## 5. Tại Sao Native Guard Chưa Đủ Cho Ứng Dụng Enterprise? Cầu Nối Sang Passport.js
+
+Như bạn vừa thấy, việc tự viết một `NativeAuthGuard` rất trực quan và giúp ta hiểu cặn kẽ cách NestJS bảo vệ endpoint.
+
+Tuy nhiên, trong các dự án thực tế quy mô lớn, nếu chỉ dừng lại ở cách này, bạn sẽ gặp phải các hạn chế sau:
+
+1. **Khó mở rộng đa phương thức đăng nhập (Multi-Strategy):**
+   - Nếu ngày mai ứng dụng cần hỗ trợ: Đăng nhập Google, Facebook, Apple ID, Đăng nhập bằng API Key, hoặc Refresh Token thì sao?
+   - Nếu mỗi loại đăng nhập lại phải tự viết một Guard thủ công, mã nguồn sẽ bị lặp lại, khó bảo trì và dễ sơ hở bảo mật.
+2. **Không phân tách độc lập giữa "Cơ chế Chặn Request" và "Thuật toán Xác Thực":**
+   - Guard nên tập trung vào việc: _Cho qua hay chặn lại?_
+   - Việc _bóc tách token, verify chữ ký, truy vấn user từ DB_ nên thuộc về một lớp nghiệp vụ riêng biệt gọi là **Strategy (Chiến lược xác thực)**.
+
+Đó chính là lý do vì sao hệ sinh thái Node.js phát minh ra thư viện tiêu chuẩn công nghiệp **Passport.js**, và NestJS tích hợp mượt mà thông qua gói **`@nestjs/passport`**.
+
+---
+
+## 6. Tổng Kết Bài Học & Checklist Ghi Nhớ
 
 ```mermaid
 mindmap
-  root(("NestJS JwtAuthGuard"))
-    "Vị trí Guard"
-      "Chạy trước Controller Handler"
-      "Sau Middleware"
-      "Truy cập ExecutionContext"
-    "Cơ chế JwtStrategy"
-      "Extends PassportStrategy(Strategy, 'jwt')"
-      "ExtractJwt.fromAuthHeaderAsBearerToken()"
-      "Verify chữ ký bằng JWT_SECRET"
-      "Gán dữ liệu vào req.user"
-    "Áp dụng Bảo vệ"
-      "@UseGuards(JwtAuthGuard)"
-      "Cấp Controller hoặc cấp Route"
-      "Trả về 401 nếu token không hợp lệ"
+  root(("NestJS Guards Nền Tảng"))
+    "Khái Niệm Guard"
+      "Implements CanActivate"
+      "Trả về boolean hoặc ném Exception"
+      "Vị trí: Sau Middleware, trước Interceptors & Pipes"
+    "ExecutionContext"
+      "switchToHttp() lấy Request & Response"
+      "getClass() biết Controller đích"
+      "getHandler() biết Method đích"
+    "NativeAuthGuard"
+      "Tự trích xuất Header Bearer"
+      "Dùng JwtService.verifyAsync()"
+      "Gán req['user']"
+    "Áp dụng"
+      "@UseGuards(NativeAuthGuard)"
+      "Bảo vệ cấp Method hoặc cấp Controller"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu vị trí và vai trò của Guard trong Request Pipeline (xác thực & phân quyền).
-- [x] Triển khai thành công `JwtStrategy` kế thừa `PassportStrategy` từ `passport-jwt`.
-- [x] Cấu hình trích xuất Token từ Header `Authorization: Bearer <token>`.
-- [x] Nắm vững cơ chế `validate(payload)` tự động gán dữ liệu người dùng vào `req.user`.
-- [x] Xây dựng `JwtAuthGuard` kế thừa `AuthGuard('jwt')`.
-- [x] Sử dụng `@UseGuards(JwtAuthGuard)` để bảo vệ thành công các Route Handler riêng tư.
-- [x] Chạy kịch bản cURL kiểm thử truy cập thành công (200 OK) và truy cập bị chặn (401 Unauthorized).
+- [x] Hiểu rõ vai trò của Guard như một "vệ sĩ" đưa ra quyết định cho phép (`true`) hoặc chặn (`false`/`UnauthorizedException`).
+- [x] Phân biệt rõ sự khác nhau giữa Middleware và Guard (khả năng tiếp cận `ExecutionContext`).
+- [x] Nắm vững cấu trúc interface `CanActivate` và phương thức `canActivate(context)`.
+- [x] Tự tay viết thành công `NativeAuthGuard` sử dụng `JwtService` thuần túy.
+- [x] Trích xuất Header `Authorization: Bearer <token>` và gán thông tin vào `request['user']`.
+- [x] Sử dụng decorator `@UseGuards()` để bảo vệ endpoint `/users/profile`.
+- [x] Thử nghiệm thành công cURL bắt lỗi 401 khi không gửi token hoặc gửi token sai.
+- [x] Hiểu lý do vì sao cần nâng cấp lên kiến trúc Strategy Pattern với Passport.js ở bài học tiếp theo.
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 4.4: Custom Decorators — Tạo @CurrentUser() & @Public() Decorators](../lesson-4.4/lesson-4.4.md)
+👉 **Bài tiếp theo:** [Lesson 4.4: Passport.js & JwtStrategy — Chuẩn Hóa Xác Thực API Chuyên Nghiệp Trong NestJS](../lesson-4.4/lesson-4.4.md)

@@ -1,10 +1,10 @@
-# Lesson 4.4: Auth Decorators & Global Guard — Vận Dụng @CurrentUser() & @Public() Bảo Vệ Toàn Diện Hệ Thống
+# Lesson 4.4: Passport.js & JwtStrategy — Chuẩn Hóa Xác Thực API Chuyên Nghiệp Trong NestJS
 
 <p align="center">
-  <img src="https://img.shields.io/badge/NestJS-Auth_Decorators-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Auth Decorators" />
-  <img src="https://img.shields.io/badge/Reflector-Metadata-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="Reflector Metadata" />
-  <img src="https://img.shields.io/badge/Security-Secure_by_Default-10B981?style=for-the-badge&logo=security&logoColor=white" alt="Secure by Default" />
-  <img src="https://img.shields.io/badge/Global_Guard-APP_GUARD-F59E0B?style=for-the-badge&logo=json&logoColor=white" alt="Global Guard" />
+  <img src="https://img.shields.io/badge/NestJS-Passport-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Passport" />
+  <img src="https://img.shields.io/badge/Passport-JWT_Strategy-3178C6?style=for-the-badge&logo=passport&logoColor=white" alt="Passport Strategy" />
+  <img src="https://img.shields.io/badge/Pattern-Strategy_Pattern-10B981?style=for-the-badge&logo=designpatterns&logoColor=white" alt="Strategy Pattern" />
+  <img src="https://img.shields.io/badge/Security-JwtAuthGuard-F59E0B?style=for-the-badge&logo=security&logoColor=white" alt="JwtAuthGuard" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,141 +16,163 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Vận dụng kỹ thuật Custom Decorators đã học từ **Lesson 3.5** để giải quyết bài toán cốt lõi trong hệ thống Authentication: loại bỏ hoàn toàn mùi code (Code Smell) `@Request() req: any` bằng Custom Param Decorator `@CurrentUser()`; áp dụng Route Decorator `@Public()` với `SetMetadata` kết hợp `Reflector` để tạo cơ chế bypass Global `JwtAuthGuard` cho các Route công khai; thiết lập kiến trúc bảo mật "Secure by Default" cho toàn bộ ứng dụng bằng token `APP_GUARD`.
+> 🎯 **Mục tiêu bài học:** Nắm vững tư duy thiết kế **Strategy Pattern** trong bài toán xác thực (Authentication); giải mã sự kết hợp giữa thư viện tiêu chuẩn công nghiệp Passport.js và NestJS thông qua gói `@nestjs/passport` và `passport-jwt`; tự tay triển khai `JwtStrategy` trích xuất và xác thực Token từ Header `Authorization: Bearer <token>`; thấu hiểu cơ chế tự động gán dữ liệu từ `validate(payload)` vào `req.user`; xây dựng `JwtAuthGuard` kế thừa `AuthGuard('jwt')` với khả năng tùy biến thông báo lỗi tiếng Việt thân thiện qua `handleRequest()`; thực hành kịch bản kiểm thử chặn đứng truy cập hết hạn (`TokenExpiredError`) và sai chữ ký (`JsonWebTokenError`).
 
 ---
 
-## 1. Đặt Vấn Đề: Tối Ưu Hóa Trải Nghiệm Lập Trình & Bảo Mật Với Decorators
+## 1. Tại Sao Lại Là Passport.js? Bản Chất Của Strategy Pattern
 
-Trong **Lesson 4.2 & 4.3**, sau khi người dùng xác thực thành công qua JWT Token, `JwtStrategy` sẽ gán đối tượng payload vào `req.user`. Khi muốn lấy thông tin này ở Controller, chúng ta thường phải viết:
+Trong **Lesson 4.3**, chúng ta đã tự tay viết `NativeAuthGuard` sử dụng `JwtService.verifyAsync()`. Mặc dù Guard đó hoạt động rất tốt, nhưng nó bộc lộ hạn chế lớn khi ứng dụng mở rộng:
 
-```typescript
-// 🔴 MÙI CODE (CODE SMELL): Phải tiêm cả Request object và ép kiểu thủ công
-@Get('profile')
-getProfile(@Request() req: any) {
-  const user = req.user;
-  return user;
-}
-```
+- Nếu ứng dụng cần hỗ trợ thêm đăng nhập bằng **Username/Password (Local)**, **Google OAuth2**, **Facebook**, **GitHub**, **Apple ID**, hoặc **API Key**?
+- Nếu chúng ta viết toàn bộ logic giải mã và kiểm tra tài khoản vào trong một hoặc nhiều Guard thủ công, mã nguồn sẽ nhanh chóng trở thành một "mớ bòng bong", vi phạm nghiêm trọng nguyên lý Single Responsibility (Đơn trách nhiệm).
 
-Cách làm trên bộc lộ 3 nhược điểm lớn:
+### 💡 Giải Pháp: Strategy Pattern (Mô Thức Chiến Lược)
 
-1. **Lặp code (Boilerplate Code):** Mọi Handler cần thông tin người dùng đều phải tiêm `@Request() req: any`.
-2. **Mất Type-Safety:** Việc dùng kiểu `any` làm mất tính năng autocomplete gợi ý code của TypeScript.
-3. **Phụ thuộc vào Express Request Object:** Làm mã nguồn bị gắn chặt với tầng HTTP bên dưới.
+**Passport.js** là thư viện xác thực nổi tiếng nhất trong hệ sinh thái Node.js. Nó giải quyết bài toán trên bằng cách chia nhỏ hệ thống thành 2 phần độc lập:
 
-Đồng thời, việc phải gắn `@UseGuards(JwtAuthGuard)` lên **từng Controller** rất dễ dẫn đến rủi ro: Lập trình viên quên gắn Guard ở một Controller mới tạo, vô tình biến API nhạy cảm thành công khai!
-
-Vận dụng nền tảng **Custom Param Decorator** và **Metadata Decorator** đã học ở **Lesson 3.5**, chúng ta sẽ giải quyết triệt để 2 bài toán này:
-
-- **`@CurrentUser()` (Custom Param Decorator):** Tự động trích xuất `req.user` từ `ExecutionContext` với đầy đủ Type-Safe.
-- **`@Public()` (Custom Route Decorator):** Gán nhãn "Bỏ qua kiểm tra JWT" cho các Route công khai, cho phép biến `JwtAuthGuard` thành **Global Guard** bảo vệ mặc định toàn bộ ứng dụng (_Secure by Default_).
+1. **Guard (Người gác cửa):** Chỉ quan tâm: _"Request này cần dùng chiến lược nào để kiểm tra? Nếu hợp lệ thì cho qua, nếu sai thì chặn lại"_.
+2. **Strategy (Chiến lược kiểm tra cụ thể):** Mỗi hình thức đăng nhập là một Strategy độc lập:
+   - `LocalStrategy`: Kiểm tra email/mật khẩu trong DB.
+   - `JwtStrategy`: Kiểm tra tính hợp lệ của Bearer JWT Token.
+   - `GoogleStrategy`: Chuyển hướng và xác thực qua Google OAuth.
 
 ```mermaid
 flowchart TD
-    subgraph BadPractice ["🔴 CÁCH LÀM THỦ CÔNG (Code Smell & Rủi Ro)"]
-        ReqAny["@Request() req: any"] --> ReadUser["const user = req.user"]
-        ManualGuard["Quên gắn @UseGuards() trên Controller"] --> SecurityRisk["⚠️ Rò rỉ dữ liệu (Unprotected Route)"]
+    subgraph ClientLayer ["📱 Incoming Request"]
+        Req["HTTP Request"]
     end
 
-    subgraph GoodPractice ["🟢 AUTH DECORATORS & GLOBAL GUARD (Clean & Secure)"]
-        DecUser["@CurrentUser() user: JwtPayload"] --> CleanCode["Gọn gàng, Type-Safe 100%"]
-        DecPublic["@Public() trên Route công khai"] --> GlobalProtection["🛡️ Mặc định bảo vệ 100% routes với APP_GUARD"]
+    subgraph GuardLayer ["🛡️ NestJS Guard Layer"]
+        Guard["JwtAuthGuard<br/><i>extends AuthGuard('jwt')</i>"]
     end
+
+    subgraph PassportLayer ["🔑 Passport Strategy Registry"]
+        direction LR
+        Local["LocalStrategy<br/><i>(User/Password)</i>"]
+        JWT["JwtStrategy<br/><i>(Bearer Token)</i>"]
+        Google["GoogleStrategy<br/><i>(OAuth2)</i>"]
+    end
+
+    Req --> Guard
+    Guard -->|"Ủy quyền xác thực cho"| JWT
+    JWT -->|"validate() thành công"| Injected["Tự động gắn vào req.user"]
+    Injected --> Controller["📄 Controller Handler"]
+```
+
+NestJS đóng gói sẵn Passport thông qua package chính chủ **`@nestjs/passport`**, giúp việc triển khai Strategy trở nên gọn gàng, Type-Safe và đồng bộ với hệ thống Dependency Injection của NestJS.
+
+---
+
+## 2. Cài Đặt Hệ Sinh Thái & Vòng Đời Xác Thực
+
+### 📌 Cài Đặt Thư Viện Cần Thiết
+
+Chạy lệnh cài đặt các gói thư viện xác thực vào dự án:
+
+```bash
+pnpm add @nestjs/passport passport passport-jwt
+pnpm add -D @types/passport-jwt
 ```
 
 ---
 
-## 2. Luồng Hoạt Động Của Global JwtAuthGuard Khi Kết Hợp Với `@Public()` & `@CurrentUser()`
+### 🔹 Sơ Đồ Tuần Tự (Sequence Diagram) Vòng Đời JwtAuthGuard & JwtStrategy
 
-Khi biến `JwtAuthGuard` thành **Global Guard** (áp dụng cho TOÀN BỘ các API trong ứng dụng), luồng xử lý sẽ diễn ra như sau:
+Cơ chế phối hợp giữa `@nestjs/passport`, `passport-jwt` và NestJS Guard tạo nên một chu trình bảo vệ khép kín:
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Client as 📱 HTTP Client
-    participant Guard as 🛡️ Global JwtAuthGuard
-    participant Reflector as 🔍 Reflector Metadata
+    participant Guard as 🛡️ JwtAuthGuard (AuthGuard)
+    participant Strategy as 🔑 JwtStrategy (Passport)
     participant Controller as 📄 Controller Handler
 
-    Client->>Guard: 1. Gửi HTTP Request tới Endpoint
-    Guard->>Reflector: 2. Lấy metadata 'IS_PUBLIC_KEY' từ Route Handler / Class
+    Client->>Guard: GET /api/v1/users/profile (Header: Authorization Bearer Token)
+    Guard->>Strategy: Chuyển Request tới Passport JwtStrategy
 
-    alt Route có gắn @Public()
-        Reflector-->>Guard: isPublic = true
-        Guard->>Controller: 🟢 3a. Cho phép đi tiếp (Bỏ qua verify Bearer Token)
-    else Route KHÔNG có @Public() (Mặc định riêng tư)
-        Reflector-->>Guard: isPublic = false / undefined
-        Note over Guard: Verify Bearer Token trong Header Authorization
-        alt Token KHÔNG hợp lệ / Thiếu Token
-            Guard-->>Client: 🔴 3b. Trả về 401 Unauthorized Response
-        else Token HỢP LỆ
-            Guard->>Controller: 🟢 3c. Cho phép đi tiếp (Gắn user vào req.user)
-            Note over Controller: Handler lấy user nhanh bằng @CurrentUser()
-        end
+    Note over Strategy: 1. ExtractJwt.fromAuthHeaderAsBearerToken()<br/>2. Decode & Verify signature với JWT_SECRET<br/>3. Kiểm tra thời hạn hiệu lực (exp)
+
+    alt Token SAI / HẾT HẠN / THIẾU HEADER
+        Strategy-->>Guard: Trả về lỗi / Unauthorized
+        Guard->>Guard: handleRequest(err, user, info)
+        Guard-->>Client: 🔴 401 Unauthorized ("Token đã hết hạn!" / "Token không hợp lệ!")
+    else Token HỢP LỆ & CÒN HẠN
+        Strategy->>Strategy: Gọi validate(payload)
+        Strategy-->>Guard: Trả về user object payload
+        Note over Guard: Tự động gán kết quả: req.user = user
+        Guard->>Controller: 🟢 Cho phép Request đi tiếp vào Handler
+        Controller-->>Client: 200 OK (Dữ liệu Profile từ req.user)
     end
 ```
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step
+## 3. Hướng Dẫn Thực Hành Step-by-Step — Triển Khai Chuẩn Hóa
 
-### 📌 Bước 1: Triển Khai Custom Param Decorator `@CurrentUser()`
+---
 
-Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng hàm `createParamDecorator()`:
+### 📌 Bước 1: Triển Khai `JwtStrategy` Kế Thừa `PassportStrategy`
 
-📄 **`src/shared/decorators/current-user.decorator.ts`**
+Tạo thư mục `src/auth/strategies/` và khởi tạo tệp `jwt.strategy.ts`:
+
+📄 **`src/auth/strategies/jwt.strategy.ts`**
 
 ```typescript
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserData } from '../interfaces/auth.interface';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
 
-/**
- * Custom Param Decorator trích xuất thông tin User từ Request Object (do JwtStrategy gán vào)
- *
- * Cách sử dụng:
- * 1. Lấy toàn bộ đối tượng: getProfile(@CurrentUser() user: UserData)
- * 2. Lấy 1 trường cụ thể: getUserId(@CurrentUser('userId') userId: string)
- */
-export const CurrentUser = createParamDecorator(
-  (data: keyof UserData | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<Express.Request>();
-    const user = request.user as UserData;
+export interface JwtPayload {
+  sub: string;
+  email: string;
+  iat?: number;
+  exp?: number;
+}
 
-    if (!user) {
-      return null;
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  constructor(configService: ConfigService) {
+    super({
+      // 1. Trích xuất Bearer Token từ Header Authorization: Bearer <token>
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // 2. Không bỏ qua kiểm tra hạn dùng (Tự động ném lỗi nếu token hết hạn)
+      ignoreExpiration: false,
+      // 3. Cung cấp Secret Key để Passport verify chữ ký Signature
+      secretOrKey: configService.get<string>('JWT_SECRET') || 'fallback_secret',
+    });
+  }
+
+  /**
+   * Phương thức validate() tự động được Passport gọi SAU KHI đã verify chữ ký Token thành công
+   * @param payload Dữ liệu đã giải mã từ JWT Payload ({ sub, email })
+   * @returns Đối tượng sẽ được Passport gán tự động vào req.user
+   */
+  async validate(payload: JwtPayload) {
+    if (!payload || !payload.sub) {
+      throw new UnauthorizedException('Payload của Token không hợp lệ!');
     }
 
-    return data ? user[data] : user;
-  },
-);
+    // Giá trị trả về ở đây sẽ xuất hiện tại req.user trong các Controller Handler
+    return {
+      userId: payload.sub,
+      email: payload.email,
+    };
+  }
+}
 ```
+
+> [!IMPORTANT]
+> **Cơ chế tự động của Passport (The "Magic" of `validate()`):**
+> Khi `validate(payload)` hoàn thành và trả về một đối tượng (ví dụ `{ userId, email }`), Passport sẽ tự động gán đối tượng này vào thuộc tính `req.user` của HTTP Request. Nhờ đó, bạn có thể dễ dàng truy cập thông tin người dùng đang đăng nhập ở bất kỳ Controller nào mà không cần phải gọi lại Database!
 
 ---
 
-### 📌 Bước 2: Triển Khai Custom Route Decorator `@Public()`
+### 📌 Bước 2: Triển Khai `JwtAuthGuard` Tùy Biến `handleRequest`
 
-Tạo tệp `src/shared/decorators/public.decorator.ts` sử dụng `SetMetadata()`:
-
-📄 **`src/shared/decorators/public.decorator.ts`**
-
-```typescript
-import { SetMetadata } from '@nestjs/common';
-
-export const IS_PUBLIC_KEY = 'IS_PUBLIC_KEY';
-
-/**
- * Custom Route Decorator đánh dấu Route Handler hoặc Controller là công khai (Public)
- * Giúp bypass quy trình kiểm tra Token của Global JwtAuthGuard
- */
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
-```
-
----
-
-### 📌 Bước 3: Nâng Cấp `JwtAuthGuard` Kết Hợp `Reflector` Đọc Metadata
-
-Mở tệp `src/auth/guards/jwt-auth.guard.ts` và tích hợp `Reflector` để kiểm tra cờ `IS_PUBLIC_KEY`:
+Tạo tệp `jwt-auth.guard.ts` trong `src/auth/guards/`:
 
 📄 **`src/auth/guards/jwt-auth.guard.ts`**
 
@@ -160,193 +182,131 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../../shared/decorators/public.decorator';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private readonly reflector: Reflector) {
-    super();
-  }
-
-  override canActivate(context: ExecutionContext) {
-    // 1. Trích xuất cờ 'IS_PUBLIC_KEY' từ Route Handler hoặc Controller Class
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    // 2. Nếu Route được gắn @Public(), cho phép truy cập ngay mà không cần verify JWT Token
-    if (isPublic) {
-      return true;
-    }
-
-    // 3. Nếu là Route riêng tư, tiếp tục kích hoạt quy trình kiểm tra Token của Passport
+  canActivate(context: ExecutionContext) {
+    // Có thể bổ sung logic tùy biến trước khi Passport xử lý
     return super.canActivate(context);
   }
 
-  override handleRequest(err: any, user: any, info: any) {
+  /**
+   * Tùy biến phản hồi lỗi thân thiện bằng tiếng Việt khi xác thực thất bại
+   */
+  handleRequest<TUser = any>(
+    err: unknown,
+    user: TUser | false | null | undefined,
+    info: unknown,
+  ): TUser {
     if (err || !user) {
-      throw (
-        err ||
-        new UnauthorizedException(
-          'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
-        )
+      // 1. Bắt lỗi Token đã hết hạn
+      if (info instanceof Error && info.name === 'TokenExpiredError') {
+        throw new UnauthorizedException(
+          'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!',
+        );
+      }
+
+      // 2. Bắt lỗi Token sai chữ ký hoặc bị sửa đổi trái phép
+      if (info instanceof Error && info.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Mã xác thực (Token) không hợp lệ!');
+      }
+
+      if (err instanceof Error) {
+        throw err;
+      }
+
+      // 3. Lỗi mặc định khi thiếu Header Authorization
+      throw new UnauthorizedException(
+        'Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!',
       );
     }
+
     return user;
   }
 }
 ```
 
+> [!TIP]
+> Bằng cách ghi đè phương thức `handleRequest()`, chúng ta phân biệt được chính xác nguyên nhân thất bại: Do token hết hạn (`TokenExpiredError`) hay do hacker sửa đổi chữ ký (`JsonWebTokenError`), từ đó cung cấp trải nghiệm phản hồi (Developer & User Experience) chuẩn mực nhất.
+
 ---
 
-### 📌 Bước 4: Đăng Ký `JwtAuthGuard` Làm Global Guard Trong `AppModule`
+### 📌 Bước 3: Đăng Ký Trong `AuthModule`
 
-Thay vì gắn `@UseGuards(JwtAuthGuard)` trên từng Controller thủ công, chúng ta đăng ký nó làm **Global Guard** với token `APP_GUARD` trong `AppModule`. Toàn bộ ứng dụng mặc định sẽ được bảo vệ:
+Mở tệp `src/auth/auth.module.ts`, import `PassportModule` và đăng ký `JwtStrategy` cùng `JwtAuthGuard` làm providers:
 
-📄 **`src/app.module.ts`**
+📄 **`src/auth/auth.module.ts`**
 
 ```typescript
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { PostsModule } from './posts/posts.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { envValidationSchema } from './config/env.validation';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { LoggerMiddleware } from './shared/middleware/logger.middleware';
-import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
-import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
-import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
-import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      validationSchema: envValidationSchema,
-      isGlobal: true,
+    // Đăng ký PassportModule với chiến lược mặc định là 'jwt'
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1d'),
+        },
+      }),
     }),
-    PrismaModule,
-    AuthModule,
-    UsersModule,
-    PostsModule,
   ],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    // 🛡️ 1. Đăng ký JwtAuthGuard làm Global Guard cho TOÀN BỘ ứng dụng
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    // 2. Global Interceptors
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
-    // 3. Global Exception Filters
-    {
-      provide: APP_FILTER,
-      useClass: PrismaClientExceptionFilter,
-    },
-    {
-      provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
-    },
-  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  exports: [AuthService, JwtModule, PassportModule, JwtAuthGuard],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoggerMiddleware)
-      .exclude({ path: 'health', method: RequestMethod.GET })
-      .forRoutes('*');
-  }
-}
+export class AuthModule {}
 ```
 
 ---
 
-### 📌 Bước 5: Áp Dụng Decorators Gọn Gàng Trong Controllers
+### 📌 Bước 4: Bảo Vệ API Profile Trong `UsersController` Bằng `JwtAuthGuard`
 
-#### 1. Áp dụng `@Public()` trong `AuthController`:
-
-📄 **`src/auth/auth.controller.ts`**
-
-```typescript
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Version,
-} from '@nestjs/common';
-import { Public } from '../shared/decorators/public.decorator';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-
-@Controller('auth')
-export class AuthController {
-  constructor(private readonly authService: AuthService) {}
-
-  @Public() // 🔓 Route công khai: Người dùng chưa có tài khoản có thể Đăng ký
-  @Version('1')
-  @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
-
-  @Public() // 🔓 Route công khai: Đăng nhập để lấy Access Token
-  @Version('1')
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
-}
-```
-
-#### 2. Áp dụng `@CurrentUser()` trong `UsersController`:
+Mở tệp `src/users/users.controller.ts` và chuyển sang sử dụng `JwtAuthGuard`:
 
 📄 **`src/users/users.controller.ts`**
 
 ```typescript
-import { Controller, Get, Version } from '@nestjs/common';
-import {
-  CurrentUser,
-  JwtPayload,
-} from '../shared/decorators/current-user.decorator';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
-  // 🔒 Route này mặc định được bảo vệ bởi Global JwtAuthGuard
-  @Version('1')
-  @Get('profile')
-  getProfile(@CurrentUser() user: JwtPayload) {
-    // ✨ Clean Code: Trích xuất user trực tiếp, không cần @Request() req: any
-    return {
-      message: 'Thông tin tài khoản xác thực từ Token',
-      user,
-    };
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
   }
 
-  // 💡 Trích xuất trực tiếp một trường dữ liệu cụ thể:
-  @Version('1')
-  @Get('my-id')
-  getMyId(@CurrentUser('userId') userId: string) {
-    return { myUserId: userId };
+  @Post()
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
+  }
+
+  // 🛡️ BẢO VỆ ENDPOINT NÀY VỚI PASSPORT JWT GUARD
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req: Request) {
+    return {
+      message: 'Lấy thông tin cá nhân thành công qua Passport JwtAuthGuard!',
+      user: req.user, // 👈 Passport tự động gán vào req.user từ hàm validate()
+    };
   }
 }
 ```
@@ -355,9 +315,11 @@ export class UsersController {
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Kiểm Thử Route Public (`@Public()`) KHÔNG Cần Gửi Token
+---
 
-Gửi yêu cầu Đăng nhập mà KHÔNG kèm Header Authorization:
+### 🟢 Kịch Bản 1: Thành Công (Success Flow) — Gửi Bearer Token Hợp Lệ
+
+1. **Đăng nhập lấy Access Token:**
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
@@ -365,58 +327,34 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email": "alex@example.com", "password": "Password123!"}'
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+_Giả sử Token trả về là:_ `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4OTA...`
 
-```json
-{
-  "statusCode": 200,
-  "message": "Thao tác thực hiện thành công!",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  },
-  "timestamp": "2026-08-13T16:00:00.000Z",
-  "path": "/api/v1/auth/login"
-}
-```
-
-✅ **Kết quả:** Global Guard phát hiện decorator `@Public()`, tự động cho phép request đi qua mà không bắt lỗi 401!
-
----
-
-### 🟢 Kịch Bản 2: Kiểm Thử Route Protected Sử Dụng `@CurrentUser()`
-
-Gửi yêu cầu tới Endpoint `/api/v1/users/profile` kèm Bearer Token hợp lệ:
+2. **Gọi API `/api/v1/users/profile` kèm Header Authorization:**
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4OTA..."
 ```
 
-📥 **Phản hồi HTTP nhận được từ Server (`200 OK`):**
+📥 **Phản hồi HTTP nhận được (`200 OK`):**
 
 ```json
 {
-  "statusCode": 200,
-  "message": "Thao tác thực hiện thành công!",
-  "data": {
-    "message": "Thông tin tài khoản xác thực từ Token",
-    "user": {
-      "userId": "clx890xyz123",
-      "email": "alex@example.com"
-    }
-  },
-  "timestamp": "2026-08-13T16:05:00.000Z",
-  "path": "/api/v1/users/profile"
+  "message": "Lấy thông tin cá nhân thành công qua Passport JwtAuthGuard!",
+  "user": {
+    "userId": "clx890xyz123",
+    "email": "alex@example.com"
+  }
 }
 ```
 
-✅ **Kết quả:** `@CurrentUser()` trích xuất chính xác payload người dùng từ token và truyền trực tiếp vào Handler với đầy đủ gợi ý Type-Safety của TypeScript!
+✅ **Kết quả:** `JwtAuthGuard` kích hoạt `JwtStrategy`, Passport verify chữ ký số thành công, kích hoạt `validate()` và gắn dữ liệu vào `req.user`.
 
 ---
 
-### 🔴 Kịch Bản 3: Kiểm Thử Route Protected Nhưng KHÔNG Gửi Token (Bị Global Guard Chặn)
+### 🔴 Kịch Bản 2: Kiểm Thử Bắt Lỗi & Ngăn Chặn (Blocked Flows)
 
-Thử gọi API Profile nhưng KHÔNG gửi Bearer Token:
+#### Test 1: Gọi API nhưng KHÔNG gửi kèm Header Authorization:
 
 ```bash
 curl -X GET http://localhost:3000/api/v1/users/profile
@@ -428,13 +366,47 @@ curl -X GET http://localhost:3000/api/v1/users/profile
 {
   "statusCode": 401,
   "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
-  "error": "Unauthorized",
-  "timestamp": "2026-08-13T16:10:00.000Z",
-  "path": "/api/v1/users/profile"
+  "error": "Unauthorized"
 }
 ```
 
-✅ **Kết quả:** Mọi API trong hệ thống mặc định đều được bảo vệ an toàn bởi Global Guard trừ khi được gắn cờ `@Public()`.
+#### Test 2: Gửi Token đã hết hạn (Expired Token):
+
+Nếu token tạo với `expiresIn: '1s'` và đã quá hạn sử dụng:
+
+```bash
+curl -X GET http://localhost:3000/api/v1/users/profile \
+  -H "Authorization: Bearer <EXPIRED_TOKEN>"
+```
+
+📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
+
+```json
+{
+  "statusCode": 401,
+  "message": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!",
+  "error": "Unauthorized"
+}
+```
+
+#### Test 3: Gửi Token bị sửa đổi chữ ký (Tampered Signature):
+
+```bash
+curl -X GET http://localhost:3000/api/v1/users/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1Ni...FAKE_SIGNATURE"
+```
+
+📥 **Phản hồi HTTP nhận được (`401 Unauthorized`):**
+
+```json
+{
+  "statusCode": 401,
+  "message": "Mã xác thực (Token) không hợp lệ!",
+  "error": "Unauthorized"
+}
+```
+
+✅ **Kết quả:** `handleRequest` trong `JwtAuthGuard` đã phân loại chuẩn xác từng loại lỗi và trả về phản hồi tiếng Việt trực quan, đúng chuẩn RESTful API.
 
 ---
 
@@ -442,32 +414,35 @@ curl -X GET http://localhost:3000/api/v1/users/profile
 
 ```mermaid
 mindmap
-  root(("Auth Decorators & Global Guard"))
-    "Kiến Trúc Secure by Default"
-      "Đăng ký JwtAuthGuard qua APP_GUARD"
-      "Mặc định bảo vệ 100% Routes"
-      "Loại bỏ rủi ro quên gắn Guard"
-    "Custom Param Decorator"
-      "createParamDecorator()"
-      "@CurrentUser() lấy toàn bộ user"
-      "@CurrentUser('userId') lấy 1 trường"
-      "Loại bỏ @Request() req: any"
-    "Custom Route Decorator"
-      "SetMetadata(IS_PUBLIC_KEY, true)"
-      "Reflector.getAllAndOverride()"
-      "Bypass kiểm tra token cho Public APIs"
+  root(("Passport.js & JwtStrategy"))
+    "Strategy Pattern"
+      "Tách rời Guard và Thuật toán kiểm tra"
+      "Dễ mở rộng: Local, JWT, OAuth2, API Key"
+    "Cấu Hình JwtStrategy"
+      "Extends PassportStrategy(Strategy, 'jwt')"
+      "ExtractJwt.fromAuthHeaderAsBearerToken()"
+      "secretOrKey thẩm định chữ ký"
+      "validate(payload) tự động gán vào req.user"
+    "Tùy Biến JwtAuthGuard"
+      "Extends AuthGuard('jwt')"
+      "handleRequest bắt TokenExpiredError"
+      "handleRequest bắt JsonWebTokenError"
+    "Bảo Vệ Endpoint"
+      "@UseGuards(JwtAuthGuard)"
+      "Nhận req.user Type-Safe ở Controller"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu rõ lợi ích của kiến trúc "Secure by Default" khi đăng ký Global Guard qua `APP_GUARD`.
-- [x] Vận dụng kỹ thuật `createParamDecorator` (từ Lesson 3.5) để tạo `@CurrentUser()`.
-- [x] Hỗ trợ trích xuất toàn bộ object hoặc 1 thuộc tính cụ thể với `@CurrentUser('userId')`.
-- [x] Vận dụng kỹ thuật `SetMetadata` (từ Lesson 3.5) để tạo `@Public()`.
-- [x] Nâng cấp `JwtAuthGuard` tích hợp `Reflector` để đọc cờ `IS_PUBLIC_KEY`.
-- [x] Đăng ký `JwtAuthGuard` làm Global Guard trong `AppModule` bằng token `APP_GUARD`.
-- [x] Thử nghiệm cURL thành công cho cả Route Public, Route Protected dùng `@CurrentUser()` và Route bị chặn 401.
+- [x] Hiểu rõ vì sao Passport.js và Strategy Pattern được chọn để chuẩn hóa tầng xác thực cho ứng dụng doanh nghiệp.
+- [x] Cài đặt thành công bộ thư viện: `@nestjs/passport`, `passport`, `passport-jwt`, `@types/passport-jwt`.
+- [x] Triển khai `JwtStrategy` kế thừa `PassportStrategy` với các cấu hình `ExtractJwt` và `secretOrKey`.
+- [x] Nắm chắc cơ chế tự động gán dữ liệu trả về từ `validate(payload)` vào đối tượng `req.user`.
+- [x] Tạo `JwtAuthGuard` kế thừa `AuthGuard('jwt')` và tùy biến `handleRequest()` xử lý lỗi chuyên nghiệp.
+- [x] Đăng ký `PassportModule` và `JwtStrategy` trong `AuthModule`.
+- [x] Sử dụng `@UseGuards(JwtAuthGuard)` để bảo vệ endpoint `/users/profile`.
+- [x] Thực hành cURL kiểm thử thành công (200 OK) và các trường hợp lỗi (401: Thiếu token, Hết hạn token, Sai chữ ký).
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 4.5: Rate Limiting — Giới Hạn Lượt Gọi API Với @nestjs/throttler](../lesson-4.5/lesson-4.5.md)
+👉 **Bài tiếp theo:** [Lesson 4.5: Auth Decorators & Global Guard — Vận Dụng @CurrentUser() & @Public() Bảo Vệ Toàn Diện Hệ Thống](../lesson-4.5/lesson-4.5.md)

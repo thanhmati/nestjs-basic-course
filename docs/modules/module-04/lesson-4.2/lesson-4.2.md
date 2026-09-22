@@ -590,4 +590,4 @@ mindmap
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 4.3: Guards — Bảo Vệ API Bằng JwtAuthGuard & Passport Strategy](../lesson-4.3/lesson-4.3.md)
+👉 **Bài tiếp theo:** [Lesson 4.3: Guards Nền Tảng — Kiểm Soát Quyền Truy Cập Với CanActivate & ExecutionContext](../lesson-4.3/lesson-4.3.md)
