@@ -154,6 +154,7 @@ Tạo tệp `src/shared/decorators/current-user.decorator.ts` sử dụng `creat
 ```typescript
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { UserData } from '@/auth/interfaces/jwt.interface';
+import { Request } from 'express';
 
 /**
  * Custom Param Decorator trích xuất dữ liệu người dùng từ Request Object (do JwtStrategy gán vào)
@@ -165,8 +166,8 @@ import { UserData } from '@/auth/interfaces/jwt.interface';
  */
 export const CurrentUser = createParamDecorator(
   (data: keyof UserData | undefined, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
-    const user = request.user as UserData;
+    const request = ctx.switchToHttp().getRequest<Request>();
+    const user = request['user'] as UserData;
 
     // Nếu không có thông tin user (ví dụ gọi ở route public), trả về null
     if (!user) {
