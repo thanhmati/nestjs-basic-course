@@ -1,0 +1,213 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 480" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <!-- Card Gradients -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="guardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0234e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <pattern id="gridPattern" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#334155" stroke-width="0.8" stroke-opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1100" height="480" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5"/>
+  <rect width="1100" height="480" rx="16" fill="url(#gridPattern)"/>
+
+  <!-- Top Title Bar -->
+  <g transform="translate(40, 24)">
+    <rect width="1020" height="38" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <circle cx="20" cy="19" r="5" fill="#ef4444"/>
+    <circle cx="36" cy="19" r="5" fill="#f59e0b"/>
+    <circle cx="52" cy="19" r="5" fill="#10b981"/>
+    <text x="510" y="24" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="600" text-anchor="middle">
+      NESTJS REQUEST LIFECYCLE: VỊ TRÍ CHIẾN LƯỢC CỦA GUARDS TRONG PIPELINE
+    </text>
+  </g>
+
+  <!-- Step 0: HTTP Client Request -->
+  <g transform="translate(40, 90)" filter="url(#dropShadow)">
+    <rect width="130" height="120" rx="12" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect width="130" height="28" rx="12" fill="#0369a1" fill-opacity="0.3"/>
+    <text x="65" y="19" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">1. CLIENT</text>
+    <text x="65" y="52" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="12" font-weight="700" text-anchor="middle">HTTP Request</text>
+    <line x1="15" y1="62" x2="115" y2="62" stroke="#334155" stroke-width="1"/>
+    <text x="65" y="80" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">GET /users/profile</text>
+    <text x="65" y="98" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">Bearer &lt;token&gt;</text>
+  </g>
+
+  <!-- Arrow 0 -> 1 -->
+  <path d="M 175 150 L 205 150" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="4,3"/>
+  <polygon points="210,150 202,145 202,155" fill="#38bdf8"/>
+
+  <!-- Step 1: Middleware -->
+  <g transform="translate(215, 90)" filter="url(#dropShadow)">
+    <rect width="135" height="120" rx="12" fill="url(#cardGrad)" stroke="#94a3b8" stroke-width="1.2"/>
+    <rect width="135" height="28" rx="12" fill="#334155" fill-opacity="0.5"/>
+    <text x="67" y="19" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">2. MIDDLEWARE</text>
+    <text x="67" y="52" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="12" font-weight="600" text-anchor="middle">Logger / CORS</text>
+    <line x1="15" y1="62" x2="120" y2="62" stroke="#334155" stroke-width="1"/>
+    <text x="67" y="80" fill="#94a3b8" font-family="'Inter', sans-serif" font-size="10" text-anchor="middle">Chưa có Route info</text>
+    <text x="67" y="98" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">req, res, next()</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 (Guard) -->
+  <path d="M 355 150 L 385 150" stroke="#e0234e" stroke-width="3"/>
+  <polygon points="392,150 382,144 382,156" fill="#e0234e"/>
+
+  <!-- Step 2: HERO NODE - GUARDS (CanActivate) -->
+  <g transform="translate(395, 70)" filter="url(#dropShadow)">
+    <rect width="210" height="160" rx="16" fill="#0f172a" stroke="#e0234e" stroke-width="2.2"/>
+    <rect width="210" height="34" rx="16" fill="url(#guardGrad)"/>
+    <text x="105" y="22" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="bold" text-anchor="middle">
+      🛡️ 3. NESTJS GUARD
+    </text>
+
+    <!-- Subtitle Badge -->
+    <rect x="25" y="44" width="160" height="20" rx="4" fill="#be123c" fill-opacity="0.2" stroke="#e0234e" stroke-width="0.8"/>
+    <text x="105" y="58" fill="#fda4af" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">
+      implements CanActivate
+    </text>
+
+    <text x="105" y="85" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+      canActivate(context)
+    </text>
+
+    <line x1="20" y1="96" x2="190" y2="96" stroke="#334155" stroke-width="1"/>
+    <text x="105" y="114" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">
+      context.switchToHttp()
+    </text>
+    <text x="105" y="132" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">
+      Extract &amp; Verify Token
+    </text>
+    <text x="105" y="148" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="bold" text-anchor="middle">
+      req['user'] = payload
+    </text>
+  </g>
+
+  <!-- ==================== BRANCH 1: ALLOWED (TRUE) ==================== -->
+  <path d="M 610 125 L 655 125" fill="none" stroke="#10b981" stroke-width="3"/>
+  <polygon points="662,125 652,119 652,131" fill="#10b981"/>
+  <rect x="618" y="103" width="38" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
+  <text x="637" y="116" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">TRUE</text>
+
+  <!-- Step 3: Pipes & DTO Validation -->
+  <g transform="translate(668, 80)" filter="url(#dropShadow)">
+    <rect width="125" height="90" rx="10" fill="url(#cardGrad)" stroke="#f59e0b" stroke-width="1.2"/>
+    <rect width="125" height="24" rx="10" fill="#78350f" fill-opacity="0.4"/>
+    <text x="62" y="17" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">4. PIPES / DTO</text>
+    <text x="62" y="46" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="11" font-weight="600" text-anchor="middle">ValidationPipe</text>
+    <text x="62" y="65" fill="#94a3b8" font-family="'Inter', sans-serif" font-size="10" text-anchor="middle">Transform &amp; Validate</text>
+    <text x="62" y="80" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">DTO Class-Validator</text>
+  </g>
+
+  <!-- Arrow 3 -> 4 (Handler) -->
+  <path d="M 798 125 L 828 125" stroke="#10b981" stroke-width="2.5"/>
+  <polygon points="835,125 825,120 825,130" fill="#10b981"/>
+
+  <!-- Step 4: Controller Handler -->
+  <g transform="translate(840, 70)" filter="url(#dropShadow)">
+    <rect width="220" height="110" rx="12" fill="#064e3b" stroke="#10b981" stroke-width="1.8"/>
+    <rect width="220" height="28" rx="12" fill="#047857"/>
+    <text x="110" y="19" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">
+      5. CONTROLLER HANDLER
+    </text>
+    <text x="110" y="52" fill="#a7f3d0" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="bold" text-anchor="middle">
+      getProfile(@Req() req)
+    </text>
+    <text x="110" y="74" fill="#ecfdf5" font-family="'Inter', sans-serif" font-size="11" text-anchor="middle">
+      Truy cập thông tin người dùng:
+    </text>
+    <text x="110" y="94" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">
+      const user = req['user']
+    </text>
+  </g>
+
+  <!-- Response 200 OK Box -->
+  <g transform="translate(840, 200)" filter="url(#dropShadow)">
+    <path d="M 950 185 L 950 200" stroke="#10b981" stroke-width="2"/>
+    <rect width="220" height="42" rx="8" fill="#022c22" stroke="#10b981" stroke-width="1.2"/>
+    <text x="110" y="26" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="bold" text-anchor="middle">
+      🟢 RESPONSE 200 OK
+    </text>
+  </g>
+
+  <!-- ==================== BRANCH 2: BLOCKED / EXCEPTION ==================== -->
+  <path d="M 500 235 L 500 320 L 660 320" fill="none" stroke="#ef4444" stroke-width="3"/>
+  <polygon points="668,320 658,314 658,326" fill="#ef4444"/>
+  <rect x="510" y="275" width="85" height="20" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="1"/>
+  <text x="552" y="289" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">FALSE / ERROR</text>
+
+  <!-- Blocked Node: Exception Filter -->
+  <g transform="translate(675, 275)" filter="url(#dropShadow)">
+    <rect width="385" height="90" rx="12" fill="#450a0a" stroke="#ef4444" stroke-width="1.8"/>
+    <rect width="385" height="26" rx="12" fill="#991b1b"/>
+    <text x="192" y="18" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">
+      🔴 SHORT-CIRCUIT: TỪ CHỐI TRUY CẬP NGAY TẠI CỬA
+    </text>
+    <text x="192" y="48" fill="#fca5a5" font-family="'Inter', sans-serif" font-size="11" text-anchor="middle">
+      Không cho phép request chạm tới Pipes hay Controller Handler!
+    </text>
+    <text x="192" y="72" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="bold" text-anchor="middle">
+      HTTP 401 Unauthorized ("Thiếu hoặc Sai Token")
+    </text>
+  </g>
+
+  <!-- Bottom Insight Footer -->
+  <g transform="translate(40, 395)">
+    <rect width="1020" height="60" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="30" y="26" fill="#38bdf8" font-family="'Inter', sans-serif" font-size="12" font-weight="bold">
+      💡 NGUYÊN TẮC BẢO MẬT FAIL-SAFE TRONG NESTJS:
+    </text>
+    <text x="30" y="46" fill="#94a3b8" font-family="'Inter', sans-serif" font-size="12">
+      Guard chạy <tspan fill="#ffffff" font-weight="bold">ngay trước</tspan> Pipes &amp; Handlers. Nếu xác thực không đạt, request bị ngắt kết nối lập tức, tiết kiệm 100% tài nguyên xử lý dữ liệu và truy vấn DB!
+    </text>
+  </g>
+</svg>

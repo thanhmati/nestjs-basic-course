@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="canvasBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <!-- Node Gradient -->
+    <linearGradient id="nodeBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Shield Gradient -->
+    <linearGradient id="shieldFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0234e"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="boxShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+
+    <pattern id="gridSubtle" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#334155" stroke-width="0.7" stroke-opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="960" height="260" rx="14" fill="url(#canvasBg)" stroke="#334155" stroke-width="1.2"/>
+  <rect width="960" height="260" rx="14" fill="url(#gridSubtle)"/>
+
+  <!-- ==================== 1. CLIENT SIDE ==================== -->
+  <g transform="translate(50, 75)" filter="url(#boxShadow)">
+    <rect width="180" height="100" rx="10" fill="url(#nodeBg)" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="90" y="46" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="16" font-weight="700" text-anchor="middle">
+      Client Side
+    </text>
+    <text x="90" y="70" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12" text-anchor="middle">
+      (Browser / Mobile)
+    </text>
+  </g>
+
+  <!-- ==================== ARROW 1: HTTP REQUEST ==================== -->
+  <g transform="translate(235, 125)">
+    <line x1="0" y1="0" x2="155" y2="0" stroke="#38bdf8" stroke-width="2" stroke-dasharray="6,4"/>
+    <polygon points="160,0 150,-5 150,5" fill="#38bdf8"/>
+    <text x="80" y="-12" fill="#7dd3fc" font-family="'Inter', sans-serif" font-size="12" font-weight="600" font-style="italic" text-anchor="middle">
+      HTTP Request
+    </text>
+  </g>
+
+  <!-- ==================== 2. GUARD (CENTER HERO SHIELD) ==================== -->
+  <g transform="translate(420, 50)" filter="url(#boxShadow)">
+    <!-- Outer Crest Accent Layers -->
+    <path d="M 70 0 C 110 0, 130 18, 130 65 C 130 115, 70 155, 70 155 C 70 155, 10 115, 10 65 C 10 18, 30 0, 70 0 Z"
+          fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="4,4" opacity="0.4" transform="translate(6, 4)"/>
+
+    <path d="M 70 0 C 110 0, 130 18, 130 65 C 130 115, 70 155, 70 155 C 70 155, 10 115, 10 65 C 10 18, 30 0, 70 0 Z"
+          fill="none" stroke="#94a3b8" stroke-width="2.5" opacity="0.6" transform="translate(3, 2)"/>
+
+    <!-- Main Shield Body -->
+    <path d="M 70 0 C 110 0, 130 18, 130 65 C 130 115, 70 155, 70 155 C 70 155, 10 115, 10 65 C 10 18, 30 0, 70 0 Z"
+          fill="url(#shieldFill)" stroke="url(#shieldBorder)" stroke-width="2.5"/>
+
+    <!-- Shield Text -->
+    <text x="70" y="70" fill="#ffffff" font-family="'Inter', sans-serif" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="0.5">
+      Guard
+    </text>
+    <text x="70" y="92" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="600" text-anchor="middle">
+      CanActivate
+    </text>
+  </g>
+
+  <!-- ==================== ARROW 2: ALLOWED -> HANDLER ==================== -->
+  <g transform="translate(565, 125)">
+    <line x1="0" y1="0" x2="155" y2="0" stroke="#10b981" stroke-width="2" stroke-dasharray="6,4"/>
+    <polygon points="160,0 150,-5 150,5" fill="#10b981"/>
+    <rect x="52" y="-22" width="56" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="0.8"/>
+    <text x="80" y="-9" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">
+      true
+    </text>
+  </g>
+
+  <!-- ==================== 3. ROUTE HANDLER ==================== -->
+  <g transform="translate(730, 75)" filter="url(#boxShadow)">
+    <rect width="180" height="100" rx="10" fill="url(#nodeBg)" stroke="#10b981" stroke-width="1.5"/>
+    <text x="90" y="46" fill="#f8fafc" font-family="'Inter', sans-serif" font-size="16" font-weight="700" text-anchor="middle">
+      Route Handler
+    </text>
+    <text x="90" y="70" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="11" text-anchor="middle">
+      @RequestMapping
+    </text>
+  </g>
+
+  <!-- ==================== BRANCH 2: DENY (FALSE) ==================== -->
+  <g transform="translate(490, 208)">
+    <path d="M 0 0 L 0 20 L 160 20" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-dasharray="4,3"/>
+    <polygon points="165,20 157,16 157,24" fill="#ef4444"/>
+    <rect x="30" y="10" width="80" height="18" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="0.8"/>
+    <text x="70" y="23" fill="#fca5a5" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">
+      false / 401
+    </text>
+    <text x="175" y="24" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold">
+      🔴 401 Unauthorized
+    </text>
+  </g>
+</svg>
