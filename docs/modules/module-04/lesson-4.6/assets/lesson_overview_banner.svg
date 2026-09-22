@@ -91,8 +91,8 @@
     <text x="22" y="100" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9.5">export const CurrentUser = createParamDecorator((data, ctx) => { ... });</text>
     <text x="22" y="122" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 2. Sử dụng trong UsersController</text>
     <text x="22" y="138" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9.5">@Get('profile')</text>
-    <text x="22" y="154" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">getProfile(<tspan fill="#34d399">@CurrentUser()</tspan> user: JwtPayload) { ... }</text>
-    <text x="22" y="170" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">getId(<tspan fill="#38bdf8">@CurrentUser('userId')</tspan> userId: string) { ... }</text>
+    <text x="22" y="154" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">getProfile(<tspan fill="#34d399">@CurrentUser()</tspan> user: UserData) { ... }</text>
+    <text x="22" y="170" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">getId(<tspan fill="#38bdf8">@CurrentUser('userId')</tspan> userId: number) { ... }</text>
 
     <text x="16" y="222" fill="#7dd3fc" font-family="-apple-system, sans-serif" font-size="10.5">
       ➔ Loại bỏ hoàn toàn @Request() req: any, autocomplete đầy đủ TypeScript!
