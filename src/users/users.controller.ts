@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { NativeAuthGuard } from '@/auth/guards/native-auth.guard';
+import { UserData } from '@/auth/interfaces/jwt.interface';
 
 @Controller('users')
 export class UsersController {
@@ -14,5 +16,14 @@ export class UsersController {
   @Post()
   createUser(@Body() body: CreateUserDto) {
     return this.usersService.create(body);
+  }
+
+  @UseGuards(NativeAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req: Request) {
+    return {
+      message: 'Xác thực tài khoản thành công qua NativeAuthGuard!',
+      user: req['user'] as UserData,
+    };
   }
 }

@@ -8,6 +8,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { Role } from '@/generated/prisma/enums';
+import { JwtPayload } from './interfaces/jwt.interface';
 
 @Injectable()
 export class AuthService {
@@ -44,12 +46,8 @@ export class AuthService {
     return { user, accessToken };
   }
 
-  private async generateAccessToken(
-    userId: number,
-    email: string,
-    role: string,
-  ) {
-    const payload = { sub: userId, email, role };
+  private async generateAccessToken(userId: number, email: string, role: Role) {
+    const payload: JwtPayload = { sub: userId, email, role };
     return this.jwtService.signAsync(payload);
   }
 
