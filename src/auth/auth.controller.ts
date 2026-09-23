@@ -15,6 +15,7 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { type GoogleUser } from './interfaces/google-user.interface';
 import { Public } from '@/shared/decorators/public.decorator';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Public()
 @Controller('auth')
@@ -27,6 +28,10 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    long: { limit: 5, ttl: 60000 },
+  })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Đăng nhập thành công!')
@@ -42,5 +47,15 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   async googleAuthCallback(@CurrentUser() userData: GoogleUser) {
     return this.authService.socialLogin(userData);
+  }
+
+  @SkipThrottle({
+    short: true,
+    medium: true,
+    long: true,
+  })
+  @Get('health')
+  healthCheck() {
+    return { status: 'healthy', timestamp: new Date().toISOString() };
   }
 }

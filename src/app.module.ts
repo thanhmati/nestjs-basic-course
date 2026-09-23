@@ -14,12 +14,23 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
 import { SharedServiceModule } from './shared/services/shared-service.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       validationSchema: envValidationSchema,
       isGlobal: true,
+    }),
+    ThrottlerModule.forRootAsync({
+      useFactory: () => ({
+        throttlers: [
+          { name: 'short', ttl: 1000, limit: 3 },
+          { name: 'medium', ttl: 10000, limit: 20 },
+          { name: 'long', ttl: 60000, limit: 100 },
+        ],
+      }),
     }),
     PrismaModule,
     SharedServiceModule,
@@ -45,6 +56,10 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
     },
   ],
   exports: [],
