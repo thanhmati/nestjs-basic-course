@@ -2,9 +2,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Rate_Limiting-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Rate Limiting" />
-  <img src="https://img.shields.io/badge/Security-Throttler-3178C6?style=for-the-badge&logo=security&logoColor=white" alt="Throttler" />
-  <img src="https://img.shields.io/badge/Protection-Anti_Spam_|_DDoS-10B981?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Anti Spam" />
+  <img src="https://img.shields.io/badge/@nestjs/throttler-v6.x-3178C6?style=for-the-badge&logo=security&logoColor=white" alt="Throttler" />
+  <img src="https://img.shields.io/badge/Security-Anti_Spam_|_Brute_Force-10B981?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Anti Spam" />
   <img src="https://img.shields.io/badge/HTTP_Header-X--RateLimit--*-F59E0B?style=for-the-badge&logo=http&logoColor=white" alt="X-RateLimit" />
+  <img src="https://img.shields.io/badge/Type_Safe-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -16,81 +17,98 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững giải pháp bảo vệ hệ thống khỏi các cuộc tấn công Brute-force Login, Spam API và DoS/DDoS ở tầng ứng dụng bằng kỹ thuật Rate Limiting; làm chủ thư viện chính chủ `@nestjs/throttler`; tự tay cấu hình nhiều khung thời gian Rate Limit linh hoạt (Named Throttlers `short`, `medium`, `long`); tùy biến thắt chặt hoặc nới lỏng giới hạn bằng `@Throttle()` và `@SkipThrottle()`; tùy chỉnh Custom `ThrottlerGuard` trả về thông báo lỗi `429 Too Many Requests` tiếng Việt chuyên nghiệp; thực hành kịch bản kiểm thử gửi spam request dồn dập và quan sát HTTP Headers `X-RateLimit-*`.
+> 🎯 **Mục tiêu bài học:**
+>
+> - Hiểu sâu sắc bản chất cuộc tấn công **Brute-Force Attack** và vì sao cần áp dụng **Rate Limiting** để bảo vệ hệ thống.
+> - Làm chủ cơ chế **Sliding Window Log** và các HTTP Headers `X-RateLimit-*` & `Retry-After`.
+> - Cấu hình **Multi-Tier Throttlers** (`short`, `medium`, `long`) trong `AppModule`.
+> - Tùy biến `CustomThrottlerGuard` trả về mã lỗi `429 Too Many Requests` tiếng Việt chuyên nghiệp.
+> - Điều khiển linh hoạt qua Decorators: `@Throttle()` (siết chặt) và `@SkipThrottle()` (miễn trừ).
 
 ---
 
-## 1. Tại Sao Mọi API Enterprise Đều Cần Rate Limiting?
+## 1. Đặt Vấn Đề: Tấn Công Brute Force Attack — "Thử Nhiều Mật Khẩu Đến Khi Đúng"
 
-### 💡 Ẩn Dụ Thực Tế: Cửa Xoay Kiểm Soát Đám Đông Tại Sân Vận Động
+<p align="center">
+  <img src="./assets/brute_force_attack_concept.png" alt="Brute Force Attack - Thử nhiều mật khẩu đến khi đúng" width="85%" />
+</p>
 
-Hãy tưởng tượng trang web của bạn như một **Sân Vận Động Quốc Gia**:
+### 🔹 Bản Chất & Cách Thức Tấn Công
 
-- Nếu không có **Cửa Xoay Kiểm Soát (Rate Limiter)** ở cổng vào, hàng ngàn người có thể tràn vào cùng một lúc, gây giẫm đạp và sập toàn bộ cổng ra vào.
-- Cửa xoay được cài đặt quy tắc: Mỗi người (IP Address) chỉ được đi qua 1 lần mỗi 2 giây, và tối đa 5 người trong 1 phút.
-- Nếu một đối tượng cố tình lao vào cửa xoay liên tục (Spam / Botnet), cửa xoay sẽ tự động khóa lại và thông báo: _"Bạn đã di chuyển quá nhanh! Hãy kiên nhẫn chờ 60 giây nữa."_ (`429 Too Many Requests`).
-
-```mermaid
-flowchart TD
-    subgraph Danger ["🔴 KHÔNG CÓ RATE LIMITING"]
-        BotnetBad["🤖 Hacker / Botnet Spam"] -->|"Gửi 1.000 requests/giây"| APIBad["📄 Auth API (No Rate Limit)"]
-        APIBad -->|"CPU 100% / DB Sập"| Crash["💥 Server Crash / Cháy RAM"]
-    end
-
-    subgraph Secure ["🟢 CÓ NESTJS THROTTLER GUARD"]
-        UserNormal["📱 Người dùng bình thường"] -->|"5 reqs / phút"| Guard{"🛡️ ThrottlerGuard"}
-        BotnetGood["🤖 Botnet Spam"] -->|"100 reqs / phút"| Guard
-        Guard -->|"🟢 Hợp lệ"| Pass["📄 API Handler (200 OK)"]
-        Guard -->|"🔴 Vượt giới hạn"| Block["🔴 HTTP 429 Too Many Requests"]
-    end
-```
+- **Khái niệm:** Kẻ tấn công dùng bot tự động gửi hàng loạt mật khẩu phổ biến (`123456`, `password`, `admin`, `letmein`, `s3cr3t`...) vào API `/auth/login` cho đến khi tìm ra mật khẩu chính xác.
+- **Tác hại kép (Double Impact):**
+  1. 🔓 **Chiếm đoạt tài khoản (Account Takeover):** Dễ dàng bẻ khóa người dùng đặt mật khẩu yếu hoặc dùng chung một mật khẩu trên nhiều website.
+  2. 💥 **Tê liệt máy chủ (CPU 100%):** Mỗi request login phải chạy hàm băm `bcrypt.compare()`. Hàm này ngốn nhiều chu kỳ CPU, khiến server cạn kiệt tài nguyên chỉ sau vài trăm lượt thử/giây.
 
 ---
 
-### 🔹 Các Mối Đe Dọa Mà Rate Limiting Ngăn Chặn
+## 2. Giải Pháp: Rate Limiting & Cơ Chế Cửa Xoay Bảo Vệ Toàn Diện API
 
-1. **Tấn công Brute-force Login:** Hacker dùng từ điển thử hàng triệu mật khẩu vào API `/auth/login`. Rate Limiting sẽ khóa IP đó ngay sau 5 lần thử sai.
-2. **Tấn công Spam API (Resource Exhaustion):** Bot tự động gọi API đăng ký tài khoản, gửi bình luận rác hoặc tải file làm cạn kiệt tài nguyên CSDL & Ổ đĩa.
-3. **Tấn công DoS/DDoS Tầng 7 (Application Layer):** Gửi liên tục các câu truy vấn nặng (Search, Aggregation) khiến CPU máy chủ quá tải.
-4. **Kiểm soát chi phí API bên thứ 3:** Ngăn ngừa nguy cơ bị vọt hóa đơn khi dùng các dịch vụ tính phí theo lượt gọi (OpenAI, Twilio SMS, SendGrid Mail).
+### 💡 Ẩn Dụ Thực Tế: Cửa Xoay Kiểm Soát Tại Sân Vận Động
+
+- **Không có cửa xoay:** Hàng ngàn người ùa vào cùng lúc ➔ Quá tải cổng, giẫm đạp (Server crash / 502 Bad Gateway).
+- **Có cửa xoay (Throttler Guard):** Mỗi người (Client IP) chỉ được đi qua tối đa 1 lần/giây, không quá 5 lần/phút.
+- **Cố tình spam:** Cửa tự động khóa chốt, yêu cầu chờ lượt kế tiếp (`HTTP 429 Too Many Requests`).
+
+<p align="center">
+  <img src="./assets/rate_limiting_architecture_mockup.jpg" alt="NestJS Rate Limiting Architecture Mockup" width="90%" />
+</p>
 
 ---
 
-## 2. Luồng Hoạt Động Của ThrottlerGuard Trong NestJS
+### 🛡️ 4 Hiểm Họa Mà Rate Limiting Ngăn Chặn
 
-Thư viện `@nestjs/throttler` sử dụng thuật toán **Sliding Window Log** để đếm số lượng Request dựa trên IP của Client trong một khoảng thời gian `ttl` (Time-To-Live tính bằng miligiây):
+| Hiểm Họa                           | Kịch Bản Tấn Công                                 | Giải Pháp Của Rate Limiting                   |
+| :--------------------------------- | :------------------------------------------------ | :-------------------------------------------- |
+| 🔑 **Brute-Force Login**           | Dò hàng ngàn mật khẩu vào `/auth/login`.          | Khóa IP sau 5 lần thử sai / phút.             |
+| 🤖 **Spam Cạn Kiệt Tài Nguyên**    | Bot spam gửi OTP SMS, tạo tài khoản ảo, ghi file. | Giới hạn hạn ngạch tạo mới theo IP/User.      |
+| 💥 **DoS Tầng Ứng Dụng (Layer 7)** | Bắn phá liên tục vào các API tính toán nặng.      | Giữ CPU/RAM máy chủ luôn dưới ngưỡng an toàn. |
+| 💸 **Vọt Chi Phí 3rd-Party**       | Spam các API trả phí (OpenAI, Twilio, SendGrid).  | Ngăn chặn rủi ro thủng ví hóa đơn Cloud.      |
+
+---
+
+## 3. Cơ Chế Hoạt Động & Thuật Toán Sliding Window Log
+
+### 🔹 Sliding Window Log (Cửa Sổ Trượt) vs Fixed Window (Cửa Sổ Cố Định)
+
+- **Fixed Window (Lỗi ranh giới):** Nếu cho phép 10 reqs/phút, hacker có thể gửi 10 reqs vào `10:00:59` và 10 reqs vào `10:01:00` ➔ Server phải chịu **20 reqs trong 1 giây**.
+- **Sliding Window Log (Chuẩn của `@nestjs/throttler`):** Tính toán chính xác theo từng mili-giây trượt. Giới hạn luôn được bảo đảm ở bất kỳ khung thời gian nào.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as 📱 HTTP Client (IP: 192.168.1.50)
-    participant Guard as 🛡️ CustomThrottlerGuard
-    participant Tracker as 📊 Memory Tracker / Redis
-    participant Controller as 📄 Controller Handler
+    actor Client as "📱 Client (IP: 192.168.1.50)"
+    participant Guard as "🛡️ CustomThrottlerGuard"
+    participant Tracker as "📊 Storage Tracker"
+    participant Controller as "📄 AuthController"
 
-    Client->>Guard: POST /api/v1/auth/login (Request #1)
-    Guard->>Tracker: Lấy số lượng req của IP 192.168.1.50
-    Tracker-->>Guard: reqCount = 0, limit = 5
-    Note over Guard: reqCount (1) <= limit (5) ➔ Cho qua!
-    Guard->>Controller: Chuyển sang Controller xử lý
-    Controller-->>Client: 200 OK (Header: X-RateLimit-Remaining: 4)
+    Client->>Guard: "POST /auth/login (Request #1)"
+    Guard->>Tracker: "Lấy reqCount của IP"
+    Tracker-->>Guard: "reqCount = 0 (Hợp lệ)"
+    Guard->>Controller: "Cho qua vào Controller"
+    Controller-->>Client: "200 OK (X-RateLimit-Remaining-long: 4)"
 
-    Note over Client,Controller: ... Client gửi dồn dập 5 requests liên tiếp ...
+    Note over Client,Controller: "... Client spam liên tục 5 requests ..."
 
-    Client->>Guard: POST /api/v1/auth/login (Request #6 - Vượt limit!)
-    Guard->>Tracker: Lấy số lượng req của IP 192.168.1.50
-    Tracker-->>Guard: reqCount = 5, limit = 5
-    Note over Guard: reqCount (6) > limit (5) ➔ CHẶN BẮT LỖI!
-    Guard-->>Client: 🔴 429 Too Many Requests (Header: Retry-After: 55)
+    Client->>Guard: "POST /auth/login (Request #6 - Vượt limit!)"
+    Guard->>Tracker: "Lấy reqCount của IP"
+    Tracker-->>Guard: "reqCount = 5 (Vượt ngưỡng 5/phút)"
+    Note over Guard: "CHẶN ĐỨNG NGAY LẬP TỨC!"
+    Guard-->>Client: "🔴 429 Too Many Requests (Retry-After: 55)"
 ```
+
+### 🔹 4 Headers Tiêu Chuẩn Phản Hồi Từ Throttler
+
+- `X-RateLimit-Limit-<name>`: Số request tối đa cho phép trong chu kỳ.
+- `X-RateLimit-Remaining-<name>`: Số lượt request còn lại.
+- `X-RateLimit-Reset-<name>`: Số giây cho đến khi bộ đếm được reset.
+- `Retry-After`: Số giây client cần chờ khi bị chặn mã `429`.
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step — Triển Khai `@nestjs/throttler`
+## 4. Hướng Dẫn Thực Hành Step-by-Step
 
-### 📌 Bước 0: Cài Đặt Thư Viện `@nestjs/throttler`
-
-Mở Terminal tại thư mục gốc của dự án và cài đặt gói chính chủ:
+### 📌 Bước 0: Cài Đặt Package
 
 ```bash
 pnpm add @nestjs/throttler
@@ -98,86 +116,118 @@ pnpm add @nestjs/throttler
 
 ---
 
-### 📌 Bước 1: Cấu Hình `ThrottlerModule` Trong `AppModule`
+### 📌 Bước 1: Cấu Hình Phòng Thủ Đa Tầng Trong `AppModule`
 
-NestJS v10+ hỗ trợ cấu hình nhiều bộ đếm (Named Throttlers) cùng lúc cho các khung thời gian khác nhau (giây, phút, giờ).
+Khai báo 3 tầng kiểm soát:
 
-Mở tệp `src/app.module.ts` và khai báo cấu hình:
+- `short`: 3 reqs / 1 giây (chống click đúp, spam burst).
+- `medium`: 20 reqs / 10 giây (chống scraping).
+- `long`: 100 reqs / 60 giây (giới hạn dung lượng toàn cục).
 
 📄 **`src/app.module.ts`**
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { envValidationSchema } from './config/env.validation';
+import { PrismaModule } from './prisma/prisma.module';
+import { UsersModule } from './users/users.module';
+import { PostsModule } from './posts/posts.module';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { PrismaClientExceptionFilter } from './shared/filters/prisma-client-exception.filter';
+import { LoggerMiddleware } from './shared/middleware/logger.middleware';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+import { TransformInterceptor } from './shared/interceptors/transform.interceptor';
+import { SharedServiceModule } from './shared/services/shared-service.module';
 import { AuthModule } from './auth/auth.module';
-import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+// 🛡️ Import Throttler & Custom Guard
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      validationSchema: envValidationSchema,
+      isGlobal: true,
+    }),
+    PrismaModule,
+    SharedServiceModule,
+    UsersModule,
+    PostsModule,
     AuthModule,
-    // 🛡️ Cấu hình ThrottlerModule bất đồng bộ
+    // 🛡️ Cấu hình Multi-Tier Throttlers
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: () => ({
         throttlers: [
-          {
-            name: 'short',
-            ttl: 1000, // 1 giây
-            limit: 3, // Tối đa 3 requests/giây (Chống spam nhấp chuột dồn dập)
-          },
-          {
-            name: 'medium',
-            ttl: 10000, // 10 giây
-            limit: 20, // Tối đa 20 requests/10 giây
-          },
-          {
-            name: 'long',
-            ttl: 60000, // 60 giây (1 phút)
-            limit: 100, // Tối đa 100 requests/phút (Mặc định toàn hệ thống)
-          },
+          { name: 'short', ttl: 1000, limit: 3 }, // 3 reqs / 1s
+          { name: 'medium', ttl: 10000, limit: 20 }, // 20 reqs / 10s
+          { name: 'long', ttl: 60000, limit: 100 }, // 100 reqs / 1m
         ],
       }),
     }),
   ],
+  controllers: [AppController],
   providers: [
-    // 🛡️ Đăng ký CustomThrottlerGuard làm Global Guard
+    AppService,
+    { provide: APP_FILTER, useClass: PrismaClientExceptionFilter },
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    // 🛡️ Guard 1: CustomThrottlerGuard (Đặt ĐẦU TIÊN để chặn spam sớm nhất)
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
     },
+    // 🛡️ Guard 2: JwtAuthGuard (Chỉ chạy khi request đã vượt qua Rate Limit)
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .exclude({ path: 'health', method: RequestMethod.GET })
+      .forRoutes('{*path}');
+  }
+}
 ```
+
+> [!TIP]
+> **Thứ tự Guard rất quan trọng:** Đặt `CustomThrottlerGuard` trước `JwtAuthGuard` giúp server chặn spam ngay tại RAM, không tốn CPU giải mã token JWT hay query database.
 
 ---
 
-### 📌 Bước 2: Viết `CustomThrottlerGuard` Tùy Chỉnh Thông Báo Lỗi Tiếng Việt
-
-Mặc định `@nestjs/throttler` trả về thông báo lỗi bằng tiếng Anh (`ThrottlerException: Throttler limit exceeded`). Chúng ta sẽ tạo `CustomThrottlerGuard` kế thừa `ThrottlerGuard` để tùy chỉnh phản hồi JSON tiếng Việt chuyên nghiệp:
+### 📌 Bước 2: Viết `CustomThrottlerGuard` Báo Lỗi Tiếng Việt
 
 Tạo tệp `src/shared/guards/custom-throttler.guard.ts`:
 
 📄 **`src/shared/guards/custom-throttler.guard.ts`**
 
 ```typescript
-import { Injectable, ThrottlerException } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  ThrottlerException,
+  ThrottlerGuard,
+  ThrottlerLimitDetail,
+} from '@nestjs/throttler';
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
-  // Override phương thức quăng ngoại lệ khi người dùng vượt quá Rate Limit
   protected override async throwThrottlingException(
-    context: any,
-    throttlerLimitDetail: any,
+    context: ExecutionContext,
+    throttlerLimitDetail: ThrottlerLimitDetail,
   ): Promise<void> {
-    const { timeToBlockExpire } = throttlerLimitDetail;
+    // Fallback an toàn giữa timeToBlockExpire và timeToExpire
+    const timeToWait =
+      throttlerLimitDetail.timeToBlockExpire ||
+      throttlerLimitDetail.timeToExpire;
 
-    // Tính số giây người dùng cần chờ trước khi thử lại
-    const secondsToWait = Math.ceil(timeToBlockExpire / 1000);
+    const secondsToWait = Math.ceil(timeToWait / 1000);
 
     throw new ThrottlerException(
       `Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau ${secondsToWait} giây.`,
@@ -188,9 +238,9 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
 
 ---
 
-### 📌 Bước 3: Tùy Chỉnh Rate Limit Cho Các API Nhạy Cảm (`@Throttle` & `@SkipThrottle`)
+### 📌 Bước 3: Gắn Decorator Tùy Chỉnh Trong `AuthController`
 
-Mở tệp `src/auth/auth.controller.ts` và thắt chặt Rate Limit cho API Đăng nhập/Đăng ký để chống Brute-force:
+Mở tệp `src/auth/auth.controller.ts`:
 
 📄 **`src/auth/auth.controller.ts`**
 
@@ -198,26 +248,43 @@ Mở tệp `src/auth/auth.controller.ts` và thắt chặt Rate Limit cho API Đ
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Version,
+  UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { Public } from '../common/decorators/public.decorator';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { type GoogleUser } from './interfaces/google-user.interface';
+import { Public } from '@/shared/decorators/public.decorator';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 🔒 Thắt chặt riêng cho API Login: Tối đa 5 lần thử trong 60 giây
-  @Public()
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @Version('1')
+  // 🔒 Đăng ký: Tối đa 1 req/giây & 3 lần đăng ký / phút
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    long: { limit: 3, ttl: 60000 },
+  })
+  @Post('register')
+  @ResponseMessage('Đăng ký tài khoản thành công!')
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  // 🔒 Đăng nhập: Chống Brute-Force (Tối đa 1 req/giây & 5 lần thử / phút)
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    long: { limit: 5, ttl: 60000 },
+  })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Đăng nhập thành công!')
@@ -225,39 +292,32 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Public()
-  @Throttle({ default: { ttl: 60000, limit: 3 } }) // Tối đa 3 lần đăng ký/phút
-  @Version('1')
-  @Post('register')
-  @ResponseMessage('Đăng ký tài khoản thành công!')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  // 🔓 Bỏ qua kiểm tra Rate Limit cho Healthcheck
+  @SkipThrottle()
+  @Get('health')
+  async healthCheck() {
+    return { status: 'healthy', timestamp: new Date().toISOString() };
   }
 
-  // 🔓 Bỏ qua kiểm tra Rate Limit cho API Healthcheck
-  @Public()
-  @SkipThrottle()
-  @Version('1')
-  @Post('health-ping')
-  async ping() {
-    return { status: 'pong' };
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuthCallback(@CurrentUser() userData: GoogleUser) {
+    return this.authService.socialLogin(userData);
   }
 }
 ```
 
-> [!TIP]
-> **Các Decorator điều khiển Rate Limit:**
->
-> - `@Throttle({ default: { ttl, limit } })`: Thắt chặt hoặc thay đổi tham số Rate Limit riêng cho Route Handler / Controller đó.
-> - `@SkipThrottle()`: Bỏ qua hoàn toàn việc kiểm tra Rate Limit (dành cho API Healthcheck, Webhook từ bên thứ 3 tin tưởng).
-
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+## 5. Kịch Bản Kiểm Thử Thực Tế (Hands-on Lab)
 
-### 🟢 Kịch Bản 1: Thành Công — Gọi API Bình Thường & Quan Sát Response Headers
+Khởi động dự án: `pnpm start:dev`
 
-Thực hiện 1 câu lệnh cURL tới API Đăng nhập và bật cờ `-i` để xem Response Headers:
+### 🟢 Kịch Bản 1: Gọi API Hợp Lệ & Xem Headers
 
 ```bash
 curl -i -X POST http://localhost:3000/api/v1/auth/login \
@@ -265,94 +325,92 @@ curl -i -X POST http://localhost:3000/api/v1/auth/login \
   -d '{"email": "alex@example.com", "password": "Password123!"}'
 ```
 
-📥 **Phản hồi HTTP Headers nhận được từ Server:**
+📥 **Headers nhận được:**
 
-```text
+```http
 HTTP/1.1 200 OK
-X-RateLimit-Limit-short: 3
-X-RateLimit-Remaining-short: 2
-X-RateLimit-Reset-short: 1
-X-RateLimit-Limit-medium: 20
-X-RateLimit-Remaining-medium: 19
-X-RateLimit-Reset-medium: 10
-X-RateLimit-Limit-default: 5
-X-RateLimit-Remaining-default: 4
-X-RateLimit-Reset-default: 60
-Content-Type: application/json; charset=utf-8
+X-RateLimit-Limit-short: 1
+X-RateLimit-Remaining-short: 0
+X-RateLimit-Limit-long: 5
+X-RateLimit-Remaining-long: 4
+X-RateLimit-Reset-long: 60
 ```
 
-✅ **Kết quả:** NestJS tự động trả về mảng Headers `X-RateLimit-*` giúp Client/Frontend biết chính xác họ còn bao nhiêu lượt gọi API nữa!
+👉 `long: 5` và `Remaining: 4` chứng minh `@Throttle({ long: { limit: 5 } })` đã hoạt động chính xác.
 
 ---
 
-### 🔴 Kịch Bản 2: Spam Request (Blocked Flow) — Gửi 10 Request Dồn Dập Vào API Login
+### 🔴 Kịch Bản 2: Mô Phỏng Tấn Công Brute-Force Dồn Dập Bằng Bash Script
 
-Mở Terminal và chạy vòng lặp Bash Script gửi 10 yêu cầu POST liên tục trong vài giây:
+Chạy script gửi nhanh 8 requests dò mật khẩu sai vào API Login:
 
 ```bash
 for i in {1..8}; do
-  echo "--- Request #$i ---"
-  curl -s -X POST http://localhost:3000/api/v1/auth/login \
+  echo -n "Req #$i: "
+  curl -s -i -X POST http://localhost:3000/api/v1/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email": "hacker@example.com", "password": "wrong_password"}'
-  echo ""
+    -d '{"email": "hacker@example.com", "password": "wrong"}' | grep -E "HTTP/|Retry-After|message"
+  sleep 0.1
 done
 ```
 
-📥 **Kết quả hiển thị tại Terminal:**
+📥 **Kết quả tại Terminal:**
 
-- **Request #1 -> #5:** Trả về `401 Unauthorized` (Do sai mật khẩu, hệ thống vẫn cho phép thử).
-- **Request #6 -> #8 (Bị thắt chặt bởi `@Throttle({ default: { limit: 5 } })`):**
-
-```json
-HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
-
-{
-  "statusCode": 429,
-  "message": "Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau 58 giây.",
-  "error": "Too Many Requests",
-  "timestamp": "2026-08-13T17:20:00.000Z",
-  "path": "/api/v1/auth/login"
-}
+```text
+Req #1: HTTP/1.1 401 Unauthorized
+Req #2: HTTP/1.1 401 Unauthorized
+... (Req #3 - #5 vẫn xử lý bình thường) ...
+Req #6: HTTP/1.1 429 Too Many Requests
+Retry-After: 58
+{"statusCode":429,"message":"Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau 58 giây."...}
+Req #7: HTTP/1.1 429 Too Many Requests
 ```
 
-✅ **Kết quả:** `CustomThrottlerGuard` phát hiện hành vi spam/brute-force và chặn đứng ngay từ Yêu cầu thứ 6, bảo vệ CSDL khỏi quá tải!
+👉 Đúng sau 5 lần thử sai, `CustomThrottlerGuard` lập tức khóa kết nối và ném mã `429`, bảo vệ tài khoản người dùng khỏi cuộc tấn công Brute-Force.
 
 ---
 
-## 5. Tổng Kết Bài Học & Checklist Ghi Nhớ
+### 🟡 Kịch Bản 3: Kiểm Thử Miễn Trừ Với `@SkipThrottle()`
+
+Gửi liên tiếp 10 requests vào endpoint healthcheck:
+
+```bash
+for i in {1..10}; do curl -s -o /dev/null -w "%{http_code} " http://localhost:3000/api/v1/auth/health; done
+```
+
+📥 **Kết quả:** `200 200 200 200 200 200 200 200 200 200` ➔ `@SkipThrottle()` hoạt động hoàn hảo!
+
+---
+
+## 6. Tổng Kết & Checklist Ghi Nhớ
 
 ```mermaid
 mindmap
-  root(("NestJS Rate Limiting"))
-    "Tầm quan trọng"
-      "Chống Brute-force Login"
-      "Chống Spam API & Botnet"
-      "Bảo vệ CPU/RAM Server"
-      "Tiết kiệm chi phí API 3rd party"
-    "Cấu hình ThrottlerModule"
-      "Named Throttlers (short, medium, long)"
-      "ttl (Time-To-Live ms)"
-      "limit (Số lượt tối đa)"
-    "Decorators linh hoạt"
-      "@Throttle() thắt chặt Route"
-      "@SkipThrottle() bỏ qua Route"
+  root(("Rate Limiting"))
+    "Mục đích cốt lõi"
+      "Triệt tiêu Brute-force Login"
+      "Chống Spam cạn RAM / DB"
+      "Bảo vệ chi phí API bên ngoài"
+    "Cấu hình AppModule"
+      "Multi-Tier (short, medium, long)"
+      "CustomThrottlerGuard trước JwtAuthGuard"
     "CustomThrottlerGuard"
-      "Triển khai Global Guard (APP_GUARD)"
       "Override throwThrottlingException"
-      "Trả về 429 với message tiếng Việt"
+      "Báo lỗi 429 tiếng Việt chuẩn filter"
+    "Decorators"
+      "@Throttle() tùy chỉnh theo route"
+      "@SkipThrottle() miễn trừ kiểm tra"
 ```
 
-### ✅ Checklist Ghi Nhớ Bài Học:
+### ✅ Checklist Ghi Nhớ:
 
-- [x] Thấu hiểu tầm quan trọng của Rate Limiting trong việc bảo vệ API khỏi tấn công Brute-force và DoS/DDoS.
-- [x] Cài đặt thư viện `@nestjs/throttler` chính chủ.
-- [x] Cấu hình `ThrottlerModule` với mảng các bộ đếm `throttlers` (`short`, `medium`, `long`).
-- [x] Tạo thành công `CustomThrottlerGuard` trả về lỗi HTTP 429 tiếng Việt thân thiện.
-- [x] Đăng ký `CustomThrottlerGuard` làm Global Guard trong `AppModule`.
-- [x] Sử dụng thành thạo `@Throttle()` cho API Đăng nhập/Đăng ký và `@SkipThrottle()` cho API Healthcheck.
-- [x] Thử nghiệm thành công cURL gửi spam request và đọc các HTTP Headers `X-RateLimit-*`.
+- [x] Hiểu rõ bản chất cuộc tấn công **Brute-Force Attack** và cách Rate Limiting vô hiệu hóa nó.
+- [x] Phân biệt được Sliding Window Log với Fixed Window.
+- [x] Cấu hình Named Throttlers (`short`, `medium`, `long`) trong `AppModule`.
+- [x] Đăng ký `CustomThrottlerGuard` trước `JwtAuthGuard`.
+- [x] Viết `CustomThrottlerGuard` chuẩn Type-Safe và thông báo lỗi tiếng Việt.
+- [x] Vận dụng `@Throttle()` và `@SkipThrottle()` trên Controller.
+- [x] Đọc hiểu các Response Headers `X-RateLimit-*` & `Retry-After`.
 
 ---
 
