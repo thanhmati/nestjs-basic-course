@@ -218,11 +218,10 @@ import {
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
-  protected override async throwThrottlingException(
+  protected throwThrottlingException(
     context: ExecutionContext,
     throttlerLimitDetail: ThrottlerLimitDetail,
   ): Promise<void> {
-    // Fallback an toàn giữa timeToBlockExpire và timeToExpire
     const timeToWait =
       throttlerLimitDetail.timeToBlockExpire ||
       throttlerLimitDetail.timeToExpire;
