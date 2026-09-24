@@ -102,7 +102,7 @@ timeline
 > [!NOTE]  
 > **Mục tiêu:** Tự động sinh tài liệu API tương tác với OpenAPI (Swagger), phát triển tính năng Social (Posts, File Upload, Comments) và tách rời logic bằng Events.
 
-- **5.1** [_OpenAPI (Swagger):_ Tự động sinh Swagger UI tương tác (`@nestjs/swagger`) & Document REST API.](./modules/module-05/lesson-5.1/lesson-5.1.md)
+- **5.1** [_OpenAPI (Swagger):_ Tự động hóa tài liệu API & kiểm thử tương tác với `@nestjs/swagger`.](./modules/module-05/lesson-5.1/lesson-5.1.md)
 - **5.2** [_Posts API:_ CRUD bài viết & Phân trang Cursor/Offset.](./modules/module-05/lesson-5.2/lesson-5.2.md)
 - **5.3** [_File Upload:_ Upload ảnh đại diện/bài viết với Multer.](./modules/module-05/lesson-5.3/lesson-5.3.md)
 - **5.4** [_Comments API:_ Thêm bình luận dưới bài viết.](./modules/module-05/lesson-5.4/lesson-5.4.md)

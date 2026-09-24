@@ -1,4 +1,4 @@
-# Lesson 5.1: OpenAPI (Swagger) — Tự Động Sinh Swagger UI Tương Tác (@nestjs/swagger) Trong NestJS
+# Lesson 5.1: OpenAPI (Swagger) — Tự Động Hóa Tài Liệu API & Kiểm Thử Tương Tác Với @nestjs/swagger
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Framework-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" />
@@ -17,90 +17,53 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững tiêu chuẩn OpenAPI 3.0 (OAS) và giải pháp tự động hóa sinh tài liệu API trong NestJS bằng thư viện chính chủ `@nestjs/swagger` & `swagger-ui-express`; hiểu rõ sự khác biệt giữa Code-First vs Schema-First; tự tay cấu hình `DocumentBuilder` trong `main.ts`, đồng bộ với Global Prefix (`/api`) và API Versioning (`/api/v1`); tích hợp cơ chế bảo mật JWT Bearer Authentication (`addBearerAuth()`) trực tiếp lên giao diện Swagger UI; làm chủ các Decorators cốt lõi: `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()`, `@ApiProperty()`, `@ApiPropertyOptional()`, và sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` so với `@nestjs/mapped-types`; thực hành kịch bản kiểm thử tương tác (Interactive Testing): Đăng ký/Đăng nhập lấy Token, Authorize ổ khóa và gọi các API được bảo vệ ngay trên trình duyệt mà không cần Postman.
+> 🎯 **Mục tiêu bài học:** Nắm vững tiêu chuẩn OpenAPI 3.0 (OAS) và giải pháp tự động hóa sinh tài liệu API trong NestJS bằng thư viện chính chủ `@nestjs/swagger` & `swagger-ui-express`; hiểu rõ sự khác biệt giữa triết lý Code-First vs Schema-First; tự tay cấu hình `DocumentBuilder` trong `src/main.ts`, đồng bộ hoàn hảo với Global Prefix (`/api`) và URI Versioning (`/api/v1`); tích hợp cơ chế bảo mật JWT Bearer Authentication (`addBearerAuth()`) trực tiếp lên giao diện Swagger UI; làm chủ các Decorators cốt lõi: `@ApiTags()`, `@ApiBearerAuth()`, `@ApiOperation()`, `@ApiResponse()`, `@ApiProperty()`, `@ApiPropertyOptional()`, cùng sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` so với `@nestjs/mapped-types`; thực hành kịch bản kiểm thử tương tác (Interactive Testing): Đăng ký/Đăng nhập lấy Token, Authorize ổ khóa bảo mật và gọi các API riêng tư ngay trên trình duyệt mà không cần mở Postman.
 
 ---
 
-## 1. Tổng Quan OpenAPI (OAS 3.0) & Giải Pháp Tự Động Sinh Swagger UI
+## 1. Đặt Vấn Đề: Bài Toán Lệch Cấu Trúc (Schema Drift) & Giải Pháp OpenAPI (OAS 3.0)
 
-### 💡 Ẩn Dụ Thực Tế: Bản Đồ Thực Đơn Điện Tử vs Tờ Rơi Giấy Photocopy
+Trong phát triển phần mềm thực chiến, tài liệu API (API Documentation) đóng vai trò là bản giao ước (Contract) cốt lõi giữa đội ngũ Backend với Frontend, Mobile App và QA. Tuy nhiên, việc duy trì tài liệu thủ công thường bộc lộ những hạn chế nghiêm trọng:
 
-Hãy so sánh hai cách cung cấp thực đơn trong nhà hàng:
+- **Tài liệu viết thủ công (Postman JSON, Google Docs, Notion):** Mỗi khi Backend thay đổi mã nguồn (đổi tên trường, thêm validation, cập nhật kiểu dữ liệu), lập trình viên rất dễ quên cập nhật lại tài liệu bên ngoài.
+- 🔴 **Hậu quả Schema Drift:** Tài liệu một đằng, code chạy một nẻo (Out-of-date). Đội ngũ Frontend tích hợp theo tài liệu cũ sẽ liên tục gặp lỗi `400 Bad Request`, gây lãng phí thời gian debug giữa các phòng ban.
+- 🟢 **Giải Pháp OpenAPI (Swagger) Code-First Trong NestJS:** Thay vì phải duy trì hai công việc song song, bản đặc tả OpenAPI 3.0 và giao diện Swagger UI được **sinh tự động 100% từ chính DTOs và Controllers** thông qua cơ chế **Metadata Reflection**. Bất kỳ thay đổi nào trong mã nguồn TypeScript đều lập tức phản ánh lên tài liệu theo thời gian thực (0 giây trễ)!
 
-1. **Tờ rơi giấy photocopy (Tài liệu API viết thủ công / Export Postman JSON):**
-   - Khi nhà bếp thay đổi nguyên liệu hoặc thêm món mới, nhân viên quên in lại tờ rơi. Khách gọi món trên giấy nhưng nhà bếp thông báo: _"Món này đổi giá từ tuần trước rồi!"_ hoặc _"Món này không còn làm nữa!"_.
-   - 🔴 **Vấn đề thực tế:** Khi viết tài liệu API bằng Google Docs, Notion hoặc file Postman Collection xuất thủ công, code backend vừa cập nhật tham số mới thì tài liệu đã lập tức **lỗi thời (Out-of-date)** và **sai lệch cấu trúc (Schema Drift)**.
-
-2. **Màn hình cảm ứng Tablet tại bàn (OpenAPI & Swagger UI Code-First):**
-   - Thực đơn trên máy tính bảng kết nối thẳng vào kho dữ liệu nhà bếp (TypeScript Code). Nhà bếp thêm món, đổi giá hay yêu cầu ghi chú gì, màn hình tại bàn **tự động cập nhật ngay lập tức theo thời gian thực**. Khách hàng còn có thể bấm nút _"Gọi thử món này"_ ngay trên màn hình (Interactive Testing - `Try it out`).
-   - 🟢 **Giải pháp OpenAPI trong NestJS:** Bản đặc tả OpenAPI được sinh trực tiếp từ chính DTOs và Controllers của bạn. Code thay đổi đến đâu, tài liệu Swagger UI tự động đồng bộ đến đó, loại bỏ hoàn toàn nguy cơ tài liệu một đằng, code một nẻo!
-
-```mermaid
-flowchart TD
-    subgraph Manual ["🔴 TÀI LIỆU THỦ CÔNG (DỄ SAI LỆCH)"]
-        Dev1["👨‍💻 Backend Dev"] -->|"Code API mới"| API1["🚀 REST API Code"]
-        Dev1 -.->|"Quên cập nhật"| DocOld["📄 Postman / Google Docs cũ"]
-        ClientBad["📱 Frontend / QA"] -->|"Đọc tài liệu sai"| Bug["💥 Gọi API lỗi 400 Bad Request"]
-    end
-
-    subgraph Auto ["🟢 CODE-FIRST SWAGGER VỚI NESTJS"]
-        Dev2["👨‍💻 Backend Dev"] -->|"Viết DTOs & Decorators"| NestCode["🚀 NestJS Controllers & DTOs"]
-        NestCode -->|"TypeScript Reflection Metadata"| SwaggerGen["⚙️ @nestjs/swagger"]
-        SwaggerGen -->|"Tự động sinh"| OAS["📜 OpenAPI Specification JSON"]
-        OAS -->|"Render trực quan"| SwaggerUI["🖥️ Swagger UI Interactive Portal"]
-        ClientGood["📱 Frontend / QA"] -->|"Xem Schema chuẩn & Test trực tiếp"| Success["✅ Tích hợp mượt mà O(1)"]
-    end
-```
+<p align="center">
+  <img src="./assets/swagger_code_first_concept.jpg" alt="Code-First Swagger Concept Mockup" width="85%" />
+</p>
 
 ---
 
-### 🔹 So Sánh Chi Tiết: Schema-First vs Code-First
+### ⚖️ So Sánh Chuyên Sâu: Schema-First vs Code-First
 
-Trong phát triển API hiện đại, có hai trường phái thiết kế tài liệu chính:
+Trong phát triển RESTful API hiện đại, có hai trường phái thiết kế tài liệu chính:
 
-| Tiêu Chí Đánh Giá                          | Schema-First (Thiết Kế Trước Bằng YAML/JSON)                 | Code-First (NestJS + TypeScript Reflection)                       |
-| :----------------------------------------- | :----------------------------------------------------------- | :---------------------------------------------------------------- |
-| **Nguồn Chân Lý (Single Source of Truth)** | File YAML / JSON riêng biệt bên ngoài.                       | **Mã nguồn TypeScript (DTOs & Controller)**.                      |
-| **Độ Trễ Đồng Bộ**                         | **Chậm**: Sửa code xong phải nhớ cập nhật lại file YAML.     | **Tức thì (0 giây)**: Vừa lưu file code là Swagger UI tự làm mới. |
-| **Chi Phí Bảo Trì**                        | **Rất cao**: Cần duy trì song song cả code lẫn tệp tài liệu. | **Cực thấp**: Chỉ cần trang trí thêm decorators lên DTOs sẵn có.  |
-| **Type-Safety**                            | Phụ thuộc vào công cụ sinh code (Code Generator).            | **Tối đa 100%**: Tận dụng triệt để static type của TypeScript.    |
-| **Tính Năng Thử Nghiệm**                   | Cần công cụ thứ ba (Postman, Insomnia).                      | **Tích hợp sẵn Swagger UI tương tác (`Try it out`)**.             |
+| Tiêu Chí Đánh Giá                   | Schema-First (Thiết Kế Trước Bằng YAML/JSON)                 | Code-First (NestJS + TypeScript Reflection)                       |
+| :---------------------------------- | :----------------------------------------------------------- | :---------------------------------------------------------------- |
+| **Nguồn Chân Lý (Source of Truth)** | Tệp YAML / JSON riêng biệt nằm ngoài codebase.               | **Chính mã nguồn TypeScript (DTOs & Controller)**.                |
+| **Độ Trễ Đồng Bộ**                  | **Chậm**: Sửa code xong phải nhớ cập nhật lại tệp YAML.      | **Tức thì (0 giây)**: Vừa lưu file code là Swagger UI tự làm mới. |
+| **Chi Phí Bảo Trì**                 | **Rất cao**: Cần duy trì song song cả code lẫn tệp tài liệu. | **Cực thấp**: Chỉ cần trang trí thêm decorators lên DTOs sẵn có.  |
+| **Type-Safety**                     | Phụ thuộc vào công cụ sinh code (Code Generator).            | **Tối đa 100%**: Tận dụng triệt để static type của TypeScript.    |
+| **Tính Năng Thử Nghiệm**            | Cần công cụ thứ ba (Postman, Insomnia, Thunder Client).      | **Tích hợp sẵn Swagger UI tương tác (`Try it out`)**.             |
+
+> [!TIP]
+> **Xu Hướng Công Nghệ:** Trường phái **Code-First** trong hệ sinh thái NestJS là tiêu chuẩn được lựa chọn hàng đầu tại các công ty công nghệ lớn, vì nó giải phóng lập trình viên khỏi gánh nặng viết tài liệu thủ công mà vẫn đảm bảo tính chính xác tuyệt đối của API contract.
 
 ---
 
-## 2. Kiến Trúc Tích Hợp @nestjs/swagger Trong NestJS Pipeline
+## 2. Kiến Trúc Tích Hợp @nestjs/swagger & Swagger UI
 
-Gói `@nestjs/swagger` hoạt động dựa trên cơ chế **Metadata Reflection** của TypeScript. Khi ứng dụng NestJS khởi động (`bootstrap`), `SwaggerModule` sẽ duyệt qua toàn bộ các Module, Controllers và DTOs đã đăng ký trong `AppModule` để tổng hợp thành một cây tài liệu OpenAPI JSON hoàn chỉnh.
+Gói `@nestjs/swagger` hoạt động dựa trên cơ chế **TypeScript Decorator Metadata Reflection**. Khi ứng dụng khởi chạy (`bootstrap`), `SwaggerModule` sẽ thực hiện quét toàn bộ cây ứng dụng:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Dev as 👨‍💻 Frontend / QA / Developer
-    participant Browser as 🌐 Browser (Swagger UI)
-    participant Main as 📄 main.ts (Bootstrap)
-    participant SwaggerMod as ⚙️ SwaggerModule
-    participant Controller as 📄 AuthController & PostsController
-    participant Guard as 🛡️ Global JwtAuthGuard
+1. **Quét Controller & Routes:** Thu thập thông tin đường dẫn (`/auth/login`, `/users/profile`), HTTP Method (`GET`, `POST`), và các thẻ nhóm `@ApiTags()`.
+2. **Quét DTOs & Validation Rules:** Đọc các thuộc tính được đánh dấu bằng `@ApiProperty()`, kiểu dữ liệu TypeScript, và các ràng buộc từ `class-validator` (`@MinLength()`, `@IsEmail()`).
+3. **Biên dịch OpenAPI JSON Document:** Xuất ra tài liệu chuẩn OpenAPI 3.0 tại endpoint `/api/docs-json`.
+4. **Mount Swagger UI Portal:** Gắn thư viện giao diện web `swagger-ui-express` tại endpoint `/api/docs`, cung cấp cổng thử nghiệm tương tác hoàn chỉnh.
 
-    Main->>SwaggerMod: DocumentBuilder: Khởi tạo Config (Title, BearerAuth)
-    SwaggerMod->>Controller: Quét @ApiTags, @ApiOperation, @ApiProperty
-    Controller-->>SwaggerMod: Trả về Metadata cấu trúc Request / Response
-    SwaggerMod->>Main: Biên dịch thành OpenAPI Document (JSON)
-    Main->>Browser: Mount Swagger UI tại endpoint /api/docs
-
-    Dev->>Browser: Mở http://localhost:3000/api/docs
-    Browser->>Dev: Hiển thị bảng điều khiển tương tác (Interactive Portal)
-
-    Note over Dev,Browser: Bước xác thực bảo mật Bearer Token
-    Dev->>Browser: Bấm nút "Authorize 🔓" & Nhập Bearer Token
-    Browser->>Dev: Khóa ổ khóa "Authorize 🔒" thành công!
-
-    Dev->>Browser: Chọn API & Bấm "Try it out" -> "Execute"
-    Browser->>Guard: Gửi HTTP Request (Header: Authorization Bearer ...)
-    Guard->>Controller: Token hợp lệ -> Chuyển vào Controller
-    Controller-->>Browser: Trả về dữ liệu JSON kèm HTTP Status
-    Browser-->>Dev: Hiển thị trực quan Response Body, Headers & Curl Command
-```
+<p align="center">
+  <img src="./assets/swagger_ui_interactive_mockup.jpg" alt="Swagger UI Interactive Mockup" width="85%" />
+</p>
 
 ---
 
@@ -108,114 +71,115 @@ sequenceDiagram
 
 ### 📌 Bước 1: Cài Đặt Gói Phụ Thuộc Cần Thiết
 
-Cài đặt hai thư viện chính hãng:
+Cài đặt 2 thư viện chính hãng từ NestJS:
 
-- `@nestjs/swagger`: Thư viện lõi cung cấp các decorators và `SwaggerModule`.
-- `swagger-ui-express`: Giao diện web trực quan để duyệt và thử nghiệm API.
+- `@nestjs/swagger`: Cung cấp `SwaggerModule`, `DocumentBuilder` và toàn bộ các Decorators OpenAPI.
+- `swagger-ui-express`: Đóng gói giao diện Swagger UI để phục vụ trên nền tảng Express.
 
-Mở terminal tại thư mục gốc của dự án và chạy lệnh:
+Chạy lệnh terminal tại thư mục gốc dự án:
 
 ```bash
 pnpm add @nestjs/swagger swagger-ui-express
 ```
 
-> [!TIP]
-> Nếu bạn muốn Swagger tự động phân tích các thuộc tính trong DTO mà không cần khai báo quá nhiều `@ApiProperty()`, bạn có thể kích hoạt Swagger CLI Plugin trong `nest-cli.json`. Tuy nhiên, trong môi trường Enterprise, việc **tự khai báo tường minh `@ApiProperty()`** vẫn là tiêu chuẩn vàng giúp kiểm soát chính xác ví dụ mẫu (`example`), mô tả (`description`) và kiểu dữ liệu hiển thị.
-
 ---
 
 ### 📌 Bước 2: Cấu Hình `DocumentBuilder` Trong `src/main.ts`
 
-Mở tệp `src/main.ts` và thiết lập `SwaggerModule`. Lưu ý rằng hệ thống của chúng ta đã có **Global Prefix `/api`** và **URI Versioning `/api/v1`** từ Module 3, nên đường dẫn Swagger UI sẽ được mount tại `/api/docs`.
+Mở tệp `src/main.ts`. Hệ thống của chúng ta đã được thiết lập **Global Prefix `/api`** và **URI Versioning `/api/v1`** bằng `ConfigService` từ các module trước. Chúng ta sẽ gắn Swagger UI tại đường dẫn `/api/docs`:
 
 📄 **`src/main.ts`**
 
 ```typescript
-import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
-  // 1. Cấu hình Global Prefix chuẩn RESTful
-  app.setGlobalPrefix('api');
+  const port = configService.get<number>('PORT', 3000);
+  const globalPrefix = configService.get<string>('GLOBAL_PREFIX', 'api');
+  const versionPrefix = configService.get<string>('VERSION_PREFIX', 'v');
+  const versionApi = configService.get<string>('VERSION_API', '1');
 
-  // 2. Cấu hình URI Versioning (/api/v1/...)
+  // 1. Cấu hình Global Prefix chuẩn RESTful: /api
+  app.setGlobalPrefix(globalPrefix);
+
+  // 2. Cấu hình URI Versioning: /api/v1/...
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
+    defaultVersion: versionApi,
+    prefix: versionPrefix,
   });
 
-  // 3. Kích hoạt ValidationPipe toàn cục
+  // 3. ValidationPipe toàn cục
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  // 4. Thiết lập OpenAPI Specification (Swagger)
-  const config = new DocumentBuilder()
+  // 4. Thiết lập OpenAPI Specification với DocumentBuilder
+  const swaggerConfig = new DocumentBuilder()
     .setTitle('Social Chat App API')
     .setDescription(
-      'Hệ thống REST API cho ứng dụng Mạng xã hội & Chat Realtime - Xây dựng với NestJS, PostgreSQL & Prisma ORM',
+      'Hệ thống REST API cho ứng dụng Mạng xã hội & Chat Realtime — Xây dựng với NestJS, PostgreSQL & Prisma ORM',
     )
-    .setVersion(versionApi || '1.0')
+    .setVersion(versionApi)
+    // Cấu hình cơ chế xác thực JWT Bearer Token trên giao diện Swagger UI
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
         name: 'JWT',
-        description:
-          'Nhập JWT Access Token vào đây theo cú pháp: Bearer <token>',
+        description: 'Nhập JWT Access Token của bạn vào đây',
         in: 'header',
       },
-      'JWT-auth',
+      'JWT-auth', // Tên định danh Security Scheme (sẽ tham chiếu trong @ApiBearerAuth)
     )
-    .addSecurityRequirements('JWT-auth')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  // Khởi tạo tài liệu OpenAPI Document
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // 5. Khởi tạo giao diện Swagger UI tại đường dẫn /api/docs
-  SwaggerModule.setup('api/docs', app, document, {
+  // 5. Mount giao diện Swagger UI tại đường dẫn: /api/docs
+  SwaggerModule.setup(`${globalPrefix}/docs`, app, document, {
     swaggerOptions: {
       persistAuthorization: true, // Giữ nguyên trạng thái Bearer Token khi refresh F5 trang web!
     },
   });
 
-  const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`🚀 Ứng dụng đang chạy tại: http://localhost:${port}`);
-  console.log(`📚 Swagger UI Document: http://localhost:${port}/api/docs`);
+
+  Logger.log(
+    `🚀 Server đang chạy tại: http://localhost:${port}/${globalPrefix}/${versionPrefix}${versionApi}`,
+  );
+  Logger.log(
+    `📚 Cổng tài liệu Swagger UI: http://localhost:${port}/${globalPrefix}/docs`,
+  );
 }
 bootstrap();
 ```
 
 > [!IMPORTANT]
-> Tùy chọn `persistAuthorization: true` trong `swaggerOptions` là một mẹo cực kỳ hữu ích trong thực tế! Nó giúp trình duyệt lưu token vào `localStorage`, tránh việc bạn phải copy/paste lại chuỗi token mỗi khi F5 reload trang trong quá trình dev và kiểm thử.
-
-📄 **`src/shared/decorators/public.decorator.ts`**
-
-```typescript
-import { applyDecorators, SetMetadata } from '@nestjs/common';
-import { ApiSecurity } from '@nestjs/swagger';
-import { IS_PUBLIC_KEY } from '../constants/metadata.constant';
-export const Public = () =>
-  applyDecorators(SetMetadata(IS_PUBLIC_KEY, true), ApiSecurity({}));
-```
+> **Tùy chọn `persistAuthorization: true`:**  
+> Đây là một tính năng cực kỳ quan trọng trong trải nghiệm nhà phát triển (DX)! Khi bật cờ này, Swagger UI sẽ lưu chuỗi token vào `localStorage` của trình duyệt. Mỗi khi bạn sửa code và server reload (Hot-reload) hoặc bạn bấm F5, bạn **không phải nhập lại token từ đầu**.
 
 ---
 
 ### 📌 Bước 3: Chuẩn Hóa Schema DTOs Với `@ApiProperty()` & `@ApiPropertyOptional()`
 
-Để Swagger UI hiển thị chính xác kiểu dữ liệu, các trường bắt buộc, giá trị mặc định và dữ liệu JSON mẫu (`example`), chúng ta sử dụng các decorators của `@nestjs/swagger`.
-
-Cập nhật các tệp DTO của Module Auth:
+Để Swagger UI hiển thị rõ ràng cấu trúc dữ liệu, các trường bắt buộc, giá trị mẫu (`example`) và mô tả tiếng Việt chi tiết, chúng ta gắn thêm decorators từ `@nestjs/swagger` vào các DTOs:
 
 📄 **`src/auth/dto/register.dto.ts`**
 
@@ -234,8 +198,8 @@ export class RegisterDto {
     description: 'Địa chỉ email người dùng (duy nhất trong hệ thống)',
     example: 'alice@example.com',
   })
-  @IsEmail({}, { message: 'Email không đúng định dạng' })
-  @IsNotEmpty({ message: 'Email không được để trống' })
+  @IsEmail({}, { message: 'Email không đúng định dạng!' })
+  @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
 
   @ApiProperty({
@@ -243,8 +207,9 @@ export class RegisterDto {
     example: 'Password@123',
     minLength: 6,
   })
-  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự' })
-  @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
+  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự!' })
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống!' })
+  @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự!' })
   password: string;
 
   @ApiPropertyOptional({
@@ -252,7 +217,7 @@ export class RegisterDto {
     example: 'Alice Nguyen',
   })
   @IsOptional()
-  @IsString({ message: 'Họ tên phải là chuỗi ký tự' })
+  @IsString({ message: 'Họ tên phải là chuỗi ký tự!' })
   name?: string;
 }
 ```
@@ -261,23 +226,25 @@ export class RegisterDto {
 
 ```typescript
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
-    description: 'Địa chỉ email đã đăng ký',
+    description: 'Địa chỉ email đã đăng ký tài khoản',
     example: 'alice@example.com',
   })
-  @IsEmail({}, { message: 'Email không đúng định dạng' })
-  @IsNotEmpty({ message: 'Email không được để trống' })
+  @IsEmail({}, { message: 'Email không đúng định dạng!' })
+  @IsNotEmpty({ message: 'Email không được để trống!' })
   email: string;
 
   @ApiProperty({
-    description: 'Mật khẩu đăng nhập',
+    description: 'Mật khẩu bảo mật',
     example: 'Password@123',
+    minLength: 6,
   })
-  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
+  @IsString({ message: 'Mật khẩu phải là chuỗi ký tự!' })
+  @IsNotEmpty({ message: 'Mật khẩu không được để trống!' })
+  @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự!' })
   password: string;
 }
 ```
@@ -286,13 +253,15 @@ export class LoginDto {
 
 ### 💡 Điểm Khác Biệt Then Chốt: `PartialType` Của `@nestjs/swagger` vs `@nestjs/mapped-types`
 
-Khi xây dựng các DTO cập nhật (ví dụ: `UpdateProfileDto` hoặc `UpdatePostDto`), ở Module 3 chúng ta đã làm quen với `PartialType`:
+Khi xây dựng các DTO cập nhật (ví dụ: `UpdateProfileDto` hoặc `UpdatePostDto` ở bài học tiếp theo), ở Module 3 chúng ta từng dùng `PartialType` từ thư viện `@nestjs/mapped-types`.
+
+Hãy chú ý sự khác biệt mang tính quyết định này:
 
 ```typescript
-// ❌ CÁCH CŨ (Chỉ hỗ trợ class-validator runtime, BỊ MẤT METADATA TRÊN SWAGGER UI):
+// ❌ CÁCH CŨ (Mất Schema Metadata trên Swagger UI):
 // import { PartialType } from '@nestjs/mapped-types';
 
-// ✅ CÁCH CHUẨN KHI CÓ SWAGGER:
+// ✅ CÁCH CHUẨN KHI TÍCH HỢP SWAGGER:
 import { PartialType } from '@nestjs/swagger';
 import { RegisterDto } from './register.dto';
 
@@ -300,14 +269,22 @@ export class UpdateProfileDto extends PartialType(RegisterDto) {}
 ```
 
 > [!CAUTION]
-> Nếu bạn import `PartialType` từ `@nestjs/mapped-types`, NestJS runtime vẫn chạy bình thường, nhưng **giao diện Swagger UI sẽ không hiển thị các trường dữ liệu của DTO con** (schema rỗng).  
-> **Luôn luôn import `PartialType`, `OmitType`, `PickType`, `IntersectionType` từ gói `@nestjs/swagger`** để toàn bộ schema metadata được kế thừa hoàn chỉnh!
+> **Cảnh Báo Lỗi Schema Rỗng:**  
+> Nếu bạn import `PartialType` từ `@nestjs/mapped-types`, NestJS runtime và `class-validator` vẫn hoạt động bình thường, nhưng **giao diện Swagger UI sẽ hiển thị một Schema rỗng `{}`**, vì `@nestjs/mapped-types` không hỗ trợ metadata của Swagger!  
+> **Quy tắc bắt buộc:** Luôn import `PartialType`, `OmitType`, `PickType`, `IntersectionType` từ thư viện **`@nestjs/swagger`**!
 
 ---
 
-### 📌 Bước 4: Trang Trí Controller Với OpenAPI Decorators
+### 📌 Bước 4: Trang Trí OpenAPI Decorators Cho Controllers
 
-Gắn các nhãn tài liệu lên `AuthController` và `UsersController`:
+Chúng ta tiến hành gắn các decorators tài liệu vào `AuthController` và `UsersController`:
+
+- `@ApiTags('tên_nhóm')`: Gom các endpoint có liên quan vào cùng một thư mục trực quan trên giao diện Swagger.
+- `@ApiBearerAuth('JWT-auth')`: Báo hiệu cho Swagger UI biết endpoint/controller này yêu cầu Bearer Token và hiển thị biểu tượng ổ khóa 🔓.
+- `@ApiOperation({ summary: '...' })`: Tóm tắt ngắn gọn chức năng của API.
+- `@ApiResponse({ status: ..., description: '...' })`: Mô tả chi tiết các trường hợp phản hồi thành công và thất bại.
+
+#### 1. Cập Nhật `AuthController`:
 
 📄 **`src/auth/auth.controller.ts`**
 
@@ -315,56 +292,58 @@ Gắn các nhãn tài liệu lên `AuthController` và `UsersController`:
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Version,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from '../common/decorators/public.decorator';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { type GoogleUser } from './interfaces/google-user.interface';
+import { Public } from '@/shared/decorators/public.decorator';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
-@ApiTags('auth') // Nhóm toàn bộ endpoints trong controller này vào thư mục "auth" trên Swagger UI
+@ApiTags('auth') // Gom nhóm toàn bộ endpoints xác thực vào tag "auth"
+@Public() // Toàn bộ routes trong AuthController là công khai
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 1. POST /api/v1/auth/register — Đăng ký tài khoản
-  @Public()
-  @Version('1')
   @Post('register')
-  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Đăng ký tài khoản mới',
+    summary: 'Đăng ký tài khoản người dùng mới',
     description:
-      'Tạo tài khoản người dùng mới với email, password và name. Không yêu cầu xác thực token.',
+      'Tạo tài khoản mới với email, password và name. Không yêu cầu Bearer Token.',
   })
   @ApiResponse({
     status: 201,
     description: 'Đăng ký tài khoản thành công',
   })
   @ApiResponse({
-    status: 400,
-    description:
-      'Dữ liệu không hợp lệ (Validation failed) hoặc email đã tồn tại',
+    status: 409,
+    description: 'Email này đã được sử dụng trong hệ thống',
   })
   @ResponseMessage('Đăng ký tài khoản thành công!')
-  register(@Body() registerDto: RegisterDto) {
+  async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  // 2. POST /api/v1/auth/login — Đăng nhập tài khoản
-  @Public()
-  @Version('1')
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    long: { limit: 5, ttl: 60000 },
+  })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Đăng nhập hệ thống & lấy JWT Access Token',
     description:
-      'Xác thực tài khoản bằng email/mật khẩu và phát hành Access Token thời hạn 1 ngày.',
+      'Xác thực tài khoản bằng email/mật khẩu và nhận về Access Token có thời hạn.',
   })
   @ApiResponse({
     status: 200,
@@ -375,27 +354,84 @@ export class AuthController {
     description: 'Email hoặc mật khẩu không chính xác',
   })
   @ResponseMessage('Đăng nhập thành công!')
-  login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: 'Kích hoạt luồng đăng nhập bằng Google OAuth2',
+    description:
+      'Tự động chuyển hướng trình duyệt sang trang đăng nhập của Google.',
+  })
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({
+    summary: 'Tiếp nhận mã ủy quyền callback từ Google',
+    description:
+      'Google chuyển hướng về kèm mã code. Hệ thống tạo tài khoản và phát hành Token.',
+  })
+  async googleAuthCallback(@CurrentUser() userData: GoogleUser) {
+    return this.authService.socialLogin(userData);
+  }
+
+  @SkipThrottle({
+    short: true,
+    medium: true,
+    long: true,
+  })
+  @Get('health')
+  @ApiOperation({
+    summary: 'Kiểm tra trạng thái sức khỏe (Healthcheck) của Auth Module',
+  })
+  healthCheck() {
+    return { status: 'healthy', timestamp: new Date().toISOString() };
   }
 }
 ```
 
+---
+
+#### 2. Cập Nhật `UsersController`:
+
 📄 **`src/users/users.controller.ts`**
 
 ```typescript
-import { Controller, Get, Version } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
-@ApiTags('users')
+@ApiTags('users') // Gom nhóm tài nguyên "users"
+@ApiBearerAuth('JWT-auth') // 🔒 Đánh dấu toàn bộ Controller yêu cầu Bearer Token
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Version('1')
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng trong hệ thống' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Tạo người dùng mới (Dành cho Quản trị viên)' })
+  @ApiResponse({ status: 201, description: 'Tạo người dùng thành công' })
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
+  }
+
   @Get('profile')
   @ApiOperation({
     summary: 'Xem hồ sơ cá nhân của người dùng hiện tại',
@@ -404,15 +440,17 @@ export class UsersController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Lấy thông tin hồ sơ thành công',
+    description: 'Lấy thông tin hồ sơ tài khoản thành công',
   })
   @ApiResponse({
     status: 401,
-    description: 'Chưa xác thực hoặc Access Token không hợp lệ / đã hết hạn',
+    description: 'Chưa xác thực hoặc Bearer Token không hợp lệ / đã hết hạn',
   })
-  @ResponseMessage('Lấy thông tin hồ sơ người dùng thành công!')
-  getProfile(@CurrentUser('userId') userId: number) {
-    return this.usersService.findById(userId);
+  getProfile(@CurrentUser() userData: UserData) {
+    return {
+      message: 'Xác thực tài khoản thành công',
+      user: userData,
+    };
   }
 }
 ```
@@ -421,7 +459,9 @@ export class UsersController {
 
 ## 4. Kịch Bản Kiểm Tra & Thử Nghiệm Tương Tác (Hands-on Lab)
 
-Khởi động dự án ở chế độ phát triển:
+### Bước Chuẩn Bị: Khởi Động Server
+
+Mở terminal và khởi chạy máy chủ:
 
 ```bash
 pnpm start:dev
@@ -429,82 +469,100 @@ pnpm start:dev
 
 Mở trình duyệt Web tại địa chỉ: **`http://localhost:3000/api/docs`**
 
+Bạn sẽ thấy giao diện Swagger UI hiện lên với tiêu đề **Social Chat App API**, hai nhóm endpoints **`auth`** và **`users`**, cùng nút **Authorize 🔓** nổi bật ở góc phải.
+
 ---
 
-### 🟢 Kịch Bản 1: Khám Phá Swagger UI & Kiểm Thử Auth API Không Cần Postman
+### 🟢 Kịch Bản 1: Khám Phá Schema & Thử Nghiệm Đăng Ký / Đăng Nhập Không Cần Postman
 
-1. Trên giao diện Swagger UI, bạn sẽ thấy hai nhóm tag lớn: **`auth`** và **`users`**.
-2. Nhấp chuột vào endpoint **`POST /api/v1/auth/register`**:
-   - Quan sát mục **Parameters & Request Body**: Swagger hiển thị sẵn mẫu JSON với các trường `email`, `password`, `name` kèm ví dụ mẫu đã khai báo trong DTO.
+1. Nhấp chuột vào endpoint **`POST /api/v1/auth/register`**:
+   - Quan sát mục **Request body**: Swagger UI tự động hiển thị mẫu JSON với các trường `email`, `password`, `name` cùng các giá trị mẫu `example` mà bạn đã cấu hình trong `RegisterDto`.
    - Bấm nút **Try it out**.
-   - Sửa trường `email` thành: `"dev_test@example.com"`, `password` thành `"Secret@123"`.
-   - Bấm nút **Execute** (nút màu xanh lớn).
-3. **Kết quả phản hồi (Response 201 Created):**
+   - Nhập thông tin đăng ký:
+     ```json
+     {
+       "email": "student_demo@example.com",
+       "password": "Password@123",
+       "name": "Thanh Nguyen"
+     }
+     ```
+   - Bấm nút **Execute** màu xanh lớn.
+
+📥 **Kết quả phản hồi HTTP nhận được ngay trên trình duyệt (`201 Created`):**
 
 ```json
 {
   "statusCode": 201,
   "message": "Đăng ký tài khoản thành công!",
   "data": {
-    "id": 1,
-    "email": "dev_test@example.com",
-    "name": "Alice Nguyen",
-    "createdAt": "2026-09-07T10:30:00.000Z"
+    "user": {
+      "id": 1,
+      "email": "student_demo@example.com",
+      "name": "Thanh Nguyen",
+      "role": "USER",
+      "createdAt": "2026-09-24T15:20:00.000Z",
+      "updatedAt": "2026-09-24T15:20:00.000Z"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   },
-  "timestamp": "2026-09-07T10:30:00.123Z",
+  "timestamp": "2026-09-24T15:20:00.123Z",
   "path": "/api/v1/auth/register"
 }
 ```
 
-4. Tiếp tục thử nghiệm endpoint **`POST /api/v1/auth/login`**:
-   - Bấm **Try it out**, nhập đúng tài khoản vừa tạo.
-   - Bấm **Execute**.
-   - Sao chép (copy) chuỗi `accessToken` từ kết quả phản hồi `200 OK`.
+2. Tiếp tục nhấp vào endpoint **`POST /api/v1/auth/login`**:
+   - Bấm **Try it out**, nhập tài khoản vừa tạo và bấm **Execute**.
+   - Copy chuỗi `accessToken` từ kết quả phản hồi `200 OK`.
 
 ---
 
-### 🟢 Kịch Bản 2: Đăng Nhập Bearer Token & Gọi Protected API Trực Tiếp Trên Swagger
+### 🟢 Kịch Bản 2: Đăng Nhập Token Lên Swagger UI & Gọi Protected API
 
-1. Kéo lên góc trên bên phải màn hình Swagger UI, bấm vào nút **Authorize 🔓** (ổ khóa màu xanh).
-2. Một hộp thoại popup sẽ xuất hiện:
-   - Tại ô **Value**, dán chuỗi token bạn vừa copy: `Bearer eyJhbGciOiJIUzI1Ni...` (hoặc chỉ cần dán token nếu cấu hình type là http bearer).
-   - Bấm nút **Authorize** màu xanh ➔ Bấm **Close**.
-   - Biểu tượng ổ khóa sẽ chuyển sang trạng thái đã khóa: **Authorize 🔒**.
+1. Cuộn lên đầu trang, bấm vào nút **Authorize 🔓** (ổ khóa màu xanh).
+2. Hộp thoại **Available authorizations** xuất hiện:
+   - Tại ô nhập liệu **Value**, dán chuỗi token bạn vừa copy: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+   - Bấm nút **Authorize** ➔ Bấm **Close**.
+   - Biểu tượng ổ khóa lập tức chuyển sang trạng thái đã khóa: **Authorize 🔒**!
 3. Cuộn xuống nhóm **`users`**, mở endpoint **`GET /api/v1/users/profile`**:
-   - Bấm **Try it out** ➔ Bấm **Execute**.
-4. **Kết quả phản hồi (Response 200 OK):**
+   - Bấm nút **Try it out** ➔ Bấm **Execute**.
+
+📥 **Kết quả phản hồi nhận được (`200 OK`):**
 
 ```json
 {
   "statusCode": 200,
-  "message": "Lấy thông tin hồ sơ người dùng thành công!",
+  "message": "Thao tác thực hiện thành công",
   "data": {
-    "id": 1,
-    "email": "dev_test@example.com",
-    "name": "Alice Nguyen"
+    "message": "Xác thực tài khoản thành công",
+    "user": {
+      "userId": 1,
+      "email": "student_demo@example.com"
+    }
   },
-  "timestamp": "2026-09-07T10:32:15.000Z",
+  "timestamp": "2026-09-24T15:22:10.000Z",
   "path": "/api/v1/users/profile"
 }
 ```
 
 > [!TIP]
-> Nhìn vào phần **Curl** được Swagger UI tạo tự động, bạn sẽ thấy Swagger đã tự động gắn header:  
-> `-H "Authorization: Bearer eyJhbGci..."`. Toàn bộ quá trình test API diễn ra 100% trên trình duyệt mà không cần mở Postman hay gõ lệnh Terminal!
+> Quan sát mục **Curl** được Swagger UI tạo tự động, bạn sẽ thấy Swagger đã tự động gắn header:  
+> `-H "Authorization: Bearer eyJhbGci..."`. Bạn có thể kiểm thử toàn bộ API một cách mượt mà và trực quan 100% trên trình duyệt!
 
 ---
 
-### 🔴 Kịch Bản 3: Kiểm Thử Lỗi Khi Chưa Authorize / Token Sai (Error Flow)
+### 🔴 Kịch Bản 3: Kiểm Thử Lỗi Khi Chưa Authorize / Hết Hạn Token (Error Flow)
 
 1. Bấm lại vào nút **Authorize 🔒** ➔ Bấm **Logout** để xóa Token đã lưu.
-2. Thử bấm lại **Execute** trên endpoint **`GET /api/v1/users/profile`**.
-3. **Kết quả kỳ vọng (HTTP Status `401 Unauthorized`):**
+2. Quay lại endpoint **`GET /api/v1/users/profile`** và bấm **Execute** một lần nữa.
+
+📥 **Kết quả phản hồi nhận được (`401 Unauthorized`):**
 
 ```json
 {
   "statusCode": 401,
-  "message": "Unauthorized",
-  "timestamp": "2026-09-07T10:33:00.000Z",
+  "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
+  "error": "Unauthorized",
+  "timestamp": "2026-09-24T15:25:00.000Z",
   "path": "/api/v1/users/profile"
 }
 ```
@@ -517,33 +575,37 @@ Swagger UI đã thể hiện chính xác cơ chế bảo vệ của `JwtAuthGuar
 
 ```mermaid
 mindmap
-  root((OpenAPI & Swagger UI))
-    Lõi Khởi Tạo
-      DocumentBuilder trong main.ts
-      SwaggerModule setup /api/docs
-      persistAuthorization lưu token
-    Cơ Chế Bảo Mật
-      addBearerAuth JWT-auth
-      @ApiBearerAuth JWT-auth
-      Tương tác nút Authorize ổ khóa
-    Trang Trí Controller
-      @ApiTags gom nhóm tài nguyên
-      @ApiOperation mô tả endpoint
-      @ApiResponse mã HTTP và mô tả
-    Chuẩn Hóa DTOs
-      @ApiProperty và @ApiPropertyOptional
-      PartialType từ @nestjs/swagger
+  root(("OpenAPI & Swagger UI"))
+    "Triết Lý Code-First"
+      "Mã nguồn TypeScript là chân lý"
+      "Tự động đồng bộ thời gian thực"
+      "Triệt tiêu hoàn toàn Schema Drift"
+    "Cấu Hình Bootstrap"
+      "DocumentBuilder trong main.ts"
+      "Mount UI tại /api/docs"
+      "persistAuthorization lưu token khi F5"
+    "Cơ Chế Bảo Mật"
+      "addBearerAuth JWT-auth"
+      "@ApiBearerAuth trên UsersController"
+      "Nút Authorize ổ khóa trên trình duyệt"
+    "OpenAPI Decorators"
+      "@ApiTags gom nhóm tài nguyên"
+      "@ApiOperation tóm tắt chức năng"
+      "@ApiResponse mô tả mã trạng thái HTTP"
+      "@ApiProperty trên DTOs"
+      "PartialType từ @nestjs/swagger"
 ```
 
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu rõ sự vượt trội của tiếp cận **Code-First** giúp đồng bộ tài liệu API tức thì, loại bỏ hoàn toàn Schema Drift.
-- [x] Cài đặt thành công `@nestjs/swagger` và `swagger-ui-express`.
-- [x] Cấu hình `DocumentBuilder` trong `main.ts`, hỗ trợ API Versioning và đường dẫn tài liệu chuẩn `/api/docs`.
-- [x] Thiết lập `addBearerAuth()` và `@ApiBearerAuth('JWT-auth')` để test các API bảo mật trực tiếp trên trình duyệt.
-- [x] Khai báo đầy đủ `@ApiProperty()` và `@ApiPropertyOptional()` trên các DTOs.
-- [x] Phân biệt rõ việc sử dụng `PartialType` từ `@nestjs/swagger` thay vì `@nestjs/mapped-types`.
-- [x] Thực hành thành thạo luồng kiểm thử tương tác (Interactive Testing): Đăng ký ➔ Đăng nhập ➔ Authorize ➔ Gọi Protected Route.
+- [x] Hiểu sâu sự vượt trội của phương pháp tiếp cận **Code-First** so với việc viết tài liệu thủ công (Schema-First).
+- [x] Cài đặt thành công bộ thư viện `@nestjs/swagger` và `swagger-ui-express`.
+- [x] Cấu hình `DocumentBuilder` trong `src/main.ts`, đồng bộ với Global Prefix `/api` và URI Versioning `/api/v1`.
+- [x] Thiết lập `addBearerAuth('JWT-auth')` và bật cờ `persistAuthorization: true` để lưu token khi F5.
+- [x] Khai báo chi tiết `@ApiProperty()` và `@ApiPropertyOptional()` trên các DTOs của dự án.
+- [x] Phân biệt sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` và `@nestjs/mapped-types`.
+- [x] Sử dụng `@ApiTags()` và `@ApiBearerAuth()` trang trí `AuthController` và `UsersController`.
+- [x] Thực hành thành thạo kịch bản kiểm thử tương tác (Interactive Testing): Đăng ký ➔ Đăng nhập ➔ Authorize ➔ Gọi Protected API trực tiếp trên Swagger UI.
 
 ---
 
