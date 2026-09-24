@@ -17,7 +17,7 @@
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Nắm vững tiêu chuẩn OpenAPI 3.0 (OAS) và giải pháp tự động hóa sinh tài liệu API trong NestJS bằng thư viện chính chủ `@nestjs/swagger` & `swagger-ui-express`; hiểu rõ sự khác biệt giữa triết lý Code-First vs Schema-First; tự tay cấu hình `DocumentBuilder` trong `src/main.ts`, đồng bộ hoàn hảo với Global Prefix (`/api`) và URI Versioning (`/api/v1`); tích hợp cơ chế bảo mật JWT Bearer Authentication (`addBearerAuth()`) trực tiếp lên giao diện Swagger UI; làm chủ các Decorators cốt lõi: `@ApiTags()`, `@ApiBearerAuth()`, `@ApiOperation()`, `@ApiResponse()`, `@ApiProperty()`, `@ApiPropertyOptional()`, cùng sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` so với `@nestjs/mapped-types`; thực hành kịch bản kiểm thử tương tác (Interactive Testing): Đăng ký/Đăng nhập lấy Token, Authorize ổ khóa bảo mật và gọi các API riêng tư ngay trên trình duyệt mà không cần mở Postman.
+> 🎯 **Mục tiêu bài học:** Nắm vững tiêu chuẩn OpenAPI 3.0 (OAS) và giải pháp tự động hóa sinh tài liệu API trong NestJS bằng thư viện chính chủ `@nestjs/swagger`; hiểu rõ sự khác biệt giữa triết lý Code-First vs Schema-First; tự tay cấu hình `DocumentBuilder` trong `src/main.ts`, đồng bộ hoàn hảo với Global Prefix (`/api`) và URI Versioning (`/api/v1`); tích hợp cơ chế bảo mật JWT Bearer Authentication (`addBearerAuth()`) trực tiếp lên giao diện Swagger UI; làm chủ các Decorators cốt lõi: `@ApiTags()`, `@ApiBearerAuth()`, `@ApiOperation()`, `@ApiResponse()`, `@ApiProperty()`, `@ApiPropertyOptional()`, cùng sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` so với `@nestjs/mapped-types`; thực hành kịch bản kiểm thử tương tác (Interactive Testing): Đăng ký/Đăng nhập lấy Token, Authorize ổ khóa bảo mật và gọi các API riêng tư ngay trên trình duyệt mà không cần mở Postman.
 
 ---
 
@@ -59,7 +59,7 @@ Gói `@nestjs/swagger` hoạt động dựa trên cơ chế **TypeScript Decorat
 1. **Quét Controller & Routes:** Thu thập thông tin đường dẫn (`/auth/login`, `/users/profile`), HTTP Method (`GET`, `POST`), và các thẻ nhóm `@ApiTags()`.
 2. **Quét DTOs & Validation Rules:** Đọc các thuộc tính được đánh dấu bằng `@ApiProperty()`, kiểu dữ liệu TypeScript, và các ràng buộc từ `class-validator` (`@MinLength()`, `@IsEmail()`).
 3. **Biên dịch OpenAPI JSON Document:** Xuất ra tài liệu chuẩn OpenAPI 3.0 tại endpoint `/api/docs-json`.
-4. **Mount Swagger UI Portal:** Gắn thư viện giao diện web `swagger-ui-express` tại endpoint `/api/docs`, cung cấp cổng thử nghiệm tương tác hoàn chỉnh.
+4. **Mount Swagger UI Portal:** Tự động tích hợp giao diện web Swagger UI tương tác tại endpoint `/api/docs`, cung cấp cổng thử nghiệm tương tác hoàn chỉnh.
 
 <p align="center">
   <img src="./assets/swagger_ui_interactive_mockup.jpg" alt="Swagger UI Interactive Mockup" width="85%" />
@@ -71,15 +71,17 @@ Gói `@nestjs/swagger` hoạt động dựa trên cơ chế **TypeScript Decorat
 
 ### 📌 Bước 1: Cài Đặt Gói Phụ Thuộc Cần Thiết
 
-Cài đặt 2 thư viện chính hãng từ NestJS:
+Theo tài liệu chính thức từ [NestJS OpenAPI Documentation](https://docs.nestjs.com/openapi/introduction), trên nền tảng Express mặc định, bạn chỉ cần cài đặt duy nhất gói thư viện chính thức:
 
-- `@nestjs/swagger`: Cung cấp `SwaggerModule`, `DocumentBuilder` và toàn bộ các Decorators OpenAPI.
-- `swagger-ui-express`: Đóng gói giao diện Swagger UI để phục vụ trên nền tảng Express.
+- `@nestjs/swagger`: Cung cấp `SwaggerModule`, `DocumentBuilder`, toàn bộ các Decorators OpenAPI, đồng thời tích hợp sẵn giao diện Swagger UI
+
+> [!NOTE]
+> _(Lưu ý: Chỉ khi ứng dụng của bạn chuyển đổi sang nền tảng Fastify `@nestjs/platform-fastify` thì mới cần cài thêm gói `@fastify/static` theo hướng dẫn của NestJS)._
 
 Chạy lệnh terminal tại thư mục gốc dự án:
 
 ```bash
-pnpm add @nestjs/swagger swagger-ui-express
+pnpm add @nestjs/swagger
 ```
 
 ---
@@ -599,7 +601,7 @@ mindmap
 ### ✅ Checklist Ghi Nhớ Bài Học:
 
 - [x] Hiểu sâu sự vượt trội của phương pháp tiếp cận **Code-First** so với việc viết tài liệu thủ công (Schema-First).
-- [x] Cài đặt thành công bộ thư viện `@nestjs/swagger` và `swagger-ui-express`.
+- [x] Cài đặt thành công thư viện `@nestjs/swagger` và kích hoạt Swagger UI tương tác.
 - [x] Cấu hình `DocumentBuilder` trong `src/main.ts`, đồng bộ với Global Prefix `/api` và URI Versioning `/api/v1`.
 - [x] Thiết lập `addBearerAuth('JWT-auth')` và bật cờ `persistAuthorization: true` để lưu token khi F5.
 - [x] Khai báo chi tiết `@ApiProperty()` và `@ApiPropertyOptional()` trên các DTOs của dự án.
