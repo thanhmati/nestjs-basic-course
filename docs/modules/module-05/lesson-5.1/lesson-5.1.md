@@ -138,17 +138,14 @@ async function bootstrap() {
     )
     .setVersion(versionApi)
     // Cấu hình cơ chế xác thực JWT Bearer Token trên giao diện Swagger UI
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Nhập JWT Access Token của bạn vào đây',
-        in: 'header',
-      },
-      'JWT-auth', // Tên định danh Security Scheme (sẽ tham chiếu trong @ApiBearerAuth)
-    )
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'JWT',
+      description: 'Nhập JWT Access Token của bạn vào đây',
+      in: 'header',
+    })
     .build();
 
   // Khởi tạo tài liệu OpenAPI Document
@@ -282,7 +279,7 @@ export class UpdateProfileDto extends PartialType(RegisterDto) {}
 Chúng ta tiến hành gắn các decorators tài liệu vào `AuthController` và `UsersController`:
 
 - `@ApiTags('tên_nhóm')`: Gom các endpoint có liên quan vào cùng một thư mục trực quan trên giao diện Swagger.
-- `@ApiBearerAuth('JWT-auth')`: Báo hiệu cho Swagger UI biết endpoint/controller này yêu cầu Bearer Token và hiển thị biểu tượng ổ khóa 🔓.
+- `@ApiBearerAuth()`: Báo hiệu cho Swagger UI biết endpoint/controller này yêu cầu Bearer Token và hiển thị biểu tượng ổ khóa 🔓.
 - `@ApiOperation({ summary: '...' })`: Tóm tắt ngắn gọn chức năng của API.
 - `@ApiResponse({ status: ..., description: '...' })`: Mô tả chi tiết các trường hợp phản hồi thành công và thất bại.
 
@@ -415,7 +412,7 @@ import type { UserData } from '@/auth/interfaces/jwt.interface';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
 @ApiTags('users') // Gom nhóm tài nguyên "users"
-@ApiBearerAuth('JWT-auth') // 🔒 Đánh dấu toàn bộ Controller yêu cầu Bearer Token
+@ApiBearerAuth() // 🔒 Đánh dấu toàn bộ Controller yêu cầu Bearer Token
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -587,7 +584,7 @@ mindmap
       "Mount UI tại /api/docs"
       "persistAuthorization lưu token khi F5"
     "Cơ Chế Bảo Mật"
-      "addBearerAuth JWT-auth"
+      "addBearerAuth"
       "@ApiBearerAuth trên UsersController"
       "Nút Authorize ổ khóa trên trình duyệt"
     "OpenAPI Decorators"
@@ -603,7 +600,7 @@ mindmap
 - [x] Hiểu sâu sự vượt trội của phương pháp tiếp cận **Code-First** so với việc viết tài liệu thủ công (Schema-First).
 - [x] Cài đặt thành công thư viện `@nestjs/swagger` và kích hoạt Swagger UI tương tác.
 - [x] Cấu hình `DocumentBuilder` trong `src/main.ts`, đồng bộ với Global Prefix `/api` và URI Versioning `/api/v1`.
-- [x] Thiết lập `addBearerAuth('JWT-auth')` và bật cờ `persistAuthorization: true` để lưu token khi F5.
+- [x] Thiết lập `addBearerAuth()` và bật cờ `persistAuthorization: true` để lưu token khi F5.
 - [x] Khai báo chi tiết `@ApiProperty()` và `@ApiPropertyOptional()` trên các DTOs của dự án.
 - [x] Phân biệt sự khác biệt then chốt giữa `PartialType` của `@nestjs/swagger` và `@nestjs/mapped-types`.
 - [x] Sử dụng `@ApiTags()` và `@ApiBearerAuth()` trang trí `AuthController` và `UsersController`.
