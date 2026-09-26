@@ -1,4 +1,4 @@
-# Lesson 4.3: Guards Nền Tảng — Kiểm Soát Quyền Truy Cập Với CanActivate Trong NestJS
+# Lesson 4.3: NestJS Guards — Kiểm Soát Quyền Truy Cập & Bảo Vệ API Trong NestJS
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Guards-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Guards" />
@@ -362,7 +362,7 @@ curl -X GET http://localhost:3000/api/v1/users/profile \
 
 ```mermaid
 mindmap
-  root(("NestJS Guards Nền Tảng"))
+  root(("Lesson 4.3: NestJS Guards"))
     "Khái Niệm Guard"
       "Implements CanActivate"
       "Single Responsibility: Cho phép hoặc Chặn"
