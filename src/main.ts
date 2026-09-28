@@ -37,4 +37,4 @@ async function bootstrap() {
     `Application is running on: http://localhost:${port}/${globalPrefix}/${versionPrefix}${versionApi}`,
   );
 }
-bootstrap();
+void bootstrap();
