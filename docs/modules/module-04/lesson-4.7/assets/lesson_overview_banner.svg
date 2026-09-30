@@ -1,101 +1,174 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="100%" height="100%">
   <defs>
     <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0b0f19"/>
-      <stop offset="50%" stop-color="#141829"/>
+      <stop offset="50%" stop-color="#111827"/>
       <stop offset="100%" stop-color="#0b0f19"/>
     </linearGradient>
 
     <!-- Card Background Gradient -->
     <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1e2438" stop-opacity="0.98"/>
-      <stop offset="100%" stop-color="#111625" stop-opacity="0.98"/>
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
     </linearGradient>
 
-    <!-- Code Block Background -->
-    <linearGradient id="codeBg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#090d16"/>
-      <stop offset="100%" stop-color="#0c111d"/>
+    <!-- Glowing Accents -->
+    <linearGradient id="adminGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+
+    <linearGradient id="userGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <linearGradient id="deniedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#be123c"/>
     </linearGradient>
 
     <!-- Drop Shadow Filter -->
     <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.6"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
     </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Tech Grid Pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="1" stroke-opacity="0.2"/>
+    </pattern>
   </defs>
 
   <!-- Background Base -->
-  <rect width="1200" height="400" fill="url(#bgGrad)" />
+  <rect width="1200" height="420" fill="url(#bgGrad)"/>
+  <rect width="1200" height="420" fill="url(#grid)"/>
 
-  <!-- Subtle Tech Grid -->
-  <g opacity="0.05" stroke="#ffffff" stroke-width="1">
-    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M 40 0 L 0 0 0 40"/>
-    </pattern>
-    <rect width="1200" height="400" fill="url(#grid)"/>
-  </g>
+  <!-- Glowing background ambient lights -->
+  <circle cx="200" cy="150" r="160" fill="#6366f1" opacity="0.14" filter="url(#glow)"/>
+  <circle cx="1020" cy="160" r="150" fill="#10b981" opacity="0.12" filter="url(#glow)"/>
+  <circle cx="1020" cy="300" r="140" fill="#f43f5e" opacity="0.10" filter="url(#glow)"/>
 
-  <!-- Header Section -->
-  <g transform="translate(50, 36)">
-    <rect x="0" y="0" width="140" height="26" rx="13" fill="#6366f1" fill-opacity="0.2" stroke="#818cf8" stroke-width="1"/>
-    <text x="70" y="17" fill="#c7d2fe" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1">
-      MODULE 04 • LESSON 4.7
-    </text>
-    <text x="0" y="58" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="23" font-weight="800">
-      Phân Quyền RBAC (Role-Based Access Control) Với @Roles() &amp; RolesGuard
-    </text>
-  </g>
+  <!-- Main Window Container -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="30" width="1100" height="360" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5"/>
 
-  <!-- ==================== CARD 1: @Roles() DECORATOR ==================== -->
-  <g transform="translate(50, 115)" filter="url(#shadow)">
-    <rect width="520" height="252" rx="12" fill="url(#cardGrad)" stroke="#6366f1" stroke-width="1.5"/>
-    <rect width="520" height="34" rx="12" fill="#4338ca" fill-opacity="0.4"/>
-    <text x="16" y="22" fill="#c7d2fe" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
-      🏷️ 1. GẮN NHÃN QUYỀN TRUY CẬP: @Roles()
-    </text>
-    
-    <text x="16" y="54" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="11">
-      Khai báo quyền bắt buộc tại Handler/Controller qua SetMetadata:
-    </text>
-
-    <!-- Code Box -->
-    <rect x="14" y="64" width="492" height="138" rx="6" fill="url(#codeBg)" stroke="#28324a" stroke-width="1"/>
-    <text x="22" y="84" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 1. Khởi tạo decorator Type-Safe từ Prisma Enum</text>
-    <text x="22" y="100" fill="#818cf8" font-family="'JetBrains Mono', monospace" font-size="9.5">export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);</text>
-    <text x="22" y="122" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// 2. Chỉ cấp quyền cho ADMIN truy xuất danh sách</text>
-    <text x="22" y="138" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9.5">@Roles(Role.ADMIN)</text>
-    <text x="22" y="154" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="9.5">@Get()</text>
-    <text x="22" y="170" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9.5">findAll() { return this.usersService.findAll(); }</text>
-
-    <text x="16" y="224" fill="#a5b4fc" font-family="-apple-system, sans-serif" font-size="10.5">
-      ➔ Linh hoạt áp dụng nhiều Roles: @Roles(Role.ADMIN, Role.MODERATOR)
+    <!-- Window Top Header -->
+    <path d="M 50 46 A 16 16 0 0 1 66 30 L 1134 30 A 16 16 0 0 1 1150 46 L 1150 72 L 50 72 Z" fill="#0f172a" fill-opacity="0.85"/>
+    <circle cx="80" cy="51" r="5.5" fill="#ef4444"/>
+    <circle cx="98" cy="51" r="5.5" fill="#f59e0b"/>
+    <circle cx="116" cy="51" r="5.5" fill="#10b981"/>
+    <text x="140" y="55" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11.5">
+      docs/modules/module-04/lesson-4.7 — Role-Based Access Control (RBAC) &amp; RolesGuard
     </text>
   </g>
 
-  <!-- ==================== CARD 2: RolesGuard & Reflector ==================== -->
-  <g transform="translate(630, 115)" filter="url(#shadow)">
-    <rect width="520" height="252" rx="12" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5"/>
-    <rect width="520" height="34" rx="12" fill="#047857" fill-opacity="0.4"/>
-    <text x="16" y="22" fill="#a7f3d0" font-family="-apple-system, sans-serif" font-size="12" font-weight="700">
-      🛡️ 2. BẢO VỆ CHẶN CỔNG: RolesGuard &amp; Reflector
+  <!-- ==================== LEFT HERO CONTENT ==================== -->
+  <g transform="translate(90, 105)">
+    <!-- Badges Row -->
+    <rect x="0" y="0" width="105" height="26" rx="6" fill="#e0234e" fill-opacity="0.2" stroke="#e0234e" stroke-width="1"/>
+    <text x="52" y="17" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">MODULE 04</text>
+
+    <rect x="115" y="0" width="110" height="26" rx="6" fill="#6366f1" fill-opacity="0.2" stroke="#6366f1" stroke-width="1"/>
+    <text x="170" y="17" fill="#a5b4fc" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">LESSON 4.7</text>
+
+    <rect x="235" y="0" width="125" height="26" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+    <text x="297" y="17" fill="#6ee7b7" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold" text-anchor="middle">RBAC GUARDS</text>
+
+    <!-- Main Title -->
+    <text x="0" y="66" fill="#ffffff" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.5">
+      Phân Quyền RBAC Với @Roles()
     </text>
 
-    <text x="16" y="54" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="11">
-      So khớp vai trò người dùng trong Token với quyền Route yêu cầu:
+    <!-- Subtitle -->
+    <text x="0" y="96" fill="#94a3b8" font-family="'Inter', sans-serif" font-size="14" font-weight="400">
+      Kiểm soát quyền hạn theo vai trò người dùng (<tspan fill="#818cf8" font-weight="600">Role.USER</tspan> &amp; <tspan fill="#fbbf24" font-weight="600">Role.ADMIN</tspan>)
     </text>
 
-    <!-- Code Box -->
-    <rect x="14" y="64" width="492" height="138" rx="6" fill="url(#codeBg)" stroke="#28324a" stroke-width="1"/>
-    <text x="22" y="84" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// Đọc metadata từ Handler &amp; Class</text>
-    <text x="22" y="100" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9.5">const requiredRoles = this.reflector.getAllAndOverride&lt;Role[]&gt;(ROLES_KEY, [ ... ]);</text>
-    <text x="22" y="116" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9.5">if (!requiredRoles) return true; // Không yêu cầu role -> Cho qua</text>
-    <text x="22" y="134" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5">// So sánh role từ req.user (được giải mã từ JwtAuthGuard)</text>
-    <text x="22" y="152" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="9.5">const hasRole = requiredRoles.includes(user.role);</text>
-    <text x="22" y="170" fill="#f87171" font-family="'JetBrains Mono', monospace" font-size="9.5">if (!hasRole) throw new ForbiddenException('403 Forbidden');</text>
+    <!-- Bullet Points -->
+    <g transform="translate(0, 126)">
+      <!-- Item 1 -->
+      <circle cx="6" cy="6" r="4" fill="#38bdf8"/>
+      <text x="20" y="10" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="13">
+        <tspan fill="#38bdf8" font-weight="600">Lớp 1 (JwtAuthGuard):</tspan> Xác thực danh tính &amp; gắn <tspan fill="#f1f5f9" font-family="'JetBrains Mono', monospace">req.user</tspan>
+      </text>
 
-    <text x="16" y="224" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="10.5">
-      ➔ 401 Unauthorized (Chưa đăng nhập) vs 403 Forbidden (Sai quyền hạn)
-    </text>
+      <!-- Item 2 -->
+      <circle cx="6" cy="34" r="4" fill="#818cf8"/>
+      <text x="20" y="38" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="13">
+        <tspan fill="#a5b4fc" font-weight="600">Lớp 2 (RolesGuard):</tspan> Đọc metadata <tspan fill="#818cf8" font-family="'JetBrains Mono', monospace">@Roles()</tspan> qua Reflector
+      </text>
+
+      <!-- Item 3 -->
+      <circle cx="6" cy="62" r="4" fill="#10b981"/>
+      <text x="20" y="66" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="13">
+        <tspan fill="#34d399" font-weight="600">Quyết định quyền truy cập:</tspan> Hợp lệ (<tspan fill="#34d399" font-weight="bold">200 OK</tspan>) vs Chặn (<tspan fill="#f87171" font-weight="bold">403 Forbidden</tspan>)
+      </text>
+    </g>
+  </g>
+
+  <!-- ==================== RIGHT CREATIVE PERMISSION MATRIX ==================== -->
+  <g transform="translate(615, 95)">
+    <!-- Central Decision Node: RolesGuard -->
+    <g filter="url(#shadow)">
+      <rect x="0" y="42" width="135" height="115" rx="12" fill="#0f172a" stroke="#6366f1" stroke-width="1.8"/>
+      <rect x="0" y="42" width="135" height="26" rx="12" fill="#312e81" fill-opacity="0.6"/>
+      <text x="67" y="59" fill="#c7d2fe" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" text-anchor="middle">⚡ RolesGuard</text>
+      
+      <text x="67" y="85" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">Reflector đọc</text>
+      <text x="67" y="100" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="9.5" font-weight="bold" text-anchor="middle">@Roles(ADMIN)</text>
+      <line x1="12" y1="110" x2="123" y2="110" stroke="#1e293b" stroke-width="1"/>
+      <text x="67" y="127" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="8.5" text-anchor="middle">So khớp user.role</text>
+      <text x="67" y="142" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">CanActivate()</text>
+    </g>
+
+    <!-- Branch 1: Allowed Flow (ADMIN) -->
+    <path d="M 135 75 C 175 75, 185 35, 220 35" fill="none" stroke="#10b981" stroke-width="2.2"/>
+    <polygon points="223,35 215,31 215,39" fill="#10b981"/>
+
+    <g transform="translate(225, 0)" filter="url(#shadow)">
+      <rect width="265" height="74" rx="10" fill="#022c22" stroke="#10b981" stroke-width="1.5"/>
+      <rect width="265" height="22" rx="10" fill="#065f46" fill-opacity="0.8"/>
+      
+      <circle cx="16" cy="11" r="4.5" fill="#34d399"/>
+      <text x="28" y="15" fill="#a7f3d0" font-family="'JetBrains Mono', monospace" font-size="9.5" font-weight="bold">👑 req.user.role == 'ADMIN'</text>
+      <text x="250" y="15" fill="#6ee7b7" font-family="'Inter', sans-serif" font-size="10" font-weight="bold" text-anchor="end">MATCH</text>
+      
+      <text x="14" y="42" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold">GET /api/v1/users</text>
+      <rect x="14" y="49" width="60" height="17" rx="4" fill="#047857"/>
+      <text x="44" y="61" fill="#ecfdf5" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="bold" text-anchor="middle">200 OK</text>
+      <text x="82" y="61" fill="#6ee7b7" font-family="'Inter', sans-serif" font-size="10">Cho phép truy cập dữ liệu</text>
+    </g>
+
+    <!-- Branch 2: Blocked Flow (USER) -->
+    <path d="M 135 125 C 175 125, 185 165, 220 165" fill="none" stroke="#f43f5e" stroke-width="2.2"/>
+    <polygon points="223,165 215,161 215,169" fill="#f43f5e"/>
+
+    <g transform="translate(225, 128)" filter="url(#shadow)">
+      <rect width="265" height="74" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5"/>
+      <rect width="265" height="22" rx="10" fill="#881337" fill-opacity="0.8"/>
+
+      <circle cx="16" cy="11" r="4.5" fill="#fb7185"/>
+      <text x="28" y="15" fill="#fecdd3" font-family="'JetBrains Mono', monospace" font-size="9.5" font-weight="bold">👤 req.user.role == 'USER'</text>
+      <text x="250" y="15" fill="#fca5a5" font-family="'Inter', sans-serif" font-size="10" font-weight="bold" text-anchor="end">MISMATCH</text>
+
+      <text x="14" y="42" fill="#fecdd3" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="bold">GET /api/v1/users</text>
+      <rect x="14" y="49" width="92" height="17" rx="4" fill="#9f1239"/>
+      <text x="60" y="61" fill="#fff1f2" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="bold" text-anchor="middle">403 FORBIDDEN</text>
+      <text x="114" y="61" fill="#fda4af" font-family="'Inter', sans-serif" font-size="10">Chặn đứng truy cập</text>
+    </g>
+
+    <!-- Bottom summary badge -->
+    <g transform="translate(0, 218)">
+      <rect width="490" height="34" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="245" y="21" fill="#cbd5e1" font-family="'Inter', sans-serif" font-size="11.5" text-anchor="middle">
+        🛡️ <tspan fill="#818cf8" font-weight="bold">Secure by Default:</tspan> JwtAuthGuard xác thực trước, RolesGuard phân quyền sau
+      </text>
+    </g>
   </g>
 </svg>

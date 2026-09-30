@@ -44,31 +44,10 @@ Nếu chỉ có `JwtAuthGuard`, một người dùng có vai trò `USER` khi đ�
   <img src="./assets/auth_vs_rbac_concept.jpg" alt="Authentication vs Authorization (RBAC) Concept" width="90%" />
 </p>
 
-### 💡 Ẩn Dụ Thực Tế: Thẻ Ra Vào Tòa Nhà & Cửa Khóa Phòng Máy Chủ
+### ⚖️ Phân Biệt Nhanh: 401 Unauthorized vs 403 Forbidden
 
-Để ghi nhớ sự khác biệt cốt lõi giữa hai khái niệm này, hãy liên tưởng đến tòa nhà văn phòng công nghệ:
-
-1. **Authentication (Xác thực - `JwtAuthGuard`):**
-   - Bạn đến cổng sảnh tòa nhà và quẹt thẻ nhân viên. Nhân viên bảo vệ kiểm tra thẻ và xác nhận: _"Đúng vậy, bạn là Nguyễn Văn A, nhân viên thuộc công ty!"_
-   - Nếu bạn không đeo thẻ hoặc dùng thẻ giả/hết hạn, bảo vệ sẽ yêu cầu bạn rời đi ngay lập tức: **`401 Unauthorized` (Chưa được xác thực danh tính)**.
-
-2. **Authorization (Phân quyền - `RolesGuard`):**
-   - Sau khi đã vào bên trong tòa nhà, bạn đi đến cửa **Phòng Máy Chủ Trung Tâm (Server Room)** và quẹt thẻ để mở cửa.
-   - Đầu đọc thẻ kiểm tra vai trò: Phòng này chỉ dành cho Kỹ sư Quản trị hệ thống (`ADMIN`). Thẻ của bạn mang vai trò Nhân viên Kinh doanh (`USER`).
-   - Cửa phòng không mở, còi cảnh báo vang lên: **`403 Forbidden` (Bạn đã được nhận diện danh tính, nhưng bạn KHÔNG CÓ QUYỀN bước vào căn phòng này!)**.
-
----
-
-### 📊 Bảng So Sánh Chi Tiết: 401 Unauthorized vs 403 Forbidden
-
-| Tiêu Chí Đánh Giá          | 401 Unauthorized                                        | 403 Forbidden                                                      |
-| :------------------------- | :------------------------------------------------------ | :----------------------------------------------------------------- |
-| **Bản chất câu hỏi**       | **"Bạn là ai?"** (Who are you?)                         | **"Bạn được phép làm gì?"** (What can you do?)                     |
-| **Tên cơ chế**             | **Authentication** (Xác thực danh tính)                 | **Authorization** (Phân quyền truy cập / RBAC)                     |
-| **Guard chịu trách nhiệm** | `JwtAuthGuard` (Passport JWT Strategy)                  | `RolesGuard`                                                       |
-| **Nguyên nhân xảy ra lỗi** | Thiếu Bearer Token, Token hết hạn, sai chữ ký JWT.      | Token hoàn toàn hợp lệ, nhưng vai trò (`role`) không đủ đặc quyền. |
-| **Mã lỗi HTTP**            | `401 Unauthorized`                                      | `403 Forbidden`                                                    |
-| **Hành động từ Client**    | Chuyển hướng người dùng về trang **Đăng nhập (Login)**. | Hiển thị thông báo: _"Bạn không có quyền truy cập tính năng này"_. |
+- **`401 Unauthorized` (Authentication — Xác thực danh tính):** Xảy ra khi request **chưa xác minh được danh tính** người gửi (thiếu Bearer Token, token sai chữ ký hoặc đã hết hạn). Trách nhiệm xử lý thuộc về `JwtAuthGuard`.
+- **`403 Forbidden` (Authorization — Phân quyền truy cập):** Xảy ra khi danh tính người dùng **đã được xác thực thành công**, nhưng tài khoản **không đủ quyền hạn / vai trò** để truy cập tài nguyên yêu cầu. Trách nhiệm xử lý thuộc về `RolesGuard`.
 
 ---
 
@@ -81,23 +60,6 @@ Khi tích hợp cả hai lớp bảo vệ, thứ tự thực thi của Guard man
 <p align="center">
   <img src="./assets/rbac_pipeline_flow.svg" alt="RBAC Request Execution Pipeline" width="100%" />
 </p>
-
-### 🔍 Phân Tích 4 Giai Đoạn Trong Pipeline:
-
-1. **Client Gửi Request:** Client gửi request tới Endpoint nhạy cảm (Ví dụ: `GET /api/v1/users`) kèm theo Header `Authorization: Bearer <accessToken>`.
-2. **Lớp 1 — `JwtAuthGuard` (Authentication):**
-   - Đọc metadata `@Public()`: Nếu route được đánh dấu công khai ➔ Cho phép đi qua ngay.
-   - Nếu là route được bảo vệ: Trích xuất Token, giải mã và xác thực chữ ký thông qua `JwtStrategy`.
-   - Nếu token không hợp lệ hoặc thiếu ➔ Bắn lỗi **`401 Unauthorized`**.
-   - Nếu token hợp lệ: Gắn payload giải mã vào đối tượng `request.user = { userId: 1, email: 'admin@gmail.com', role: 'ADMIN' }` và cho phép đi tiếp sang Guard tiếp theo.
-3. **Lớp 2 — `RolesGuard` (Authorization / RBAC):**
-   - Dùng `Reflector` trích xuất danh sách vai trò yêu cầu được gắn qua decorator `@Roles()` tại Handler và Controller Class.
-   - **Trường hợp A (Không yêu cầu Role):** Tuyến đường không gắn `@Roles()` ➔ Trả về `true` (Mọi người dùng đã đăng nhập đều vào được).
-   - **Trường hợp B (Có yêu cầu Role):** Lấy `request.user.role` và kiểm tra xem vai trò của người dùng có nằm trong danh sách cho phép hay không.
-     - Nếu có trong danh sách (`role === Role.ADMIN`) ➔ Cho phép đi tiếp (`return true`).
-     - Nếu không có (`role === Role.USER`) ➔ Bắn lỗi **`403 Forbidden`**.
-4. **Lớp 3 — Controller Handler:**
-   - Khi request vượt qua cả 2 cổng an ninh, phương thức `findAll()` trong Controller mới chính thức được gọi và trả về dữ liệu an toàn.
 
 > [!IMPORTANT]
 > **Quy tắc bất biến:** `JwtAuthGuard` **BẮT BUỘC** phải chạy trước `RolesGuard`. Vì nếu `RolesGuard` chạy trước, `request.user` vẫn còn giá trị `undefined`, dẫn đến việc không thể xác định được vai trò của người dùng và luôn trả về lỗi!
@@ -545,9 +507,8 @@ getStats() {
 mindmap
   root(("Phân Quyền RBAC Trong NestJS"))
     "Authentication vs Authorization"
-      "401 Unauthorized: Thiếu/Sai Token (Ai vậy?)"
-      "403 Forbidden: Sai vai trò (Không phận sự miễn vào!)"
-      "Thực tế: Thẻ nhân viên vs Cửa phòng Server"
+      "401 Unauthorized: Chưa xác thực danh tính"
+      "403 Forbidden: Không đủ quyền hạn vai trò"
     "Cấu Trúc Triển Khai"
       "Prisma Enum: Role.USER & Role.ADMIN"
       "ROLES_KEY metadata constant"
