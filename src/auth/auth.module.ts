@@ -31,6 +31,6 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
     GoogleStrategy,
     GoogleAuthGuard,
   ],
-  exports: [JwtModule, PassportModule, JwtAuthGuard],
+  exports: [JwtModule, PassportModule],
 })
 export class AuthModule {}
