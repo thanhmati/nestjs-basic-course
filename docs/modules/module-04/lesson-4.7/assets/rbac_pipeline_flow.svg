@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 480" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="canvasBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0b0f19"/>
+    </linearGradient>
+
+    <!-- Node Gradients -->
+    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="jwtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#172554"/>
+    </linearGradient>
+
+    <linearGradient id="rbacGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+
+    <linearGradient id="ctrlGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="100%" stop-color="#022c22"/>
+    </linearGradient>
+
+    <linearGradient id="err401Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7f1d1d"/>
+      <stop offset="100%" stop-color="#450a0a"/>
+    </linearGradient>
+
+    <linearGradient id="err403Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#831843"/>
+      <stop offset="100%" stop-color="#500724"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="nodeShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Arrow Marker -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"/>
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1100" height="480" rx="16" fill="url(#canvasBg)"/>
+
+  <!-- Title Badge -->
+  <g transform="translate(40, 30)">
+    <text x="0" y="0" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="800">
+      ⚡ REQUEST EXECUTION PIPELINE: AUTHENTICATION (401) VS AUTHORIZATION (403)
+    </text>
+    <text x="0" y="24" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="12">
+      Luồng kiểm soát 2 lớp bảo mật: Xác thực danh tính người dùng trước, phân quyền vai trò sau
+    </text>
+  </g>
+
+  <!-- ================= 1. CLIENT REQUEST ================= -->
+  <g transform="translate(40, 100)" filter="url(#nodeShadow)">
+    <rect width="200" height="150" rx="12" fill="url(#clientGrad)" stroke="#475569" stroke-width="1.5"/>
+    <rect width="200" height="32" rx="12" fill="#334155" fill-opacity="0.6"/>
+    <text x="100" y="21" fill="#f1f5f9" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">
+      1. CLIENT REQUEST
+    </text>
+    <text x="16" y="58" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="11">Gửi HTTP Request kèm:</text>
+    <rect x="14" y="68" width="172" height="60" rx="6" fill="#090d16" stroke="#1e293b"/>
+    <text x="20" y="86" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9.5">GET /api/v1/users</text>
+    <text x="20" y="102" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="9">Authorization:</text>
+    <text x="20" y="116" fill="#a78bfa" font-family="'JetBrains Mono', monospace" font-size="8.5">Bearer eyJhbGciOi...</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="240" y1="175" x2="310" y2="175" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="275" y="165" fill="#94a3b8" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">gửi request</text>
+
+  <!-- ================= 2. JWT AUTH GUARD (AUTHENTICATION) ================= -->
+  <g transform="translate(320, 100)" filter="url(#nodeShadow)">
+    <rect width="240" height="150" rx="12" fill="url(#jwtGrad)" stroke="#3b82f6" stroke-width="1.5"/>
+    <rect width="240" height="32" rx="12" fill="#1d4ed8" fill-opacity="0.5"/>
+    <text x="120" y="21" fill="#bfdbfe" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">
+      2. JwtAuthGuard (Xác thực)
+    </text>
+    <text x="14" y="56" fill="#93c5fd" font-family="-apple-system, sans-serif" font-size="11" font-weight="600">
+      🎯 Bạn là ai? (Identity Check)
+    </text>
+    <text x="14" y="74" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10.5">
+      • Kiểm tra @Public() ➔ Cho qua
+    </text>
+    <text x="14" y="92" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10.5">
+      • Verify chữ ký JWT Token
+    </text>
+    <text x="14" y="110" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10.5">
+      • Gán <tspan fill="#38bdf8" font-family="'JetBrains Mono', monospace">req.user</tspan> { id, role }
+    </text>
+    <text x="14" y="132" fill="#34d399" font-family="-apple-system, sans-serif" font-size="10.5" font-weight="600">
+      ✔ Token Hợp Lệ ➔ Bước 3
+    </text>
+  </g>
+
+  <!-- Failure Path from 2: 401 Unauthorized -->
+  <line x1="440" y1="250" x2="440" y2="330" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <g transform="translate(340, 340)" filter="url(#nodeShadow)">
+    <rect width="200" height="90" rx="10" fill="url(#err401Grad)" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="100" y="26" fill="#fecaca" font-family="-apple-system, sans-serif" font-size="12" font-weight="800" text-anchor="middle">
+      ❌ 401 UNAUTHORIZED
+    </text>
+    <text x="14" y="50" fill="#fee2e2" font-family="-apple-system, sans-serif" font-size="10">
+      • Thiếu Token hoặc sai Secret Key
+    </text>
+    <text x="14" y="68" fill="#fee2e2" font-family="-apple-system, sans-serif" font-size="10">
+      • Token hết hạn (TokenExpiredError)
+    </text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="560" y1="175" x2="620" y2="175" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="590" y="165" fill="#34d399" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">hợp lệ</text>
+
+  <!-- ================= 3. ROLES GUARD (AUTHORIZATION) ================= -->
+  <g transform="translate(630, 100)" filter="url(#nodeShadow)">
+    <rect width="250" height="150" rx="12" fill="url(#rbacGrad)" stroke="#818cf8" stroke-width="1.5"/>
+    <rect width="250" height="32" rx="12" fill="#4338ca" fill-opacity="0.5"/>
+    <text x="125" y="21" fill="#c7d2fe" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">
+      3. RolesGuard (Phân quyền)
+    </text>
+    <text x="14" y="56" fill="#a5b4fc" font-family="-apple-system, sans-serif" font-size="11" font-weight="600">
+      🎯 Bạn được làm gì? (Role Check)
+    </text>
+    <text x="14" y="74" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10.5">
+      • Đọc Reflector <tspan fill="#818cf8">@Roles()</tspan>
+    </text>
+    <text x="14" y="92" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10.5">
+      • Không gắn role ➔ Cho phép
+    </text>
+    <text x="14" y="110" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10.5">
+      • So khớp <tspan fill="#34d399">req.user.role</tspan> ∈ required
+    </text>
+    <text x="14" y="132" fill="#34d399" font-family="-apple-system, sans-serif" font-size="10.5" font-weight="600">
+      ✔ Đủ Quyền (ADMIN) ➔ Bước 4
+    </text>
+  </g>
+
+  <!-- Failure Path from 3: 403 Forbidden -->
+  <line x1="755" y1="250" x2="755" y2="330" stroke="#f43f5e" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <g transform="translate(650, 340)" filter="url(#nodeShadow)">
+    <rect width="210" height="90" rx="10" fill="url(#err403Grad)" stroke="#f43f5e" stroke-width="1.5"/>
+    <text x="105" y="26" fill="#fbcfe8" font-family="-apple-system, sans-serif" font-size="12" font-weight="800" text-anchor="middle">
+      ⛔ 403 FORBIDDEN
+    </text>
+    <text x="14" y="50" fill="#fce7f3" font-family="-apple-system, sans-serif" font-size="10">
+      • Đã đăng nhập nhưng Role = USER
+    </text>
+    <text x="14" y="68" fill="#fce7f3" font-family="-apple-system, sans-serif" font-size="10">
+      • Không đủ đặc quyền truy cập API
+    </text>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="880" y1="175" x2="940" y2="175" stroke="#10b981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="910" y="165" fill="#34d399" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">đủ quyền</text>
+
+  <!-- ================= 4. CONTROLLER HANDLER ================= -->
+  <g transform="translate(950, 100)" filter="url(#nodeShadow)">
+    <rect width="130" height="150" rx="12" fill="url(#ctrlGrad)" stroke="#10b981" stroke-width="1.5"/>
+    <rect width="130" height="32" rx="12" fill="#047857" fill-opacity="0.5"/>
+    <text x="65" y="21" fill="#a7f3d0" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">
+      4. Controller
+    </text>
+    <text x="65" y="64" fill="#6ee7b7" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle">
+      findAll()
+    </text>
+    <text x="65" y="86" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">
+      Thực thi logic
+    </text>
+    <text x="65" y="104" fill="#cbd5e1" font-family="-apple-system, sans-serif" font-size="10" text-anchor="middle">
+      truy vấn Prisma
+    </text>
+    <rect x="15" y="118" width="100" height="22" rx="4" fill="#065f46"/>
+    <text x="65" y="133" fill="#ecfdf5" font-family="-apple-system, sans-serif" font-size="10" font-weight="700" text-anchor="middle">
+      200 OK Response
+    </text>
+  </g>
+</svg>

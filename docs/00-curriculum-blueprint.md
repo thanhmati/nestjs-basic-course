@@ -93,7 +93,8 @@ timeline
 - **4.4** [_Passport.js & JwtStrategy:_ Chuẩn hóa xác thực API & Strategy Pattern với `@nestjs/passport`.](./modules/module-04/lesson-4.4/lesson-4.4.md)
 - **4.5** [_Google OAuth2 Social Login:_ Tích hợp đăng nhập mạng xã hội đa chiến lược với Passport trong NestJS.](./modules/module-04/lesson-4.5/lesson-4.5.md)
 - **4.6** [_Auth Decorators:_ Vận dụng Custom Decorators tạo `@CurrentUser()` & `@Public()` kết hợp `Reflector` thiết lập Global `JwtAuthGuard`.](./modules/module-04/lesson-4.6/lesson-4.6.md)
-- **4.7** [_Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.](./modules/module-04/lesson-4.7/lesson-4.7.md)
+- **4.7** [_Role-Based Access Control (RBAC):_ Phân quyền người dùng (`User`, `Admin`) với `@Roles()` Decorator & `RolesGuard` trong NestJS.](./modules/module-04/lesson-4.7/lesson-4.7.md)
+- **4.8** [_Rate Limiting:_ Giới hạn lượt gọi request bằng `@nestjs/throttler`.](./modules/module-04/lesson-4.8/lesson-4.8.md)
 
 ---
 

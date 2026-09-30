@@ -561,4 +561,4 @@ mindmap
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 4.7: Rate Limiting — Giới Hạn Lượt Gọi API Với @nestjs/throttler](../lesson-4.7/lesson-4.7.md)
+👉 **Bài tiếp theo:** [Lesson 4.7: Role-Based Access Control (RBAC) — Phân Quyền Người Dùng Với @Roles() & RolesGuard Trong NestJS](../lesson-4.7/lesson-4.7.md)

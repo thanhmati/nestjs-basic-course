@@ -1,11 +1,11 @@
-# Lesson 4.7: Rate Limiting — Giới Hạn Lượt Gọi Request Với @nestjs/throttler Trong NestJS
+# Lesson 4.7: Role-Based Access Control (RBAC) — Phân Quyền Người Dùng Với @Roles() & RolesGuard Trong NestJS
 
 <p align="center">
-  <img src="https://img.shields.io/badge/NestJS-Rate_Limiting-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Rate Limiting" />
-  <img src="https://img.shields.io/badge/@nestjs/throttler-v6.x-3178C6?style=for-the-badge&logo=security&logoColor=white" alt="Throttler" />
-  <img src="https://img.shields.io/badge/Security-Anti_Spam_|_Brute_Force-10B981?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Anti Spam" />
-  <img src="https://img.shields.io/badge/HTTP_Header-X--RateLimit--*-F59E0B?style=for-the-badge&logo=http&logoColor=white" alt="X-RateLimit" />
-  <img src="https://img.shields.io/badge/Type_Safe-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/NestJS-Role_Guard-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS Role Guard" />
+  <img src="https://img.shields.io/badge/Authorization-RBAC-10B981?style=for-the-badge&logo=auth0&logoColor=white" alt="RBAC" />
+  <img src="https://img.shields.io/badge/Prisma-Role_Enum-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma" />
+  <img src="https://img.shields.io/badge/HTTP_Status-403_Forbidden-F43F5E?style=for-the-badge&logo=http&logoColor=white" alt="403 Forbidden" />
+  <img src="https://img.shields.io/badge/TypeScript-Type_Safe-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
@@ -19,110 +19,212 @@
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
 > 🎯 **Mục tiêu bài học:**
 >
-> - Hiểu sâu sắc bản chất cuộc tấn công **Brute-Force Attack** và vì sao cần áp dụng **Rate Limiting** để bảo vệ hệ thống.
-> - Làm chủ cơ chế **Sliding Window Log** và các HTTP Headers `X-RateLimit-*` & `Retry-After`.
-> - Cấu hình **Multi-Tier Throttlers** (`short`, `medium`, `long`) trong `AppModule`.
-> - Tùy biến `CustomThrottlerGuard` trả về mã lỗi `429 Too Many Requests` tiếng Việt chuyên nghiệp.
-> - Điều khiển linh hoạt qua Decorators: `@Throttle()` (siết chặt) và `@SkipThrottle()` (miễn trừ).
+> - Phân biệt rạch ròi giữa hai khái niệm nền tảng trong bảo mật ứng dụng: **Authentication (Xác thực danh tính - 401 Unauthorized)** và **Authorization (Phân quyền truy cập - 403 Forbidden)**.
+> - Hiểu rõ bản chất mô hình **RBAC (Role-Based Access Control)** dựa trên trường `role` (`Role.USER` / `Role.ADMIN`) đã định nghĩa trong Prisma Schema.
+> - Xây dựng Custom Route Decorator **`@Roles(...roles: Role[])`** sử dụng `SetMetadata` với kiểu dữ liệu an toàn Type-Safe 100%.
+> - Triển khai **`RolesGuard`** với interface `CanActivate`, phối hợp cùng **`Reflector`** để trích xuất metadata từ Handler (Method) và Controller (Class).
+> - Thấu hiểu cơ chế hoạt động của **Guard Execution Chain**: Vì sao `JwtAuthGuard` bắt buộc phải chạy trước để đính kèm `request.user`, sau đó `RolesGuard` mới thẩm định quyền hạn.
+> - Đăng ký `RolesGuard` toàn cục qua token **`APP_GUARD`** trong `AppModule`.
+> - Thực hành khóa API `GET /users` chỉ dành riêng cho Quản trị viên (`ADMIN`) và kiểm thử bằng kịch bản cURL thực tế.
 
 ---
 
-## 1. Đặt Vấn Đề: Tấn Công Brute Force Attack — "Thử Nhiều Mật Khẩu Đến Khi Đúng"
+## 1. Bản Chất Authorization & Phân Biệt 401 Unauthorized vs 403 Forbidden
+
+Trong bài học trước (Lesson 4.6), chúng ta đã xây dựng thành công **Global `JwtAuthGuard`**. Bất kỳ request nào gửi lên hệ thống đều phải xuất trình JWT Access Token hợp lệ, nếu không sẽ bị chặn ngay lập tức.
+
+Tuy nhiên, việc biết được **"Bạn là ai?" (Authentication)** chỉ là bước khởi đầu. Một hệ thống thực tế luôn có sự phân cấp người dùng:
+
+- Người dùng thông thường (`USER`) chỉ được phép xem thông tin cá nhân, đăng bài viết hoặc bình luận.
+- Quản trị viên (`ADMIN`) có toàn quyền xem danh sách tất cả tài khoản, khóa người dùng hoặc xóa bài viết vi phạm.
+
+Nếu chỉ có `JwtAuthGuard`, một người dùng có vai trò `USER` khi đã đăng nhập vẫn có thể gọi API quản trị nhạy cảm `GET /api/v1/users`! Đó là lý do chúng ta cần đến **Authorization (Phân quyền)**.
 
 <p align="center">
-  <img src="./assets/brute_force_attack_concept.png" alt="Brute Force Attack - Thử nhiều mật khẩu đến khi đúng" width="85%" />
+  <img src="./assets/auth_vs_rbac_concept.jpg" alt="Authentication vs Authorization (RBAC) Concept" width="90%" />
 </p>
 
-### 🔹 Bản Chất & Cách Thức Tấn Công
+### 💡 Ẩn Dụ Thực Tế: Thẻ Ra Vào Tòa Nhà & Cửa Khóa Phòng Máy Chủ
 
-- **Khái niệm:** Kẻ tấn công dùng bot tự động gửi hàng loạt mật khẩu phổ biến (`123456`, `password`, `admin`, `letmein`, `s3cr3t`...) vào API `/auth/login` cho đến khi tìm ra mật khẩu chính xác.
-- **Tác hại kép (Double Impact):**
-  1. 🔓 **Chiếm đoạt tài khoản (Account Takeover):** Dễ dàng bẻ khóa người dùng đặt mật khẩu yếu hoặc dùng chung một mật khẩu trên nhiều website.
-  2. 💥 **Tê liệt máy chủ (CPU 100%):** Mỗi request login phải chạy hàm băm `bcrypt.compare()`. Hàm này ngốn nhiều chu kỳ CPU, khiến server cạn kiệt tài nguyên chỉ sau vài trăm lượt thử/giây.
+Để ghi nhớ sự khác biệt cốt lõi giữa hai khái niệm này, hãy liên tưởng đến tòa nhà văn phòng công nghệ:
+
+1. **Authentication (Xác thực - `JwtAuthGuard`):**
+   - Bạn đến cổng sảnh tòa nhà và quẹt thẻ nhân viên. Nhân viên bảo vệ kiểm tra thẻ và xác nhận: _"Đúng vậy, bạn là Nguyễn Văn A, nhân viên thuộc công ty!"_
+   - Nếu bạn không đeo thẻ hoặc dùng thẻ giả/hết hạn, bảo vệ sẽ yêu cầu bạn rời đi ngay lập tức: **`401 Unauthorized` (Chưa được xác thực danh tính)**.
+
+2. **Authorization (Phân quyền - `RolesGuard`):**
+   - Sau khi đã vào bên trong tòa nhà, bạn đi đến cửa **Phòng Máy Chủ Trung Tâm (Server Room)** và quẹt thẻ để mở cửa.
+   - Đầu đọc thẻ kiểm tra vai trò: Phòng này chỉ dành cho Kỹ sư Quản trị hệ thống (`ADMIN`). Thẻ của bạn mang vai trò Nhân viên Kinh doanh (`USER`).
+   - Cửa phòng không mở, còi cảnh báo vang lên: **`403 Forbidden` (Bạn đã được nhận diện danh tính, nhưng bạn KHÔNG CÓ QUYỀN bước vào căn phòng này!)**.
 
 ---
 
-## 2. Giải Pháp: Rate Limiting & Cơ Chế Cửa Xoay Bảo Vệ Toàn Diện API
+### 📊 Bảng So Sánh Chi Tiết: 401 Unauthorized vs 403 Forbidden
 
-### 💡 Ẩn Dụ Thực Tế: Cửa Xoay Kiểm Soát Tại Sân Vận Động
+| Tiêu Chí Đánh Giá          | 401 Unauthorized                                        | 403 Forbidden                                                      |
+| :------------------------- | :------------------------------------------------------ | :----------------------------------------------------------------- |
+| **Bản chất câu hỏi**       | **"Bạn là ai?"** (Who are you?)                         | **"Bạn được phép làm gì?"** (What can you do?)                     |
+| **Tên cơ chế**             | **Authentication** (Xác thực danh tính)                 | **Authorization** (Phân quyền truy cập / RBAC)                     |
+| **Guard chịu trách nhiệm** | `JwtAuthGuard` (Passport JWT Strategy)                  | `RolesGuard`                                                       |
+| **Nguyên nhân xảy ra lỗi** | Thiếu Bearer Token, Token hết hạn, sai chữ ký JWT.      | Token hoàn toàn hợp lệ, nhưng vai trò (`role`) không đủ đặc quyền. |
+| **Mã lỗi HTTP**            | `401 Unauthorized`                                      | `403 Forbidden`                                                    |
+| **Hành động từ Client**    | Chuyển hướng người dùng về trang **Đăng nhập (Login)**. | Hiển thị thông báo: _"Bạn không có quyền truy cập tính năng này"_. |
 
-- **Không có cửa xoay:** Hàng ngàn người ùa vào cùng lúc ➔ Quá tải cổng, giẫm đạp (Server crash / 502 Bad Gateway).
-- **Có cửa xoay (Throttler Guard):** Mỗi người (Client IP) chỉ được đi qua tối đa 1 lần/giây, không quá 5 lần/phút.
-- **Cố tình spam:** Cửa tự động khóa chốt, yêu cầu chờ lượt kế tiếp (`HTTP 429 Too Many Requests`).
+---
+
+## 2. Kiến Trúc Request Pipeline & Luồng Hoạt Động Của RolesGuard
+
+Trong kiến trúc NestJS, **Guards** là các lớp triển khai interface `CanActivate`. Khi một HTTP Request được gửi đến, NestJS sẽ thực thi Guards sau giai đoạn Middlewares và trước Interceptors / Pipes / Controller Handler.
+
+Khi tích hợp cả hai lớp bảo vệ, thứ tự thực thi của Guard mang tính **sống còn**:
 
 <p align="center">
-  <img src="./assets/rate_limiting_architecture_mockup.jpg" alt="NestJS Rate Limiting Architecture Mockup" width="90%" />
+  <img src="./assets/rbac_pipeline_flow.svg" alt="RBAC Request Execution Pipeline" width="100%" />
 </p>
 
----
+### 🔍 Phân Tích 4 Giai Đoạn Trong Pipeline:
 
-### 🛡️ 4 Hiểm Họa Mà Rate Limiting Ngăn Chặn
+1. **Client Gửi Request:** Client gửi request tới Endpoint nhạy cảm (Ví dụ: `GET /api/v1/users`) kèm theo Header `Authorization: Bearer <accessToken>`.
+2. **Lớp 1 — `JwtAuthGuard` (Authentication):**
+   - Đọc metadata `@Public()`: Nếu route được đánh dấu công khai ➔ Cho phép đi qua ngay.
+   - Nếu là route được bảo vệ: Trích xuất Token, giải mã và xác thực chữ ký thông qua `JwtStrategy`.
+   - Nếu token không hợp lệ hoặc thiếu ➔ Bắn lỗi **`401 Unauthorized`**.
+   - Nếu token hợp lệ: Gắn payload giải mã vào đối tượng `request.user = { userId: 1, email: 'admin@gmail.com', role: 'ADMIN' }` và cho phép đi tiếp sang Guard tiếp theo.
+3. **Lớp 2 — `RolesGuard` (Authorization / RBAC):**
+   - Dùng `Reflector` trích xuất danh sách vai trò yêu cầu được gắn qua decorator `@Roles()` tại Handler và Controller Class.
+   - **Trường hợp A (Không yêu cầu Role):** Tuyến đường không gắn `@Roles()` ➔ Trả về `true` (Mọi người dùng đã đăng nhập đều vào được).
+   - **Trường hợp B (Có yêu cầu Role):** Lấy `request.user.role` và kiểm tra xem vai trò của người dùng có nằm trong danh sách cho phép hay không.
+     - Nếu có trong danh sách (`role === Role.ADMIN`) ➔ Cho phép đi tiếp (`return true`).
+     - Nếu không có (`role === Role.USER`) ➔ Bắn lỗi **`403 Forbidden`**.
+4. **Lớp 3 — Controller Handler:**
+   - Khi request vượt qua cả 2 cổng an ninh, phương thức `findAll()` trong Controller mới chính thức được gọi và trả về dữ liệu an toàn.
 
-| Hiểm Họa                           | Kịch Bản Tấn Công                                 | Giải Pháp Của Rate Limiting                   |
-| :--------------------------------- | :------------------------------------------------ | :-------------------------------------------- |
-| 🔑 **Brute-Force Login**           | Dò hàng ngàn mật khẩu vào `/auth/login`.          | Khóa IP sau 5 lần thử sai / phút.             |
-| 🤖 **Spam Cạn Kiệt Tài Nguyên**    | Bot spam gửi OTP SMS, tạo tài khoản ảo, ghi file. | Giới hạn hạn ngạch tạo mới theo IP/User.      |
-| 💥 **DoS Tầng Ứng Dụng (Layer 7)** | Bắn phá liên tục vào các API tính toán nặng.      | Giữ CPU/RAM máy chủ luôn dưới ngưỡng an toàn. |
-| 💸 **Vọt Chi Phí 3rd-Party**       | Spam các API trả phí (OpenAI, Twilio, SendGrid).  | Ngăn chặn rủi ro thủng ví hóa đơn Cloud.      |
-
----
-
-## 3. Cơ Chế Hoạt Động & Thuật Toán Sliding Window Log
-
-### 🔹 Sliding Window Log (Cửa Sổ Trượt) vs Fixed Window (Cửa Sổ Cố Định)
-
-- **Fixed Window (Lỗi ranh giới):** Nếu cho phép 10 reqs/phút, hacker có thể gửi 10 reqs vào `10:00:59` và 10 reqs vào `10:01:00` ➔ Server phải chịu **20 reqs trong 1 giây**.
-- **Sliding Window Log (Chuẩn của `@nestjs/throttler`):** Tính toán chính xác theo từng mili-giây trượt. Giới hạn luôn được bảo đảm ở bất kỳ khung thời gian nào.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as "📱 Client (IP: 192.168.1.50)"
-    participant Guard as "🛡️ CustomThrottlerGuard"
-    participant Tracker as "📊 Storage Tracker"
-    participant Controller as "📄 AuthController"
-
-    Client->>Guard: "POST /auth/login (Request #1)"
-    Guard->>Tracker: "Lấy reqCount của IP"
-    Tracker-->>Guard: "reqCount = 0 (Hợp lệ)"
-    Guard->>Controller: "Cho qua vào Controller"
-    Controller-->>Client: "200 OK (X-RateLimit-Remaining-long: 4)"
-
-    Note over Client,Controller: "... Client spam liên tục 5 requests ..."
-
-    Client->>Guard: "POST /auth/login (Request #6 - Vượt limit!)"
-    Guard->>Tracker: "Lấy reqCount của IP"
-    Tracker-->>Guard: "reqCount = 5 (Vượt ngưỡng 5/phút)"
-    Note over Guard: "CHẶN ĐỨNG NGAY LẬP TỨC!"
-    Guard-->>Client: "🔴 429 Too Many Requests (Retry-After: 55)"
-```
-
-### 🔹 4 Headers Tiêu Chuẩn Phản Hồi Từ Throttler
-
-- `X-RateLimit-Limit-<name>`: Số request tối đa cho phép trong chu kỳ.
-- `X-RateLimit-Remaining-<name>`: Số lượt request còn lại.
-- `X-RateLimit-Reset-<name>`: Số giây cho đến khi bộ đếm được reset.
-- `Retry-After`: Số giây client cần chờ khi bị chặn mã `429`.
+> [!IMPORTANT]
+> **Quy tắc bất biến:** `JwtAuthGuard` **BẮT BUỘC** phải chạy trước `RolesGuard`. Vì nếu `RolesGuard` chạy trước, `request.user` vẫn còn giá trị `undefined`, dẫn đến việc không thể xác định được vai trò của người dùng và luôn trả về lỗi!
 
 ---
 
-## 4. Hướng Dẫn Thực Hành Step-by-Step
+## 3. Hướng Dẫn Triển Khai Step-by-Step (Hands-on Implementation)
 
-### 📌 Bước 0: Cài Đặt Package
+Chúng ta sẽ triển khai hệ thống phân quyền RBAC chuẩn NestJS Enterprise theo từng bước rõ ràng.
 
-```bash
-pnpm add @nestjs/throttler
+### Bước 1: Khai Báo Metadata Key Cho Roles
+
+Trong tệp chứa các hằng số metadata, chúng ta bổ sung khóa `ROLES_KEY` để định danh dữ liệu phân quyền được lưu trữ bởi NestJS `Reflector`:
+
+📄 **`src/shared/constants/metadata.constant.ts`**
+
+```typescript
+export const RESPONSE_MESSAGE_KEY = 'RESPONSE_MESSAGE_KEY';
+export const BYPASS_TRANSFORM_KEY = 'BYPASS_TRANSFORM_KEY';
+export const IS_PUBLIC_KEY = 'IS_PUBLIC_KEY';
+export const ROLES_KEY = 'ROLES_KEY'; // 🔑 Khóa metadata lưu trữ vai trò được phép truy cập
 ```
 
 ---
 
-### 📌 Bước 1: Cấu Hình Phòng Thủ Đa Tầng Trong `AppModule`
+### Bước 2: Tạo Custom Decorator `@Roles()`
 
-Khai báo 3 tầng kiểm soát:
+Để gán nhãn vai trò được phép truy cập lên các API Endpoint một cách tự nhiên và sạch sẽ, chúng ta tạo Custom Decorator `@Roles()` sử dụng hàm `SetMetadata` của `@nestjs/common`.
 
-- `short`: 3 reqs / 1 giây (chống click đúp, spam burst).
-- `medium`: 20 reqs / 10 giây (chống scraping).
-- `long`: 100 reqs / 60 giây (giới hạn dung lượng toàn cục).
+Đặc biệt, chúng ta tận dụng enum `Role` từ Prisma Client để đảm bảo tính an toàn kiểu dữ liệu (**Type-Safety 100%**), ngăn chặn hoàn toàn việc gõ sai chuỗi ký tự (như `'admin'` thay vì `'ADMIN'`):
+
+📄 **`src/shared/decorators/roles.decorator.ts`**
+
+```typescript
+import { SetMetadata } from '@nestjs/common';
+import { Role } from '@/generated/prisma/enums';
+import { ROLES_KEY } from '../constants/metadata.constant';
+
+/**
+ * 🏷️ Decorator @Roles() dùng để khai báo các vai trò được phép truy cập Route
+ * Hỗ trợ truyền 1 hoặc nhiều vai trò:
+ * @example @Roles(Role.ADMIN)
+ * @example @Roles(Role.ADMIN, Role.USER)
+ */
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+```
+
+> [!TIP]
+> Bằng cách sử dụng toán tử Rest Parameter `...roles: Role[]`, decorator cho phép bạn truyền vào một hoặc nhiều vai trò cùng lúc: `@Roles(Role.ADMIN)` hoặc `@Roles(Role.ADMIN, Role.USER)`.
+
+---
+
+### Bước 3: Xây Dựng `RolesGuard` Thẩm Định Quyền Hạn
+
+Bây giờ, chúng ta tạo lớp bảo vệ `RolesGuard`. Guard này sẽ:
+
+1. Sử dụng `Reflector.getAllAndOverride()` để đọc mảng `requiredRoles` gắn trên route.
+2. Kiểm tra `request.user` do `JwtAuthGuard` cung cấp.
+3. So khớp vai trò của user với danh sách cho phép.
+
+📄 **`src/auth/guards/roles.guard.ts`**
+
+```typescript
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Role } from '@/generated/prisma/enums';
+import { ROLES_KEY } from '@/shared/constants/metadata.constant';
+import { UserData } from '../interfaces/jwt.interface';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    // 1. Trích xuất metadata vai trò yêu cầu từ Handler (Method) và Class (Controller)
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // 2. Nếu route không khai báo @Roles(), mặc định cho phép truy cập (Dành cho mọi user đã login)
+    if (!requiredRoles || requiredRoles.length === 0) {
+      return true;
+    }
+
+    // 3. Trích xuất thông tin user từ request (đã được JwtAuthGuard giải mã và đính kèm)
+    const request = context.switchToHttp().getRequest<{ user?: UserData }>();
+    const user = request.user;
+
+    // 4. Nếu không tìm thấy thông tin user hoặc user không có vai trò hợp lệ
+    if (!user || !user.role) {
+      throw new ForbiddenException(
+        'Bạn không có quyền truy cập vào tài nguyên này!',
+      );
+    }
+
+    // 5. Kiểm tra xem vai trò của user có nằm trong danh sách requiredRoles hay không
+    const hasRole = requiredRoles.includes(user.role);
+    if (!hasRole) {
+      throw new ForbiddenException(
+        'Bạn không có quyền truy cập vào tài nguyên này!',
+      );
+    }
+
+    return true;
+  }
+}
+```
+
+#### 💡 Vì Sao Sử Dụng `reflector.getAllAndOverride()`?
+
+Phương thức `getAllAndOverride()` nhận vào một mảng chứa 2 mục tiêu: `context.getHandler()` (Hàm xử lý cụ thể) và `context.getClass()` (Lớp Controller):
+
+- Nếu bạn gắn `@Roles(Role.USER)` ở cấp độ Class Controller, nhưng trên một hàm nhạy cảm lại gắn `@Roles(Role.ADMIN)`, hàm `getAllAndOverride` sẽ ưu tiên lấy cấu hình chặt chẽ hơn tại cấp Handler để ghi đè (override) cấu hình chung của Class.
+
+---
+
+### Bước 4: Đăng Ký `RolesGuard` Toàn Cục Với `APP_GUARD`
+
+Để không phải viết `@UseGuards(RolesGuard)` lặp đi lặp lại ở từng Controller, chúng ta đăng ký `RolesGuard` thành **Global Guard** bằng token `APP_GUARD` trong `AppModule`.
+
+Khi đăng ký qua `APP_GUARD`, NestJS sẽ tự động giải quyết các Dependency cần thiết (như `Reflector`) và áp dụng cho toàn bộ dự án.
 
 📄 **`src/app.module.ts`**
 
@@ -143,9 +245,7 @@ import { TransformInterceptor } from './shared/interceptors/transform.intercepto
 import { SharedServiceModule } from './shared/services/shared-service.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-// 🛡️ Import Throttler & Custom Guard
-import { ThrottlerModule } from '@nestjs/throttler';
-import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 
 @Module({
   imports: [
@@ -158,259 +258,318 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
     UsersModule,
     PostsModule,
     AuthModule,
-    // 🛡️ Cấu hình Multi-Tier Throttlers
-    ThrottlerModule.forRootAsync({
-      useFactory: () => ({
-        throttlers: [
-          { name: 'short', ttl: 1000, limit: 3 }, // 3 reqs / 1s
-          { name: 'medium', ttl: 10000, limit: 20 }, // 20 reqs / 10s
-          { name: 'long', ttl: 60000, limit: 100 }, // 100 reqs / 1m
-        ],
-      }),
-    }),
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    { provide: APP_FILTER, useClass: PrismaClientExceptionFilter },
-    { provide: APP_FILTER, useClass: HttpExceptionFilter },
-    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
-    // 🛡️ Guard 1: CustomThrottlerGuard (Đặt ĐẦU TIÊN để chặn spam sớm nhất)
     {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
+      provide: APP_FILTER,
+      useClass: PrismaClientExceptionFilter,
     },
-    // 🛡️ Guard 2: JwtAuthGuard (Chỉ chạy khi request đã vượt qua Rate Limit)
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    // 🔒 1. Xác thực danh tính: Kiểm tra JWT Token trước
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    // 🛡️ 2. Phân quyền truy cập: Kiểm tra quyền hạn vai trò sau
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
+  exports: [],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
-      .exclude({ path: 'health', method: RequestMethod.GET })
+      .exclude({
+        path: 'health',
+        method: RequestMethod.GET,
+      })
       .forRoutes('{*path}');
   }
 }
 ```
 
-> [!TIP]
-> **Thứ tự Guard rất quan trọng:** Đặt `CustomThrottlerGuard` trước `JwtAuthGuard` giúp server chặn spam ngay tại RAM, không tốn CPU giải mã token JWT hay query database.
+> [!CAUTION]
+> **Quy Tắc Thứ Tự Providers:** NestJS duyệt mảng `providers` theo thứ tự từ trên xuống dưới. Vì vậy `JwtAuthGuard` **bắt buộc** phải được đặt trước `RolesGuard`!
 
 ---
 
-### 📌 Bước 2: Viết `CustomThrottlerGuard` Báo Lỗi Tiếng Việt
+### Bước 5: Áp Dụng Phân Quyền Trong `UsersController`
 
-Tạo tệp `src/shared/guards/custom-throttler.guard.ts`:
+Bây giờ hệ thống bảo mật đã hoàn chỉnh. Hãy bảo vệ API `GET /users` (Lấy danh sách tất cả người dùng):
 
-📄 **`src/shared/guards/custom-throttler.guard.ts`**
+- Chỉ người dùng có vai trò `Role.ADMIN` mới có thể gọi API này.
+- API `getProfile` không gắn `@Roles()` nên bất kỳ người dùng nào đã đăng nhập (`USER` hoặc `ADMIN`) đều có thể truy cập thông tin của bản thân.
 
-```typescript
-import { ExecutionContext, Injectable } from '@nestjs/common';
-import {
-  ThrottlerException,
-  ThrottlerGuard,
-  ThrottlerLimitDetail,
-} from '@nestjs/throttler';
-
-@Injectable()
-export class CustomThrottlerGuard extends ThrottlerGuard {
-  protected throwThrottlingException(
-    context: ExecutionContext,
-    throttlerLimitDetail: ThrottlerLimitDetail,
-  ): Promise<void> {
-    const timeToWait =
-      throttlerLimitDetail.timeToBlockExpire ||
-      throttlerLimitDetail.timeToExpire;
-
-    const secondsToWait = Math.ceil(timeToWait / 1000);
-
-    throw new ThrottlerException(
-      `Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau ${secondsToWait} giây.`,
-    );
-  }
-}
-```
-
----
-
-### 📌 Bước 3: Gắn Decorator Tùy Chỉnh Trong `AuthController`
-
-Mở tệp `src/auth/auth.controller.ts`:
-
-📄 **`src/auth/auth.controller.ts`**
+📄 **`src/users/users.controller.ts`**
 
 ```typescript
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { GoogleAuthGuard } from './guards/google-auth.guard';
-import { type GoogleUser } from './interfaces/google-user.interface';
-import { Public } from '@/shared/decorators/public.decorator';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { type UserData } from '@/auth/interfaces/jwt.interface';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { Roles } from '@/shared/decorators/roles.decorator';
+import { Role } from '@/generated/prisma/enums';
 
-@Public()
-@Controller('auth')
-export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
 
-  // 🔒 Đăng ký: Tối đa 1 req/giây & 3 lần đăng ký / phút
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    long: { limit: 3, ttl: 60000 },
-  })
-  @Post('register')
-  @ResponseMessage('Đăng ký tài khoản thành công!')
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  // 👑 Phân quyền: CHỈ Quản trị viên (ADMIN) mới được phép xem danh sách người dùng!
+  @Roles(Role.ADMIN)
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
   }
 
-  // 🔒 Đăng nhập: Chống Brute-Force (Tối đa 1 req/giây & 5 lần thử / phút)
-  @Throttle({
-    short: { limit: 1, ttl: 1000 },
-    long: { limit: 5, ttl: 60000 },
-  })
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Đăng nhập thành công!')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  @Post()
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
   }
 
-  // 🔓 Bỏ qua kiểm tra Rate Limit cho Healthcheck
-  @SkipThrottle()
-  @Get('health')
-  async healthCheck() {
-    return { status: 'healthy', timestamp: new Date().toISOString() };
-  }
-
-  @Get('google')
-  @UseGuards(GoogleAuthGuard)
-  async googleAuth() {}
-
-  @Get('google/callback')
-  @UseGuards(GoogleAuthGuard)
-  async googleAuthCallback(@CurrentUser() userData: GoogleUser) {
-    return this.authService.socialLogin(userData);
+  // 👤 Mọi tài khoản đã đăng nhập (USER lẫn ADMIN) đều có thể xem hồ sơ cá nhân của mình
+  @Get('profile')
+  getProfile(@CurrentUser() userData: UserData) {
+    return {
+      message: 'Xác thực tài khoản thành công qua NativeAuthGuard!',
+      user: userData,
+    };
   }
 }
 ```
 
 ---
 
-## 5. Kịch Bản Kiểm Thử Thực Tế (Hands-on Lab)
+## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
 
-Khởi động dự án: `pnpm start:dev`
+Để kiểm chứng hệ thống phân quyền hoạt động chuẩn xác, chúng ta tiến hành kiểm thử thông qua 3 kịch bản thực tế với lệnh cURL.
 
-### 🟢 Kịch Bản 1: Gọi API Hợp Lệ & Xem Headers
+Hãy khởi chạy máy chủ NestJS:
 
 ```bash
-curl -i -X POST http://localhost:3000/api/v1/auth/login \
+pnpm run start:dev
+```
+
+---
+
+### 🟢 Kịch Bản 1: Đăng Nhập Tài Khoản ADMIN & Truy Cập Thành Công (200 OK)
+
+Giả sử trong database chúng ta có tài khoản quản trị viên `admin@example.com` với vai trò `role: ADMIN`.
+
+#### 1. Đăng nhập để lấy Access Token của ADMIN:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "alex@example.com", "password": "Password123!"}'
+  -d '{
+    "email": "admin@example.com",
+    "password": "Password123@"
+  }'
 ```
 
-📥 **Headers nhận được:**
+📥 **Phản hồi nhận được Access Token:**
 
-```http
-HTTP/1.1 200 OK
-X-RateLimit-Limit-short: 1
-X-RateLimit-Remaining-short: 0
-X-RateLimit-Limit-long: 5
-X-RateLimit-Remaining-long: 4
-X-RateLimit-Reset-long: 60
+```json
+{
+  "statusCode": 200,
+  "message": "Đăng nhập thành công!",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Mzg1MTE2MDB9...",
+    "user": {
+      "id": 1,
+      "email": "admin@example.com",
+      "role": "ADMIN"
+    }
+  }
+}
 ```
 
-👉 `long: 5` và `Remaining: 4` chứng minh `@Throttle({ long: { limit: 5 } })` đã hoạt động chính xác.
-
----
-
-### 🔴 Kịch Bản 2: Mô Phỏng Tấn Công Brute-Force Dồn Dập Bằng Bash Script
-
-Chạy script gửi nhanh 8 requests dò mật khẩu sai vào API Login:
+#### 2. Dùng Token của ADMIN gọi API `GET /api/v1/users`:
 
 ```bash
-for i in {1..8}; do
-  echo -n "Req #$i: "
-  curl -s -i -X POST http://localhost:3000/api/v1/auth/login \
-    -H "Content-Type: application/json" \
-    -d '{"email": "hacker@example.com", "password": "wrong"}' | grep -E "HTTP/|Retry-After|message"
-  sleep 0.1
-done
+curl -X GET http://localhost:3000/api/v1/users \
+  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
 ```
 
-📥 **Kết quả tại Terminal:**
+📥 **Kết quả (`200 OK`):**
 
-```text
-Req #1: HTTP/1.1 401 Unauthorized
-Req #2: HTTP/1.1 401 Unauthorized
-... (Req #3 - #5 vẫn xử lý bình thường) ...
-Req #6: HTTP/1.1 429 Too Many Requests
-Retry-After: 58
-{"statusCode":429,"message":"Bạn đã gửi quá nhiều yêu cầu! Vui lòng thử lại sau 58 giây."...}
-Req #7: HTTP/1.1 429 Too Many Requests
+```json
+{
+  "statusCode": 200,
+  "message": "Thực hiện thành công",
+  "data": [
+    {
+      "id": 1,
+      "email": "admin@example.com",
+      "name": "Super Admin",
+      "role": "ADMIN"
+    },
+    {
+      "id": 2,
+      "email": "user@example.com",
+      "name": "Normal User",
+      "role": "USER"
+    }
+  ],
+  "timestamp": "2026-09-30T11:45:00.000Z"
+}
 ```
 
-👉 Đúng sau 5 lần thử sai, `CustomThrottlerGuard` lập tức khóa kết nối và ném mã `429`, bảo vệ tài khoản người dùng khỏi cuộc tấn công Brute-Force.
+✅ **Kết luận:** Quản trị viên mang vai trò `ADMIN` khớp với `@Roles(Role.ADMIN)`, `RolesGuard` cho phép vượt qua và lấy danh sách thành công!
 
 ---
 
-### 🟡 Kịch Bản 3: Kiểm Thử Miễn Trừ Với `@SkipThrottle()`
+### 🔴 Kịch Bản 2: Tài Khoản USER Thường Cố Tình Gọi API ADMIN (Bị Chặn 403 Forbidden)
 
-Gửi liên tiếp 10 requests vào endpoint healthcheck:
+Bây giờ, chúng ta đăng nhập bằng tài khoản người dùng thông thường `user@example.com` có `role: USER`.
+
+#### 1. Đăng nhập lấy Token của USER:
 
 ```bash
-for i in {1..10}; do curl -s -o /dev/null -w "%{http_code} " http://localhost:3000/api/v1/auth/health; done
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "Password123@"
+  }'
 ```
 
-📥 **Kết quả:** `200 200 200 200 200 200 200 200 200 200` ➔ `@SkipThrottle()` hoạt động hoàn hảo!
+#### 2. Dùng Token của USER cố tình gọi API Quản trị `GET /api/v1/users`:
+
+```bash
+curl -X GET http://localhost:3000/api/v1/users \
+  -H "Authorization: Bearer <USER_ACCESS_TOKEN>"
+```
+
+📥 **Phản hồi nhận được (`403 Forbidden`) thông qua `HttpExceptionFilter`:**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Bạn không có quyền truy cập vào tài nguyên này!",
+  "error": "Forbidden",
+  "timestamp": "2026-09-30T11:46:15.000Z",
+  "path": "/api/v1/users"
+}
+```
+
+✅ **Kết luận:** `JwtAuthGuard` xác thực thành công (Token hợp lệ), nhưng `RolesGuard` phát hiện `user.role === 'USER'` không nằm trong `@Roles(Role.ADMIN)`. Lập tức bắn ra `ForbiddenException` và chặn đứng truy cập trái phép!
 
 ---
 
-## 6. Tổng Kết & Checklist Ghi Nhớ
+### 🔴 Kịch Bản 3: Request Không Gửi Token (Bị Chặn 401 Unauthorized Ngay Vòng Gửi Xe)
+
+Thử gọi API `GET /api/v1/users` nhưng hoàn toàn không gửi kèm Bearer Token:
+
+```bash
+curl -X GET http://localhost:3000/api/v1/users
+```
+
+📥 **Phản hồi nhận được (`401 Unauthorized`):**
+
+```json
+{
+  "statusCode": 401,
+  "message": "Bạn cần đăng nhập (gửi kèm Bearer Token) để truy cập tài nguyên này!",
+  "error": "Unauthorized",
+  "timestamp": "2026-09-30T11:47:00.000Z",
+  "path": "/api/v1/users"
+}
+```
+
+✅ **Kết luận:** Yêu cầu bị `JwtAuthGuard` từ chối ngay tại lớp số 1. `RolesGuard` thậm chí không cần phải chạy, giúp tiết kiệm chu kỳ xử lý của CPU máy chủ!
+
+---
+
+## 5. Mở Rộng: Kỹ Thuật Phân Quyền Chuyên Sâu Trong Dự Án Lớn
+
+### 🎯 1. Áp Dụng `@Roles()` Ở Cấp Độ Controller (Class-Level)
+
+Nếu bạn có một Controller dành riêng cho quản trị (ví dụ `AdminController`), thay vì phải gắn `@Roles(Role.ADMIN)` ở từng phương thức, bạn có thể đặt trực tiếp trên khai báo Class:
+
+```typescript
+@Roles(Role.ADMIN) // 🔒 Toàn bộ routes bên trong controller này đều yêu cầu quyền ADMIN
+@Controller('admin')
+export class AdminController {
+  @Get('dashboard')
+  getDashboard() { ... }
+
+  @Delete('users/:id')
+  deleteUser() { ... }
+}
+```
+
+### 🎯 2. Decorator Composition: Tạo `@AdminOnly()`
+
+Để code ngắn gọn và dễ bảo trì hơn, chúng ta có thể kết hợp các decorators bằng `applyDecorators`:
+
+📄 **`src/shared/decorators/admin-only.decorator.ts`**
+
+```typescript
+import { applyDecorators } from '@nestjs/common';
+import { Role } from '@/generated/prisma/enums';
+import { Roles } from './roles.decorator';
+
+export function AdminOnly() {
+  return applyDecorators(Roles(Role.ADMIN));
+}
+```
+
+Sử dụng trực tiếp trong Controller:
+
+```typescript
+@AdminOnly()
+@Get('statistics')
+getStats() {
+  return this.usersService.getStats();
+}
+```
+
+---
+
+## 6. Tổng Kết Bài Học & Checklist Ghi Nhớ
 
 ```mermaid
 mindmap
-  root(("Rate Limiting"))
-    "Mục đích cốt lõi"
-      "Triệt tiêu Brute-force Login"
-      "Chống Spam cạn RAM / DB"
-      "Bảo vệ chi phí API bên ngoài"
-    "Cấu hình AppModule"
-      "Multi-Tier (short, medium, long)"
-      "CustomThrottlerGuard trước JwtAuthGuard"
-    "CustomThrottlerGuard"
-      "Override throwThrottlingException"
-      "Báo lỗi 429 tiếng Việt chuẩn filter"
-    "Decorators"
-      "@Throttle() tùy chỉnh theo route"
-      "@SkipThrottle() miễn trừ kiểm tra"
+  root(("Phân Quyền RBAC Trong NestJS"))
+    "Authentication vs Authorization"
+      "401 Unauthorized: Thiếu/Sai Token (Ai vậy?)"
+      "403 Forbidden: Sai vai trò (Không phận sự miễn vào!)"
+      "Thực tế: Thẻ nhân viên vs Cửa phòng Server"
+    "Cấu Trúc Triển Khai"
+      "Prisma Enum: Role.USER & Role.ADMIN"
+      "ROLES_KEY metadata constant"
+      "Custom Decorator: @Roles(...roles: Role[])"
+      "RolesGuard với CanActivate & Reflector"
+    "Cơ Chế Thực Thi Guard Chain"
+      "JwtAuthGuard chạy trước giải mã token"
+      "request.user được nạp sẵn userId & role"
+      "RolesGuard chạy sau kiểm tra quyền"
+      "Đăng ký Global Guard bằng APP_GUARD"
 ```
 
-### ✅ Checklist Ghi Nhớ:
+### ✅ Checklist Ghi Nhớ Bài Học:
 
-- [x] Hiểu rõ bản chất cuộc tấn công **Brute-Force Attack** và cách Rate Limiting vô hiệu hóa nó.
-- [x] Phân biệt được Sliding Window Log với Fixed Window.
-- [x] Cấu hình Named Throttlers (`short`, `medium`, `long`) trong `AppModule`.
-- [x] Đăng ký `CustomThrottlerGuard` trước `JwtAuthGuard`.
-- [x] Viết `CustomThrottlerGuard` chuẩn Type-Safe và thông báo lỗi tiếng Việt.
-- [x] Vận dụng `@Throttle()` và `@SkipThrottle()` trên Controller.
-- [x] Đọc hiểu các Response Headers `X-RateLimit-*` & `Retry-After`.
+- [x] Hiểu sâu sự khác biệt bản chất giữa **Authentication (401)** và **Authorization (403)**.
+- [x] Nắm rõ cấu trúc vai trò người dùng thông qua **Prisma Enum `Role`** (`USER`, `ADMIN`).
+- [x] Tự tay tạo **`ROLES_KEY`** và Custom Route Decorator **`@Roles()`** chuẩn Type-Safe.
+- [x] Triển khai **`RolesGuard`** sử dụng `Reflector.getAllAndOverride()` để đọc metadata ở cả cấp Method và Class.
+- [x] Thấu hiểu lý do vì sao **`JwtAuthGuard` phải được đăng ký trước `RolesGuard`** trong mảng `providers` của `AppModule`.
+- [x] Áp dụng thành công `@Roles(Role.ADMIN)` để bảo vệ API danh sách người dùng `GET /users`.
+- [x] Kiểm thử thực tế thành công cả 3 kịch bản qua cURL: ADMIN truy cập (200 OK), USER bị chặn (403 Forbidden), và Không gửi token (401 Unauthorized).
 
 ---
 
-👉 **Bài tiếp theo:** [Lesson 5.1: OpenAPI (Swagger) — Tự Động Hóa Tài Liệu API & Kiểm Thử Tương Tác Với @nestjs/swagger](../../module-05/lesson-5.1/lesson-5.1.md)
+👉 **Bài tiếp theo:** [Lesson 4.8: Rate Limiting — Giới Hạn Lượt Gọi Request Với @nestjs/throttler Trong NestJS](../lesson-4.8/lesson-4.8.md)
