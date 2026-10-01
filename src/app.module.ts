@@ -15,6 +15,8 @@ import { SharedServiceModule } from './shared/services/shared-service.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles-guard';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 
 @Module({
   imports: [
@@ -22,6 +24,23 @@ import { RolesGuard } from './auth/guards/roles-guard';
       validationSchema: envValidationSchema,
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     PrismaModule,
     SharedServiceModule,
     UsersModule,
@@ -50,6 +69,10 @@ import { RolesGuard } from './auth/guards/roles-guard';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
     },
   ],
   exports: [],
