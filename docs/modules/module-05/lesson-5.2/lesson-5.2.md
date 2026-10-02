@@ -10,14 +10,14 @@
 </p>
 
 <p align="center">
-  <img src="./assets/lesson_overview_banner.svg" alt="Lesson Overview Banner" width="100%" />
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner" width="100%" />
 </p>
 
 ---
 
 > [!NOTE]
 > ⏱️ **Thời lượng dự kiến:** 12 – 15 phút  
-> 🎯 **Mục tiêu bài học:** Xây dựng module CRUD quản lý Bài viết (`Post`) liên kết với Tác giả (`User`) bằng Prisma ORM; nắm vững bản chất toán học và hiệu năng cơ sở dữ liệu của hai kỹ thuật phân trang kinh điển: **Offset-based Pagination** (Trang/Giới hạn cho Web Admin) và **Cursor-based Pagination** (Con trỏ/Cuộn vô tận cho Mobile Social Feed); tích hợp đồng bộ với Request Pipeline Enterprise (Global Guard, `@Public()`, Custom Decorator `@CurrentUser('userId')`, `@Version('1')`, `@ResponseMessage()`); hoàn thiện tài liệu OpenAPI bằng Decorators `@nestjs/swagger` và thực hiện kiểm thử tương tác trực tiếp trên Swagger UI.
+> 🎯 **Mục tiêu bài học:** Xây dựng module CRUD quản lý Bài viết (`Post`) liên kết với Tác giả (`User`) bằng Prisma ORM; nắm vững bản chất toán học và hiệu năng cơ sở dữ liệu của hai kỹ thuật phân trang kinh điển: **Offset-based Pagination** (Trang/Giới hạn cho Web Admin) và **Cursor-based Pagination** (Con trỏ/Cuộn vô tận cho Mobile Social Feed); tích hợp đồng bộ với Request Pipeline Enterprise hiện đại (Global Guard, `@Public()`, Custom Decorator `@CurrentUser('userId')`, `@ResponseMessage()`); làm chủ kỹ thuật tối ưu hóa mã nguồn: tận dụng **Global URI Versioning** (`defaultVersion: '1'`) và **Global Swagger Security** (`.addSecurityRequirements('JWT-auth')` kết hợp `@Public()` tích hợp `ApiSecurity({})`) giúp loại bỏ hoàn toàn các decorator lặp lại `@Version` và `@ApiBearerAuth` ở từng API; hoàn thiện tài liệu OpenAPI bằng Decorators `@nestjs/swagger` và thực hiện kiểm thử tương tác trực tiếp trên Swagger UI.
 
 ---
 
@@ -27,85 +27,96 @@
 
 Trong môi trường phát triển (Development) với vài chục bài viết mẫu, câu lệnh `prisma.post.findMany()` thực thi trong chưa đầy 5ms. Tuy nhiên, khi hệ thống bước vào giai đoạn Production với hàng trăm nghìn hoặc hàng triệu bài đăng, việc trả về toàn bộ dữ liệu trong một request duy nhất sẽ lập tức kích hoạt chuỗi thảm họa hệ thống:
 
-1. **Tràn bộ nhớ Node.js Process (Out Of Memory - OOM):**
+<p align="center">
+  <img src="./assets/big_data_pagination_challenge.png" alt="Big Data Pagination Challenge - OOM vs Pagination" width="95%" />
+</p>
+
+1. **Tràn bộ nhớ Node.js Process (Out Of Memory - OOM):**  
    V8 Engine của Node.js cấp phát giới hạn heap memory mặc định (thường khoảng 1.4GB – 2GB). Khi nạp đồng thời hàng trăm nghìn bản ghi JSON vào RAM để serialize, bộ thu gom rác (Garbage Collector) bị quá tải khiến Event Loop tê liệt, dẫn đến sập ứng dụng với mã lỗi `exit code 137 (OOM Killed)`.
-2. **Nghẽn Băng Thông CSDL & Mạng (Database I/O & Network Bottleneck):**
+2. **Nghẽn Băng Thông CSDL & Mạng (Database I/O & Network Bottleneck):**  
    Hàng trăm megabyte dữ liệu phải chuyển qua kết nối mạng giữa PostgreSQL và NestJS Server, làm tiêu tốn dung lượng I/O và làm nghẽn các truy vấn nghiệp vụ khác.
-3. **Độ Trễ Phản Hồi Cao & Trải Nghiệm Người Dùng Kém (High Latency & Bad UX):**
+3. **Độ Trễ Phản Hồi Cao & Trải Nghiệm Người Dùng Kém (High Latency & Bad UX):**  
    Time-To-First-Byte (TTFB) tăng vọt lên hàng chục giây. Khách hàng trên ứng dụng di động phải nhìn màn hình chờ (loading spinner) vô tận chỉ để đọc vài tin tức mới nhất.
 
 Để giải quyết bài toán này, phân chia dữ liệu thành từng tập nhỏ (**Pagination**) là yêu cầu kiến trúc bắt buộc cho mọi REST API chuyên nghiệp.
 
 ---
 
-### 1.2 So Sánh Chuyên Sâu: Offset-based vs Cursor-based Pagination
+## 2. Bản Chất Kỹ Thuật & Cách Triển Khai 2 Kỹ Thuật Phân Trang (Offset vs Cursor)
 
-Hiện nay có 2 chiến lược phân trang cốt lõi trong công nghệ phần mềm:
+Hiện nay trong kỹ thuật phần mềm có hai chiến lược phân trang cốt lõi phục vụ hai mục đích sử dụng khác nhau:
 
 <p align="center">
   <img src="./assets/pagination_offset_vs_cursor_mockup.jpg" alt="Offset vs Cursor Pagination Comparison Mockup" width="95%" />
 </p>
 
-| Tiêu Chí Kỹ Thuật                        | Offset-based Pagination (Phân Trang Theo Trang)                                                                                                                   | Cursor-based Pagination (Phân Trang Theo Con Trỏ)                                                                                         |
-| :--------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cơ Chế Truy Vấn**                      | Dựa vào số trang (`page`) và kích thước (`limit`). Bỏ qua $N$ bản ghi đầu và lấy $M$ bản ghi kế tiếp.                                                             | Dựa vào giá trị con trỏ (`cursor`) của bản ghi cuối cùng đã đọc và lấy $N$ bản ghi tiếp theo.                                             |
-| **Cú Pháp Query API**                    | `GET /api/v1/posts?page=3&limit=10`                                                                                                                               | `GET /api/v1/posts/feed?cursor=105&take=10`                                                                                               |
-| **Câu Lệnh SQL Tương Đương**             | `SELECT * FROM posts ORDER BY created_at DESC OFFSET 20 LIMIT 10;`                                                                                                | `SELECT * FROM posts WHERE id < 105 ORDER BY id DESC LIMIT 10;`                                                                           |
-| **Độ Phức Tạp (Time Complexity)**        | **Chậm O(N)**: Càng về các trang sau, Database càng phải quét qua toàn bộ các hàng trước đó rồi mới loại bỏ.                                                      | **Siêu nhanh O(1)**: Tận dụng trực tiếp cấu trúc B-Tree Index trên trường `id` để nhảy thẳng tới vị trí con trỏ.                          |
-| **Hiện Tượng Lệch Dữ Liệu (Data Drift)** | ⚠️ **Dễ trùng lặp hoặc bỏ sót:** Nếu có bài viết mới được thêm vào Page 1, toàn bộ bản ghi của Page 1 sẽ bị đẩy sang Page 2, khiến người dùng xem lại bài đã đọc. | 🟢 **Nhất quán 100% (Drift-Free):** Con trỏ neo chặt vào ID bài viết cụ thể, việc thêm bài mới ở đầu không làm xáo trộn kết quả phía sau. |
-| **Khả Năng Nhảy Trang Tùy Ý**            | 🟢 **Hỗ trợ tốt:** Cho phép nhảy trực tiếp đến bất kỳ trang nào (Page 1 ➔ Page 50) và đếm được `totalPages`.                                                      | ❌ **Không hỗ trợ:** Chỉ có thể di chuyển tiến hoặc lùi tuần tự từ con trỏ hiện tại, không đếm được tổng số trang.                        |
-| **Kịch Bản Sử Dụng Lý Tưởng**            | Giao diện Quản trị (Admin CMS, Data Table), danh sách sản phẩm thương mại điện tử cần thanh chuyển trang `1, 2, 3... 10`.                                         | Mạng xã hội (Facebook Feed, Twitter/X, TikTok), Ứng dụng di động cuộn vô tận (Infinite Scroll), Lịch sử tin nhắn Real-time.               |
+---
+
+### 2.1 Kỹ Thuật Phân Trang Theo Trang (Offset-based Pagination)
+
+#### 🔹 Nguyên lý hoạt động & Công thức tính toán
+
+Offset-based Pagination là phương pháp truyền thống, chia tập dữ liệu thành các trang rời rạc dựa trên 2 tham số đầu vào do Client cung cấp:
+
+- `page`: Số thứ tự trang hiện tại (bắt đầu từ `1`).
+- `limit`: Số lượng bản ghi tối đa trên một trang.
+
+Để xác định vị trí bản ghi cần lấy, Database phải tính toán số bản ghi cần bỏ qua (**Skip / Offset**) theo công thức toán học:
+$$\text{skip} = (\text{page} - 1) \times \text{limit}$$
+
+_Ví dụ:_ Với `page = 3` và `limit = 10`, hệ thống cần bỏ qua: $\text{skip} = (3 - 1) \times 10 = 20$ bản ghi đầu tiên và lấy tiếp 10 bản ghi từ vị trí thứ 21 đến 30.
+
+Câu lệnh SQL tương đương sinh ra bởi Prisma:
+
+```sql
+SELECT * FROM "Post"
+WHERE "published" = true
+ORDER BY "createdAt" DESC
+OFFSET 20 LIMIT 10;
+```
+
+#### ⚠️ Điểm yếu cố hữu của Offset-based:
+
+1. **Độ trễ $O(N)$ khi dữ liệu lớn (Deep Pagination Bottleneck):**  
+   Khi người dùng xem trang 10,000 (`OFFSET 100000 LIMIT 10`), Database PostgreSQL vẫn phải nạp và duyệt qua đủ $100,010$ bản ghi từ ổ đĩa vào bộ nhớ rồi mới vứt bỏ $100,000$ bản ghi đầu để lấy $10$ bản ghi cuối cùng. Trang càng xa, câu lệnh truy vấn càng chậm chạp!
+2. **Hiện tượng trôi lệch dữ liệu (Data Drift / Phantom Reads):**  
+   Giả sử User đang ở Page 1 (`ID: 10, 9, 8`). Trong lúc đó có một bài viết mới (`ID: 11`) vừa được người khác đăng lên đầu. Toàn bộ các bài viết cũ sẽ bị đẩy lùi một vị trí: bài viết `ID: 8` bị đẩy từ cuối Page 1 sang đầu Page 2. Khi User bấm chuyển sang Page 2, họ sẽ bị **trùng lặp bài viết `ID: 8`** mà họ vừa mới đọc xong!
 
 ---
 
-## 2. Đồng Bộ Kiến Trúc Request Pipeline & OpenAPI Swagger UI
+### 2.2 Kỹ Thuật Phân Trang Theo Con Trỏ (Cursor-based Pagination)
 
-Để module `Posts` kế thừa hoàn hảo chuẩn mực Enterprise đã dày công xây dựng từ Module 3 đến Lesson 5.1, mỗi request đi qua một vòng đời xử lý đồng bộ và chặt chẽ:
+#### 🔹 Nguyên lý hoạt động & Sức mạnh của B-Tree Index $O(1)$
 
-<p align="center">
-  <img src="./assets/posts_api_swagger_crud_mockup.jpg" alt="Posts API Swagger UI Mockup" width="90%" />
-</p>
+Khác hoàn toàn với Offset, Cursor-based Pagination không quan tâm đến "số trang" hay "bỏ qua bao nhiêu dòng". Thay vào đó, nó sử dụng một **con trỏ (Cursor)** — chính là giá trị của một trường dữ liệu tuần hoàn duy nhất có đánh chỉ mục (**Indexed Column**, phổ biến nhất là trường khóa chính `id`).
 
-1. **Global `JwtAuthGuard`:** Mặc định bảo vệ toàn bộ API hệ thống. Những route xem bài viết công khai (`GET /posts`, `GET /posts/feed`, `GET /posts/:id`) được gắn nhãn `@Public()` để miễn trừ xác thực.
-2. **Custom Decorator `@CurrentUser('userId')`:** Trích xuất trực tiếp `userId` (kiểu `number`) đã được giải mã từ JWT Payload trong `req.user`, giải quyết triệt để code smell `req.user` không an toàn kiểu dữ liệu.
-3. **URI Versioning `@Version('1')`:** Khai báo tiền tố phiên bản `/api/v1/posts` đồng bộ toàn hệ thống.
-4. **Transform Interceptor & `@ResponseMessage()`:** Đóng gói kết quả đầu ra thành cấu trúc JSON Enterprise tiêu chuẩn:
-   ```json
-   {
-     "statusCode": 200,
-     "message": "Thông điệp nghiệp vụ thành công",
-     "data": { ... },
-     "timestamp": "2026-09-24T15:30:00.000Z",
-     "path": "/api/v1/posts"
-   }
-   ```
-5. **OpenAPI Decorators:** Tự động sinh tài liệu Swagger UI sắc nét với `@ApiTags('posts')`, `@ApiBearerAuth('JWT-auth')`, `@ApiOperation()`, `@ApiResponse()`, và `@ApiProperty()`.
+Client gửi lên `cursor` (ID của bài viết cuối cùng trong danh sách mà Client đã nhận được) và `take` (số lượng bài viết tiếp theo muốn nạp).
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as 📱 HTTP Client / Swagger UI
-    participant Guard as "🛡️ Global JwtAuthGuard"
-    participant Reflector as "🔍 Reflector Metadata"
-    participant Controller as "📄 PostsController (@Version('1'))"
-    participant Service as "⚙️ PostsService"
-    participant DB as "🗄️ PostgreSQL (Prisma)"
-    participant Interceptor as "🟢 TransformInterceptor"
+Câu lệnh SQL tương đương:
 
-    Client->>Guard: POST /api/v1/posts (Header: Bearer Token + Body)
-    Guard->>Reflector: "Lấy metadata 'isPublic'"
-    Reflector-->>Guard: "isPublic = false (Route yêu cầu xác thực)"
-    Guard->>Guard: "Xác thực Access Token & Gắn UserData vào req.user"
-
-    Guard->>Controller: "create(@CurrentUser('userId') userId, dto)"
-    Controller->>Service: "create(userId, createPostDto)"
-    Service->>DB: "prisma.post.create({ data: { ...dto, authorId: userId } })"
-    DB-->>Service: "Post Record mới kèm thông tin Author"
-    Service-->>Controller: "Trả về Post Entity"
-    Controller-->>Interceptor: "Chuyển giao kết quả qua Observable"
-    Note over Interceptor: "Đọc @ResponseMessage()<br/>Đóng gói format JSON Enterprise { statusCode, message, data, ... }"
-    Interceptor-->>Client: "201 Created (JSON Response chuẩn)"
+```sql
+SELECT * FROM "Post"
+WHERE "published" = true AND "id" < 105 -- Nhảy thẳng đến vị trí sau con trỏ!
+ORDER BY "id" DESC
+LIMIT 10;
 ```
+
+Nhờ tận dụng trực tiếp cấu trúc cây chỉ mục **B-Tree Index** trên cột `id`, Database có thể **nhảy trực tiếp ($O(1)$)** đến vị trí con trỏ và đọc ngay 10 bản ghi tiếp theo mà **không phải duyệt qua bất kỳ bản ghi nào phía trước**, bất kể bảng dữ liệu có $10$ hay $10,000,000$ bản ghi!
+
+#### 🔹 Kỹ thuật "Peek Ahead" (Lấy Dư 1 Bản Ghi)
+
+Trong ứng dụng cuộn vô tận (Infinite Scroll Feed), Client chỉ cần biết:
+
+1. Danh sách bài viết tiếp theo.
+2. Có còn bài viết nào nữa không (`hasNextPage = true/false`) để tiếp tục kích hoạt sự kiện kéo cuộn.
+3. ID con trỏ tiếp theo (`nextCursor`) để gửi trong request kế tiếp.
+
+Nếu gọi thêm hàm `count()` để kiểm tra thì sẽ làm mất đi ưu thế tốc độ $O(1)$. Thay vào đó, ta áp dụng kỹ thuật **Peek Ahead (Nhìn trước một bước)**:
+
+- Yêu cầu Database lấy **`take + 1`** bản ghi (ví dụ: Client muốn lấy 10 bài, ta truy vấn 11 bài).
+- **Nếu kết quả trả về đúng 11 bài:** Chắc chắn vẫn còn dữ liệu phía sau $\rightarrow$ gán `hasNextPage = true`, sau đó dùng `items.pop()` loại bỏ bài viết thứ 11 ra khỏi mảng trả về cho Client.
+- **Nếu kết quả trả về $\le 10$ bài:** Đã chạm tới đáy của cơ sở dữ liệu $\rightarrow$ gán `hasNextPage = false`.
+- Giá trị `nextCursor` chính là ID của phần tử cuối cùng còn lại trong mảng `items`.
 
 ---
 
@@ -436,11 +447,21 @@ export class PostsService {
 }
 ```
 
+> [!TIP]
+> **Tại sao phải dùng `skip: 1` khi phân trang Cursor trong Prisma?**  
+> Mặc định trong Prisma ORM, khi khai báo `cursor: { id: cursor }`, bản ghi mang ID đó sẽ **nằm trong tập kết quả trả về**. Do bản ghi đó đã hiển thị trên màn hình của người dùng ở trang trước, ta phải gắn thêm `skip: 1` để Prisma bỏ qua chính con trỏ đó và chỉ lấy các bản ghi tiếp theo!
+
 ---
 
 ### 📌 Bước 3: Triển Khai `PostsController` Đồng Bộ Decorators & OpenAPI Swagger
 
-Tạo tệp controller áp dụng chuẩn mực `@Version('1')`, `@ResponseMessage()`, `@Public()`, `@CurrentUser('userId')` kết hợp với các Decorators OpenAPI Swagger (`@ApiTags`, `@ApiBearerAuth`, `@ApiOperation`, `@ApiParam`, `@ApiResponse`):
+> [!IMPORTANT]
+> **Điểm cải tiến kiến trúc cốt lõi trong phiên bản mới:**
+>
+> - **Không còn gắn `@Version('1')` ở từng API:** Nhờ cấu hình `defaultVersion: versionApi` trong `main.ts`, toàn bộ endpoint tự động nhận tiền tố `/api/v1/posts`.
+> - **Không còn gắn `@ApiBearerAuth('JWT-auth')` ở từng API:** Swagger đã được kích hoạt `.addSecurityRequirements('JWT-auth')` toàn cục. Các route công khai sử dụng `@Public()` (đã tích hợp `ApiSecurity({})`) sẽ tự động gỡ bỏ yêu cầu bảo mật trên Swagger UI!
+
+Tạo tệp controller áp dụng chuẩn mực `@ResponseMessage()`, `@Public()`, `@CurrentUser('userId')` kết hợp với các Decorators OpenAPI Swagger (`@ApiTags`, `@ApiOperation`, `@ApiParam`, `@ApiResponse`):
 
 📄 **`src/posts/posts.controller.ts`**
 
@@ -457,15 +478,8 @@ import {
   Patch,
   Post,
   Query,
-  Version,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Public } from '@/shared/decorators/public.decorator';
 import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
@@ -479,8 +493,7 @@ import { PostsService } from './posts.service';
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  // 1. POST /api/v1/posts — Tạo bài viết mới (Yêu cầu JWT Bearer Token)
-  @ApiBearerAuth('JWT-auth')
+  // 1. POST /api/v1/posts — Tạo bài viết mới (Tự động yêu cầu JWT Bearer Token)
   @ApiOperation({
     summary: 'Tạo bài viết mới',
     description:
@@ -492,7 +505,6 @@ export class PostsController {
     description: 'Dữ liệu đầu vào không hợp lệ (Validation Error)',
   })
   @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Bearer Token' })
-  @Version('1')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ResponseMessage('Tạo bài viết mới thành công!')
@@ -514,7 +526,6 @@ export class PostsController {
     status: 200,
     description: 'Lấy danh sách bài viết phân trang thành công',
   })
-  @Version('1')
   @Get()
   @ResponseMessage('Lấy danh sách bài viết phân trang thành công!')
   findAllOffset(@Query() query: QueryPostDto) {
@@ -532,7 +543,6 @@ export class PostsController {
     status: 200,
     description: 'Lấy newsfeed cuộn vô tận thành công',
   })
-  @Version('1')
   @Get('feed')
   @ResponseMessage('Lấy newsfeed cuộn vô tận thành công!')
   findAllCursor(@Query() query: QueryPostDto) {
@@ -556,7 +566,6 @@ export class PostsController {
     description: 'Lấy thông tin chi tiết bài viết thành công',
   })
   @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
-  @Version('1')
   @Get(':id')
   @ResponseMessage('Lấy thông tin chi tiết bài viết thành công!')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -564,7 +573,6 @@ export class PostsController {
   }
 
   // 5. PATCH /api/v1/posts/:id — Chỉnh sửa bài viết (Yêu cầu chính chủ tác giả)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Chỉnh sửa bài viết',
     description:
@@ -582,7 +590,6 @@ export class PostsController {
     description: 'Không có quyền chỉnh sửa bài viết của người khác',
   })
   @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
-  @Version('1')
   @Patch(':id')
   @ResponseMessage('Cập nhật bài viết thành công!')
   update(
@@ -594,7 +601,6 @@ export class PostsController {
   }
 
   // 6. DELETE /api/v1/posts/:id — Xóa bài viết (Yêu cầu chính chủ tác giả)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Xóa bài viết',
     description: 'Chỉ chính chủ tác giả mới có quyền xóa bài viết này',
@@ -607,7 +613,6 @@ export class PostsController {
     description: 'Không có quyền xóa bài viết của người khác',
   })
   @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
-  @Version('1')
   @Delete(':id')
   @ResponseMessage('Xóa bài viết thành công!')
   remove(
@@ -902,18 +907,25 @@ curl -X DELETE http://localhost:3000/api/v1/posts/1 \
 
 ### 🖥️ Kịch Bản 3: Thử Nghiệm Tương Tác Trực Quan Trên Swagger UI (`/api/docs`)
 
-Nhờ đã cài đặt `@nestjs/swagger` từ **Lesson 5.1**, bạn có thể trải nghiệm toàn diện luồng CRUD và phân trang trực tiếp trên trình duyệt:
+<p align="center">
+  <img src="./assets/posts_api_swagger_crud_mockup.jpg" alt="Posts API Swagger UI Mockup" width="90%" />
+</p>
+
+Nhờ đã cài đặt `@nestjs/swagger` từ **Lesson 5.1** kết hợp cùng cấu hình bảo mật thông minh `.addSecurityRequirements('JWT-auth')` và decorator `@Public()` tích hợp `ApiSecurity({})`, bạn có thể trải nghiệm toàn diện luồng CRUD và phân trang trực tiếp trên trình duyệt:
 
 1. **Mở Swagger Portal:** Truy cập trình duyệt tại địa chỉ `http://localhost:3000/api/docs`.
-2. **Authorize Bearer Token:**
-   - Nhấn nút **Authorize 🔓** màu xanh lá ở góc trên bên phải giao diện.
+2. **Nhận diện trạng thái bảo mật trực quan:**
+   - **Các route yêu cầu xác thực (`POST /posts`, `PATCH /posts/:id`, `DELETE /posts/:id`):** Tự động có biểu tượng ổ khóa 🔒 bên cạnh endpoint (nhờ `addSecurityRequirements('JWT-auth')` toàn cục mà không cần gắn `@ApiBearerAuth`).
+   - **Các route công khai (`GET /posts`, `GET /posts/feed`, `GET /posts/:id`):** Hiển thị không có ổ khóa bảo mật (nhờ decorator `@Public()` kích hoạt `ApiSecurity({})`), cho phép nhấn **Try it out** và **Execute** ngay lập tức mà không cần Token!
+3. **Authorize Bearer Token một lần duy nhất:**
+   - Nhấn nút **Authorize 🔓** màu xanh lá ở góc trên bên phải giao diện Swagger UI.
    - Dán chuỗi Bearer Token nhận được từ API đăng nhập (Module 4) theo định dạng: `Bearer <YOUR_ACCESS_TOKEN>`.
-   - Nhấn **Authorize** rồi nhấn **Close**. Biểu tượng ổ khóa sẽ đóng lại thành **🔒**.
-3. **Thực thi `POST /api/v1/posts`:**
+   - Nhấn **Authorize** rồi nhấn **Close**. Biểu tượng ổ khóa sẽ đóng lại thành **🔒**. Toàn bộ request gọi đến các API bảo vệ sẽ tự động được đính kèm Header Authorization!
+4. **Thực thi `POST /api/v1/posts`:**
    - Mở rộng tag `posts`, chọn endpoint `POST /api/v1/posts`.
    - Nhấn **Try it out**, Swagger UI sẽ tự động điền sẵn JSON mẫu lấy từ `@ApiProperty()` trong `CreatePostDto`.
    - Nhấn **Execute** và quan sát kết quả phản hồi `201 Created` kèm `TransformInterceptor` đóng gói trực quan!
-4. **Thực thi `GET /api/v1/posts` & `GET /api/v1/posts/feed`:**
+5. **Thực thi `GET /api/v1/posts` & `GET /api/v1/posts/feed`:**
    - Nhập giá trị thử nghiệm cho `page`, `limit` hoặc `cursor`, `take` vào giao diện form trực quan.
    - Nhấn **Execute** để xem dữ liệu JSON bài viết phân trang chuẩn Enterprise.
 
@@ -934,11 +946,12 @@ mindmap
       "Tối ưu Prisma: Promise.all và select _count"
     "Đồng Bộ Architecture"
       "Global JwtAuthGuard kết hợp @Public decorator"
-      "@Version 1 đồng bộ URL /api/v1/posts"
+      "Tự động hóa URI Versioning v1 qua defaultVersion"
+      "Tối ưu Swagger Security: addSecurityRequirements và ApiSecurity"
       "@ResponseMessage và TransformInterceptor format JSON"
     "OpenAPI Swagger Docs"
-      "@ApiTags posts và @ApiBearerAuth JWT-auth"
-      "@ApiOperation và @ApiResponse đa mã trạng thái"
+      "@ApiTags posts gộp nhóm tài liệu controller"
+      "@ApiOperation và @ApiResponse mô tả rõ ràng"
       "@ApiProperty và PartialType từ @nestjs/swagger"
 ```
 
@@ -949,7 +962,8 @@ mindmap
 - [x] Thiết kế DTOs validation chuẩn mực cho Create, Update và Query params (`page`, `limit`, `cursor`, `take`).
 - [x] Kế thừa `PartialType` từ `@nestjs/swagger` để giữ nguyên toàn bộ OpenAPI schema metadata.
 - [x] Đã đồng bộ kiến trúc Request Pipeline: `@Public()` cho Public API, `@CurrentUser('userId')` cho Protected API.
-- [x] Áp dụng `@Version('1')` và `@ResponseMessage()` để tạo JSON Enterprise Response đồng nhất với các module trước.
+- [x] Tận dụng `defaultVersion` trong cấu hình `enableVersioning` để quản lý phiên bản URI `/api/v1/` tập trung, loại bỏ boilerplate `@Version('1')` ở từng API.
+- [x] Tận dụng `addSecurityRequirements('JWT-auth')` toàn cục và decorator `@Public()` tích hợp `ApiSecurity({})`, loại bỏ hoàn toàn `@ApiBearerAuth` ở từng API.
 - [x] Tối ưu hóa truy vấn CSDL Prisma bằng cách kết hợp `Promise.all()` và `_count: { select: { comments: true } }`.
 - [x] Kiểm soát phân quyền chính chủ bài viết, chặn đứng hành vi sửa/xóa trái phép với `ForbiddenException` (`403 Forbidden`).
 - [x] Tích hợp OpenAPI Swagger decorators cho DTOs và Controller, kiểm thử tương tác thành công trên Swagger UI.
