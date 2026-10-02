@@ -8,7 +8,7 @@ Tệp này quy định các chuẩn mực bắt buộc cho AI Agent khi tạo m�
 
 Mọi bài giảng được AI Agent tạo ra hoặc chỉnh sửa **BẮT BUỘC** phải đạt tiêu chuẩn chất lượng cao nhất theo 3 tiêu chí:
 
-1. **🎨 Đẹp mắt (Aesthetic & Professional):** Trình bày chuẩn Markdown cao cấp, trình bày thoáng đãng, màu sắc phối mượt mà, Shields.io badges đồng bộ, đồ họa vector & ảnh AI chất lượng cao.
+1. **🎨 Đẹp mắt (Aesthetic & Professional):** Trình bày chuẩn Markdown cao cấp, trình bày thoáng đãng, màu sắc phối mượt mà, Shields.io badges đồng bộ, hình ảnh minh họa trực quan & chuyên nghiệp tạo bởi AI model (`generate_image`).
 2. **💡 Dễ hiểu (Clear & Pedagogical):** Văn phong truyền tải sư phạm thực chiến, giải thích khái niệm phức tạp bằng ví dụ ẩn dụ thực tế, chia nhỏ từng bước (step-by-step), luôn có kịch bản thử nghiệm thành công & bắt lỗi cụ thể.
 3. **👁️ Trực quan (Visual-First):** Ưu tiên dùng sơ đồ luồng (Workflow/Architecture), hình ảnh UI Mockup, bảng so sánh trực quan (Comparison Tables) và khối mã nguồn luôn có nhãn file rõ ràng (`📄 path/to/file.ts`).
 
@@ -27,9 +27,9 @@ Mọi bài giảng được AI Agent tạo ra hoặc chỉnh sửa **BẮT BUỘ
 
 ### 🔹 Header & Badges
 
-- Dùng thẻ `<p align="center">` cho badges và SVG banner để đảm bảo hiển thị đúng trên mọi Markdown Reader (VS Code, GitHub, Obsidian).
-- **Cấm:** Không bọc cú pháp Markdown image `![alt](url)` bên trong `<div align="center">` vì sẽ gây lỗi render chuỗi raw SVG text.
-- Mỗi bài giảng phải tạo ít nhất **01 SVG Overview Banner** lưu tại `assets/lesson_overview_banner.svg` và chèn ngay dưới thanh Badges.
+- Dùng thẻ `<p align="center">` cho badges và banner hình ảnh do AI model tạo để đảm bảo hiển thị căn giữa chuẩn mực trên mọi Markdown Reader (VS Code, GitHub, Obsidian).
+- **Cấm:** Không dùng code SVG thủ công để vẽ banner hay biểu đồ. Mọi banner và hình ảnh minh họa đều phải sinh bằng AI model (`generate_image`).
+- Mỗi bài giảng phải tạo ít nhất **01 AI-Generated Overview Banner** (tỉ lệ 16:9) lưu tại `assets/lesson_overview_banner.png` (hoặc tên tương ứng theo chủ đề) và chèn ngay dưới thanh Badges.
 
 ```html
 <p align="center">
@@ -45,7 +45,7 @@ Mọi bài giảng được AI Agent tạo ra hoặc chỉnh sửa **BẮT BUỘ
 
 <p align="center">
   <img
-    src="./assets/lesson_overview_banner.svg"
+    src="./assets/lesson_overview_banner.png"
     alt="Lesson Overview Banner"
     width="100%"
   />
@@ -66,21 +66,30 @@ Sử dụng chuẩn GitHub Callout Admonitions cho các ghi chú:
 
 ## 3. Quy Tắc Đồ Họa, Sơ Đồ & AI Image Generation (Assets & Visuals)
 
-1. **Tạo & Sử dụng Đa dạng Tài nguyên Đồ họa (Assets):**
-   - **Custom SVG Diagrams & Banners:** Tự tạo các file SVG chất lượng cao với phối màu Dark Slate/Navy (`#0f172a`, `#1e293b`), bóng đổ (drop-shadow), font hệ thống Inter/JetBrains Mono.
-   - **Mermaid Diagrams:** Dùng cho flowchart, sequence, ERD, timeline, mindmap khi cần biểu diễn luồng dữ liệu động hoặc sơ đồ cấu trúc.
-   - **AI Generated Images (Nano Banana 2 / `generate_image` tool):** Sử dụng công cụ sinh ảnh AI khi bài học cần tạo **UI Mockup** (giao diện app web/mobile), sơ đồ hệ thống minh họa phong phú, hoặc ảnh đồ họa khái niệm trực quan.
-   - **Vị trí lưu trữ:** Toàn bộ các file tài nguyên đồ họa (SVG, PNG, JPG) phải lưu trong thư mục `assets/` của bài học tương ứng (VD: `docs/modules/module-01/lesson-1.6/assets/`).
+1. **Tuyệt đối KHÔNG sử dụng SVG thủ công (No Custom SVG Code):**
+   - **Cấm:** Không tự viết mã nguồn XML SVG hoặc tạo file `.svg` thủ công cho banner và hình vẽ minh họa.
+   - Toàn bộ hình ảnh đồ họa, banner tổng quan, concept art hay minh họa hệ thống **BẮT BUỘC phải được tạo bằng AI model** thông qua công cụ `generate_image`.
 
-2. **Tuyệt đối KHÔNG trùng lặp sơ đồ (No Diagram Duplication):**
-   - Không đặt cả ảnh SVG/AI Image và sơ đồ Mermaid cùng minh họa một workflow trong cùng một mục. Hãy chọn 1 định dạng biểu diễn phù hợp nhất.
+2. **Quy trình Tạo & Quản lý Ảnh AI (`generate_image` Tool):**
+   - **Các trường hợp sử dụng ảnh AI:**
+     - **Overview Banner:** Bắt buộc cho mỗi bài học (tỉ lệ `16:9`), phối màu nhận diện công nghệ hiện đại (NestJS Red `#E0234E`, Dark Slate/Navy `#0f172a`, đồ họa 3D isometric / tech minimalism / clean raster).
+     - **Minh họa Khái niệm & Kiến trúc (Architecture & Concept Visuals):** Trực quan hóa các khái niệm trừu tượng (Dependency Injection, Middleware, Interceptors, Guards, Microservices, Caching, Event-driven,...).
+     - **UI/UX Mockups:** Giao diện web app, mobile screen, REST client hoặc dashboard minh họa trực quan khi bài học đề cập đến client/frontend.
+   - **Quy trình triển khai:**
+     1. Gọi tool `generate_image` với `AspectRatio` (`16:9` cho banner/landscape, `4:3` hoặc `1:1` cho mockup/concept), đặt `ImageName` rõ nghĩa và viết `Prompt` chi tiết về bối cảnh kỹ thuật, tông màu, phong cách đồ họa.
+     2. Sau khi ảnh được sinh vào thư mục artifact của phiên làm việc, sao chép/di chuyển file ảnh vào thư mục `assets/` của bài học tương ứng (VD: `cp <artifact_image_path> docs/modules/module-01/lesson-1.6/assets/lesson_overview_banner.png`).
+     3. Nhúng vào file Markdown bằng thẻ `<p align="center"><img src="./assets/<filename>.png" alt="..." width="100%" /></p>` hoặc cú pháp Markdown image.
+   - **Vị trí lưu trữ:** Toàn bộ file ảnh (`.png`, `.jpg`, `.webp`) phải nằm trong thư mục `assets/` của bài học tương ứng (VD: `docs/modules/module-01/lesson-1.6/assets/`).
 
-3. **Quy tắc cú pháp Mermaid chuẩn mực (Strict Mermaid Rules):**
-   - **Tài liệu tham khảo chính thức:** [Creating diagrams - GitHub Docs](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
-   - Tất cả các nhãn (labels), tên node chứa ký tự đặc biệt như `&`, `:`, `()`, `.`, `/` **BẮT BUỘC phải bọc trong dấu ngoặc kép `"..."`**.
-   - **Ví dụ đúng:** `Dev2 -->|"git clone & pnpm install"| Husky2`
-   - **Ví dụ sai (gây lỗi Lexical error):** `Husky2 <-- git clone & pnpm install -- Dev2`
-   - Sử dụng đúng chiều mũi tên chuẩn (`-->`, `-->|label|`, `---`).
+3. **Sơ Đồ Kỹ Thuật Bằng Mermaid (Mermaid Diagrams):**
+   - Mermaid là định dạng chuẩn dùng cho các sơ đồ kỹ thuật dạng văn bản (text-based): flowchart, sequence, ERD, state diagram, timeline, mindmap.
+   - **Tuyệt đối KHÔNG trùng lặp sơ đồ (No Diagram Duplication):** Không đặt cả ảnh AI và sơ đồ Mermaid cùng minh họa cho cùng một workflow trong cùng một mục. Hãy chọn 1 định dạng biểu diễn trực quan và hiệu quả nhất.
+   - **Quy tắc cú pháp Mermaid chuẩn mực (Strict Mermaid Rules):**
+     - **Tài liệu tham khảo chính thức:** [Creating diagrams - GitHub Docs](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
+     - Tất cả các nhãn (labels), tên node chứa ký tự đặc biệt như `&`, `:`, `()`, `.`, `/` **BẮT BUỘC phải bọc trong dấu ngoặc kép `"..."`**.
+     - **Ví dụ đúng:** `Dev2 -->|"git clone & pnpm install"| Husky2`
+     - **Ví dụ sai (gây lỗi Lexical error):** `Husky2 <-- git clone & pnpm install -- Dev2`
+     - Sử dụng đúng chiều mũi tên chuẩn (`-->`, `-->|label|`, `---`).
 
 ---
 
@@ -94,7 +103,7 @@ AI Agent không rập khuôn tiêu đề các mục, mà linh hoạt tùy chỉn
 # Lesson X.Y: Tên Bài Học Sinh Động & Thu Hút
 
 <p align="center">...Shields Badges...</p>
-<p align="center"><img src="./assets/banner.svg" alt="Banner" width="100%" /></p>
+<p align="center"><img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner" width="100%" /></p>
 
 ---
 
@@ -108,7 +117,7 @@ AI Agent không rập khuôn tiêu đề các mục, mà linh hoạt tùy chỉn
 
 ## 1. [Tên Mục Lý Thuyết / Đặt Vấn Đề / Tổng Quan]
 
-...Khái niệm, bảng so sánh, sơ đồ minh họa SVG / Mermaid / AI Image...
+...Khái niệm, bảng so sánh, sơ đồ Mermaid / Hình ảnh AI minh họa...
 
 ## 2. [Tên Mục Quy Trình / Kiến Trúc / Cấu Hình Cốt Lõi]
 
