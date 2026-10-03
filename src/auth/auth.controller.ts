@@ -15,6 +15,7 @@ import { RegisterDto } from './dto/register.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { GoogleUser } from './interfaces/google-user.interface';
 import { Public } from '@/shared/decorators/public.decorator';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('auth')
 @Public()
@@ -22,6 +23,16 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @ApiOperation({
+    summary: 'Đăng ký tài khoản mới',
+    description:
+      'Người dùng tạo tài khoản mới trong hệ thống, cần cung cấp email, mật khẩu và tên hiển thị',
+    deprecated: true,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Đăng ký tài khoản thành công!',
+  })
   @ResponseMessage('Đăng ký tài khoản thành công!')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
