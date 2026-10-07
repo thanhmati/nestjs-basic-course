@@ -1,101 +1,48 @@
 import { Prisma } from '@/generated/prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreatePostDto } from './dto/create-post.dto';
+import { QueryPostDto } from './dto/query-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostsService {
   private readonly logger = new Logger(PostsService.name);
   constructor(private readonly prisma: PrismaService) {}
 
-  createPost(params: { authorId: number; title: string; content: string }) {
-    const { authorId, content, title } = params;
-
+  async create(authorId: number, createPostDto: CreatePostDto) {
     return this.prisma.post.create({
       data: {
-        title,
-        content,
-        published: true,
+        ...createPostDto,
         author: {
-          connect: {
-            id: authorId,
-          },
+          connect: { id: authorId },
         },
       },
       select: {
         id: true,
         title: true,
         content: true,
+        published: true,
         createdAt: true,
+        updatedAt: true,
+        authorId: true,
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, email: true, name: true },
         },
       },
     });
   }
 
-  async createPostWithNotification(params: {
-    authorId: number;
-    title: string;
-    content: string;
-  }) {
-    const { authorId, content, title } = params;
-
-    return this.prisma.$transaction(
-      async (tx) => {
-        const author = await tx.user.findUnique({
-          where: { id: authorId },
-        });
-
-        if (!author) {
-          throw new NotFoundException(
-            `Không tìm thấy tác giả với ID ${authorId}`,
-          );
-        }
-
-        const post = await tx.post.create({
-          data: {
-            content,
-            title,
-            author: {
-              connect: {
-                id: authorId,
-              },
-            },
-          },
-        });
-
-        await tx.notification.create({
-          data: {
-            userId: authorId,
-            content: `Bài viết "${post.title}" của bạn đã được phát hành thành công.`,
-            title: 'Bài viết được phát hành thành công',
-          },
-        });
-
-        return post;
-      },
-      {
-        maxWait: 5000,
-        timeout: 10000,
-      },
-    );
-  }
-
-  async findAllPost(params: {
-    search?: string;
-    page?: number;
-    limit?: number;
-  }) {
-    const { search, page = 1, limit = 10 } = params;
-
+  async findAllOffset(query: QueryPostDto) {
+    const { page = 1, limit = 10, search } = query;
     const skip = (page - 1) * limit;
 
-    const whereCondition: Prisma.PostWhereInput = {
-      published: true,
+    const where: Prisma.PostWhereInput = {
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -104,55 +51,136 @@ export class PostsService {
       }),
     };
 
-    const [items, total] = await Promise.all([
+    const [items, totalItems] = await Promise.all([
       this.prisma.post.findMany({
-        where: whereCondition,
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           title: true,
+          published: true,
           createdAt: true,
           author: {
-            select: { id: true, name: true },
+            select: { id: true, email: true, name: true },
           },
           _count: {
-            select: { comments: true }, // Đếm số bình luận mà không cần nạp mảng comments!
+            select: { comments: true },
           },
         },
       }),
-      this.prisma.post.count({ where: whereCondition }),
+      this.prisma.post.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(totalItems / limit);
+
     return {
-      data: items,
+      items,
       meta: {
-        total,
         page,
-        lastPage: Math.ceil(total / limit),
+        limit,
+        totalItems,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
       },
     };
   }
 
-  async updatePost(id: number, title?: string, content?: string) {
-    try {
-      return await this.prisma.post.update({
-        where: { id },
-        data: {
-          ...(title && { title }),
-          ...(content && { content }),
+  async findAllCursor(query: QueryPostDto) {
+    const { cursor, take = 10, search } = query;
+
+    const where: Prisma.PostWhereInput = {
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { content: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const items = await this.prisma.post.findMany({
+      where,
+      take: take + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      orderBy: { id: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        published: true,
+        createdAt: true,
+        author: {
+          select: { id: true, email: true, name: true },
         },
-      });
-    } catch {
-      throw new NotFoundException(`Không tìm thấy bài viết với ID ${id}`);
+        _count: {
+          select: { comments: true },
+        },
+      },
+    });
+
+    let hasNextPage = false;
+    if (items.length > take) {
+      hasNextPage = true;
+      items.pop();
     }
+
+    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
+
+    return {
+      items,
+      meta: {
+        take,
+        nextCursor,
+        hasNextPage,
+      },
+    };
   }
 
-  // 4. DELETE: Xóa bài viết
-  async deletePost(id: number) {
-    return await this.prisma.post.delete({
+  async findOne(id: number) {
+    const post = await this.prisma.post.findUnique({
       where: { id },
+      include: {
+        author: { select: { id: true, email: true, name: true } },
+        comments: {
+          select: { id: true, content: true, createdAt: true, authorId: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
+
+    if (!post) {
+      throw new NotFoundException(`Không tìm thấy bài viết với ID #${id}`);
+    }
+
+    return post;
+  }
+
+  async update(id: number, userId: number, updatePostDto: UpdatePostDto) {
+    const post = await this.findOne(id);
+
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('Bạn không có quyền chỉnh sửa bài viết này');
+    }
+
+    return this.prisma.post.update({
+      where: { id },
+      data: updatePostDto,
+      include: {
+        author: { select: { id: true, email: true, name: true } },
+      },
+    });
+  }
+
+  async remove(id: number, userId: number) {
+    const post = await this.findOne(id);
+
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('Bạn không có quyền xóa bài viết này');
+    }
+
+    await this.prisma.post.delete({ where: { id } });
+
+    return { id };
   }
 }
