@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { HashService } from '@/shared/services/hash.service';
+import { deleteUploadedFile } from '@/shared/helpers/multer.helper';
 
 export interface User {
   id: number;
@@ -48,5 +49,31 @@ export class UsersService {
     });
 
     return createdUser;
+  }
+
+  async updateAvatar(userId: number, newAvatarUrl: string) {
+    const existingProfile = await this.prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (existingProfile?.avatarUrl) {
+      deleteUploadedFile(existingProfile.avatarUrl);
+    }
+
+    const updatedProfile = await this.prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        avatarUrl: newAvatarUrl,
+      },
+      update: {
+        avatarUrl: newAvatarUrl,
+      },
+    });
+
+    return {
+      userId,
+      avatarUrl: updatedProfile.avatarUrl,
+    };
   }
 }

@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -17,6 +18,8 @@ import { ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Public } from '@/shared/decorators/public.decorator';
 import { QueryPostDto } from './dto/query-post.dto';
+import { ApiImagesUpload } from '@/shared/decorators/api-file.decorator';
+import { createImageValidationPipe } from '@/shared/pipes/image-validation.pipe';
 
 @Controller('posts')
 export class PostsController {
@@ -87,5 +90,32 @@ export class PostsController {
     @CurrentUser('userId') userId: number,
   ) {
     return this.postsService.remove(id, userId);
+  }
+
+  @Post('upload-images')
+  @ApiOperation({
+    summary: 'Upload danh sách ảnh đính kèm bài viết (Tối đa 5 ảnh)',
+  })
+  @ApiImagesUpload('images', {
+    folder: 'posts',
+    maxCount: 5,
+    description: 'Chọn danh sách ảnh bài viết (Tối đa 5 file, mỗi file <= 5MB)',
+  })
+  @ResponseMessage('Tải lên danh sách ảnh bài viết thành công!')
+  uploadPostImages(
+    @UploadedFiles(createImageValidationPipe({ maxSizeInMb: 5 }))
+    files: Express.Multer.File[],
+  ) {
+    const uploadedList = files.map((file) => ({
+      originalName: file.originalname,
+      filename: file.filename,
+      size: `${(file.size / 1024).toFixed(1)} KB`,
+      url: `/uploads/posts/${file.filename}`,
+    }));
+
+    return {
+      total: uploadedList.length,
+      items: uploadedList,
+    };
   }
 }
