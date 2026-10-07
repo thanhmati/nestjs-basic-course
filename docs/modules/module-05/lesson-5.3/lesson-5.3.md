@@ -396,7 +396,7 @@ Cập nhật tệp 📄 **`src/users/users.controller.ts`**:
 
 ```typescript
 import { Controller, Post, UploadedFile } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
 import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
@@ -409,7 +409,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('avatar')
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload và cập nhật ảnh đại diện cá nhân' })
   @ApiImageUpload('avatar', {
     folder: 'avatars',
@@ -442,7 +441,7 @@ export class UsersController {
 
 ```typescript
 import { Controller, Post, UploadedFiles } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
 import { ApiImagesUpload } from 'src/shared/decorators/api-file.decorator';
 import { createImageValidationPipe } from 'src/shared/pipes/image-validation.pipe';
@@ -451,7 +450,6 @@ import { createImageValidationPipe } from 'src/shared/pipes/image-validation.pip
 @Controller('posts')
 export class PostsController {
   @Post('upload-images')
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Upload danh sách ảnh đính kèm bài viết (Tối đa 5 ảnh)',
   })
