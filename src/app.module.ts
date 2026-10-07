@@ -17,6 +17,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles-guard';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
     UsersModule,
     PostsModule,
     AuthModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [
