@@ -72,8 +72,9 @@ Bảo mật mạng xã hội không chỉ dừng ở việc "có token hay khôn
 
 > [!IMPORTANT]
 >
-> - **Chỉ duy nhất tác giả mới được sửa nội dung bình luận:** Không ai (kể cả chủ bài viết hay admin) được tự ý thay đổi lời nói của người khác.
-> - **Chủ bài viết có quyền xóa bình luận trên bài của mình:** Đây là cơ chế kiểm duyệt nội dung (moderation) bắt buộc của các mạng xã hội để ngăn chặn spam, quấy rối hoặc thông tin độc hại.
+> - **Chỉ duy nhất tác giả mới được sửa nội dung bình luận:** Không ai (kể cả chủ bài viết hay Quản trị viên) được tự ý thay đổi lời nói của người khác.
+> - **Chủ bài viết có quyền xóa bình luận trên bài của mình:** Đây là cơ chế kiểm duyệt nội dung (moderation) bắt buộc của các mạng xã hội để ngăn chặn spam, quấy rối hoặc thông tin độc hại trên bài viết do mình tạo ra.
+> - **Quản trị viên (ADMIN) có quyền xóa mọi bình luận:** Với vai trò quản trị hệ thống cao nhất, Admin có thẩm quyền xử lý và loại bỏ bất kỳ bình luận nào vi phạm quy chuẩn cộng đồng trên toàn bộ nền tảng.
 
 ---
 
@@ -208,31 +209,32 @@ export class UpdateCommentDto {
 }
 ```
 
-#### 3. DTO Phân Trang Bình Luận
+#### 3. DTO Phân Trang Con Trỏ (Cursor Pagination)
 
-Sử dụng `class-transformer` chuyển đổi query params sang kiểu số và kiểm soát giới hạn an toàn.
+Trên các mạng xã hội, khi người dùng bấm "Xem thêm bình luận", Client cần gửi lên ID của bình luận cuối cùng đã thấy làm mốc (`cursor`) và số lượng muốn lấy thêm (`limit`).
+
+Sử dụng `class-transformer` chuyển đổi query params sang kiểu số và kiểm soát giới hạn an toàn:
 
 📄 **`src/comments/dto/query-comment.dto.ts`**
 
 ```typescript
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class QueryCommentDto {
   @ApiPropertyOptional({
-    description: 'Số thứ tự trang (mặc định là 1)',
-    default: 1,
-    example: 1,
+    description:
+      'ID của bình luận làm mốc con trỏ (cursor) để tải tiếp các bình luận cũ hơn',
+    example: 50,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Số trang page phải là số nguyên' })
-  @Min(1, { message: 'Số trang tối thiểu là 1' })
-  page?: number = 1;
+  @IsInt({ message: 'Cursor phải là số nguyên ID bình luận' })
+  cursor?: number;
 
   @ApiPropertyOptional({
-    description: 'Số lượng bình luận trên mỗi trang (tối đa 50)',
+    description: 'Số lượng bình luận muốn lấy trong mỗi lần tải (tối đa 50)',
     default: 10,
     example: 10,
   })
@@ -240,19 +242,8 @@ export class QueryCommentDto {
   @Type(() => Number)
   @IsInt({ message: 'Số lượng bản ghi limit phải là số nguyên' })
   @Min(1, { message: 'Số lượng bản ghi tối thiểu là 1' })
-  @Max(50, { message: 'Tối đa 50 bình luận trên một trang' })
+  @Max(50, { message: 'Tối đa 50 bình luận trên mỗi lần tải' })
   limit?: number = 10;
-
-  @ApiPropertyOptional({
-    description:
-      'Thứ tự sắp xếp theo thời gian tạo (desc: mới nhất, asc: cũ nhất)',
-    enum: ['asc', 'desc'],
-    default: 'desc',
-    example: 'desc',
-  })
-  @IsOptional()
-  @IsIn(['asc', 'desc'], { message: 'Thứ tự sắp xếp phải là asc hoặc desc' })
-  order?: 'asc' | 'desc' = 'desc';
 }
 ```
 
@@ -263,10 +254,10 @@ export class QueryCommentDto {
 Tệp service này đảm nhận 5 phương thức cốt lõi:
 
 1. **`createComment`:** Đảm bảo bài viết tồn tại trước khi thêm mới bình luận; nạp kèm thông tin tác giả và avatar profile.
-2. **`findCommentsByPost`:** Truy vấn danh sách bình luận kèm phân trang và tính toán metadata (`totalPages`, `hasNextPage`, `hasPreviousPage`).
+2. **`findCommentsByPost`:** Truy vấn danh sách bình luận theo con trỏ (`cursor`) với kỹ thuật Peek Ahead (`take: limit + 1`) để xác định `nextCursor` và `hasNextPage`.
 3. **`findOne`:** Xem chi tiết 1 bình luận.
 4. **`updateComment`:** Kiểm tra quyền tác giả (`authorId === userId`), quăng `ForbiddenException` nếu vi phạm.
-5. **`removeComment`:** Thực thi **Ma trận phân quyền** (Chỉ tác giả bình luận HOẶC chủ bài viết mới có quyền xóa).
+5. **`removeComment`:** Thực thi **Ma trận phân quyền** (Tác giả bình luận HOẶC Chủ bài viết HOẶC Quản trị viên `ADMIN` mới có quyền xóa).
 
 📄 **`src/comments/comments.service.ts`**
 
@@ -276,6 +267,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Role } from '@/generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryCommentDto } from './dto/query-comment.dto';
@@ -339,45 +331,44 @@ export class CommentsService {
       throw new NotFoundException(`Không tìm thấy bài viết với ID #${postId}`);
     }
 
-    const { page = 1, limit = 10, order = 'desc' } = query;
-    const skip = (page - 1) * limit;
+    const { cursor, limit = 10 } = query;
 
-    // 2. Truy vấn song song danh sách bình luận và tổng số lượng
-    const [items, totalItems] = await Promise.all([
-      this.prisma.comment.findMany({
-        where: { postId },
-        skip,
-        take: limit,
-        orderBy: { createdAt: order },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              profile: {
-                select: {
-                  avatarUrl: true,
-                },
+    // 2. Kỹ thuật Peek Ahead: Lấy limit + 1 phần tử để xác định hasNextPage mà không cần count()
+    const items = await this.prisma.comment.findMany({
+      where: { postId },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      orderBy: { id: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: {
+              select: {
+                avatarUrl: true,
               },
             },
           },
         },
-      }),
-      this.prisma.comment.count({ where: { postId } }),
-    ]);
+      },
+    });
 
-    const totalPages = Math.ceil(totalItems / limit);
+    let hasNextPage = false;
+    if (items.length > limit) {
+      hasNextPage = true;
+      items.pop(); // Loại bỏ phần tử dư thừa sau khi đã xác nhận còn dữ liệu trang tiếp
+    }
+
+    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
 
     return {
       items,
       meta: {
-        page,
         limit,
-        totalItems,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
+        nextCursor,
+        hasNextPage,
       },
     };
   }
@@ -454,9 +445,10 @@ export class CommentsService {
   }
 
   /**
-   * Xóa bình luận (Chỉ tác giả bình luận hoặc Chủ bài viết mới có quyền xóa)
+   * Xóa bình luận
+   * Phân quyền: Tác giả bình luận HOẶC Chủ bài viết HOẶC Quản trị viên (ADMIN) mới có quyền xóa
    */
-  async removeComment(id: number, userId: number) {
+  async removeComment(id: number, userId: number, role: Role) {
     const comment = await this.prisma.comment.findUnique({
       where: { id },
       include: {
@@ -474,10 +466,11 @@ export class CommentsService {
 
     const isCommentAuthor = comment.authorId === userId;
     const isPostAuthor = comment.post.authorId === userId;
+    const isAdmin = role === Role.ADMIN;
 
-    if (!isCommentAuthor && !isPostAuthor) {
+    if (!isCommentAuthor && !isPostAuthor && !isAdmin) {
       throw new ForbiddenException(
-        'Bạn không có quyền xóa bình luận này! Chỉ tác giả bình luận hoặc chủ bài viết mới được phép xóa.',
+        'Bạn không có quyền xóa bình luận này! Chỉ tác giả bình luận, chủ bài viết hoặc Quản trị viên (ADMIN) mới được phép xóa.',
       );
     }
 
@@ -514,6 +507,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { UserData } from '../auth/interfaces/jwt.interface';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { Public } from '../shared/decorators/public.decorator';
 import { ResponseMessage } from '../shared/decorators/response-message.decorator';
@@ -554,9 +548,9 @@ export class CommentsController {
 
   @Public()
   @ApiOperation({
-    summary: 'Lấy danh sách bình luận của bài viết (Phân trang)',
+    summary: 'Lấy danh sách bình luận của bài viết (Cursor Pagination)',
     description:
-      'API công khai. Hỗ trợ phân trang theo trang (page), giới hạn (limit) và thứ tự sắp xếp thời gian (order).',
+      'API công khai. Hỗ trợ phân trang theo con trỏ (cursor) và số lượng (limit), phù hợp cho tính năng xem thêm hoặc cuộn vô tận.',
   })
   @ApiParam({
     name: 'postId',
@@ -626,7 +620,7 @@ export class CommentsController {
   @ApiOperation({
     summary: 'Xóa bình luận',
     description:
-      'Chỉ tác giả bình luận hoặc chủ bài viết (Post Owner) mới có quyền xóa bình luận này.',
+      'Chỉ tác giả bình luận, chủ bài viết (Post Owner) hoặc Quản trị viên (ADMIN) mới có quyền xóa bình luận này.',
   })
   @ApiParam({
     name: 'id',
@@ -644,9 +638,9 @@ export class CommentsController {
   @ResponseMessage('Xóa bình luận thành công!')
   removeComment(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('userId') userId: number,
+    @CurrentUser() user: UserData,
   ) {
-    return this.commentsService.removeComment(id, userId);
+    return this.commentsService.removeComment(id, user.userId, user.role);
   }
 }
 ```
@@ -749,10 +743,12 @@ curl -X POST http://localhost:3000/api/v1/posts/1/comments \
 }
 ```
 
-#### 3. Lấy danh sách bình luận bài viết #1 có phân trang (`GET /api/v1/posts/1/comments?page=1&limit=5&order=desc`)
+#### 3. Lấy danh sách bình luận bài viết #1 theo cơ chế Cursor Pagination (`GET /api/v1/posts/1/comments?limit=5`)
+
+- **Lần 1: Lấy danh sách 5 bình luận mới nhất ban đầu (không truyền cursor):**
 
 ```bash
-curl -X GET "http://localhost:3000/api/v1/posts/1/comments?page=1&limit=5&order=desc"
+curl -X GET "http://localhost:3000/api/v1/posts/1/comments?limit=5"
 ```
 
 **Kết quả phản hồi (`200 OK`):**
@@ -777,16 +773,23 @@ curl -X GET "http://localhost:3000/api/v1/posts/1/comments?page=1&limit=5&order=
       }
     ],
     "meta": {
-      "page": 1,
       "limit": 5,
-      "totalItems": 1,
-      "totalPages": 1,
-      "hasNextPage": false,
-      "hasPreviousPage": false
+      "nextCursor": 51,
+      "hasNextPage": false
     }
   }
 }
 ```
+
+> [!TIP]
+> **Kịch bản "Xem thêm bình luận" trên Client (Infinite Scroll / Load More Flow):**  
+> Khi người dùng bấm nút **"Xem thêm bình luận"**, Frontend lấy mốc `nextCursor` từ phản hồi trước (ở đây là `51`) và gửi request tiếp theo:
+>
+> ```bash
+> curl -X GET "http://localhost:3000/api/v1/posts/1/comments?cursor=51&limit=5"
+> ```
+>
+> Prisma sẽ định vị con trỏ tại ID 51 và trích xuất danh sách các bình luận kế tiếp mà không lo bị trùng lặp dữ liệu dù có người vừa gửi bình luận mới!
 
 #### 4. Chỉnh sửa bình luận chính chủ (`PATCH /api/v1/comments/51`)
 
@@ -847,7 +850,28 @@ curl -X PATCH http://localhost:3000/api/v1/comments/51 \
 }
 ```
 
-#### 3. Chủ bài viết xóa bình luận vi phạm trên bài của mình (`200 OK`)
+#### 3. Người lạ cố ý xóa bình luận của người khác (`403 Forbidden`)
+
+Đăng nhập bằng tài khoản User C (`TOKEN_USER_C`), cố ý gửi yêu cầu xóa bình luận #51 (vốn thuộc về User A trên bài viết của User A):
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/comments/51 \
+  -H "Authorization: Bearer $TOKEN_USER_C"
+```
+
+**Kết quả phản hồi (`403 Forbidden`):**
+
+```json
+{
+  "statusCode": 403,
+  "message": "Bạn không có quyền xóa bình luận này! Chỉ tác giả bình luận, chủ bài viết hoặc Quản trị viên (ADMIN) mới được phép xóa.",
+  "error": "Forbidden",
+  "timestamp": "2026-09-08T10:47:30.000Z",
+  "path": "/api/v1/comments/51"
+}
+```
+
+#### 4. Chủ bài viết xóa bình luận vi phạm trên bài của mình (`200 OK`)
 
 Giả sử User B đăng bài viết #2. User C vào bình luận spam bài viết đó (Comment #52).  
 Khi User B (chủ bài viết #2) gửi yêu cầu xóa Comment #52:
@@ -858,6 +882,29 @@ curl -X DELETE http://localhost:3000/api/v1/comments/52 \
 ```
 
 **Kết quả:** Hệ thống chấp thuận xóa thành công (`200 OK`), bảo vệ quyền quản trị bài viết cho chủ tus!
+
+#### 5. Quản trị viên (`ADMIN`) xóa bình luận vi phạm bất kỳ (`200 OK`)
+
+Tài khoản Quản trị viên mang vai trò `Role.ADMIN` (`$TOKEN_ADMIN`) thực hiện quyền kiểm duyệt hệ thống, xóa bình luận bất kỳ dù không phải tác giả hay chủ bài viết:
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/comments/52 \
+  -H "Authorization: Bearer $TOKEN_ADMIN"
+```
+
+**Kết quả phản hồi (`200 OK`):**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Xóa bình luận thành công!",
+  "data": {
+    "id": 52
+  },
+  "timestamp": "2026-09-08T10:48:15.000Z",
+  "path": "/api/v1/comments/52"
+}
+```
 
 ---
 
@@ -910,7 +957,7 @@ mindmap
         Admin
       Chan 403 Forbidden
     Pipeline & Presentation
-      Pagination QueryCommentDto
+      Cursor Pagination QueryCommentDto
       Include Author Profile Avatar
       OpenAPI Swagger UI
 ```
@@ -919,8 +966,8 @@ mindmap
 
 - [x] Hiểu rõ sự khác biệt và ngữ cảnh áp dụng giữa **Nested URI** (`/posts/:postId/comments`) và **Flat URI** (`/comments/:id`).
 - [x] Nắm vững cơ chế bảo toàn toàn vẹn dữ liệu: kiểm tra bài viết tồn tại (`NotFoundException`) trước khi tạo quan hệ khóa ngoại.
-- [x] Làm chủ **Ma trận phân quyền sở hữu (Ownership Authorization Matrix)**: phân định rạch ròi giữa quyền của tác giả bình luận và quyền quản trị của chủ bài viết.
-- [x] Tích hợp phân trang với `QueryCommentDto`, truy vấn đồng thời danh sách và tổng số lượng (`Promise.all`), trả về metadata chuẩn mực.
+- [x] Làm chủ **Ma trận phân quyền sở hữu (Ownership Authorization Matrix)**: phân định rạch ròi giữa quyền của tác giả bình luận, quyền quản trị của chủ bài viết và quyền kiểm duyệt tối cao của Quản trị viên (`ADMIN`).
+- [x] Tích hợp phân trang dạng con trỏ (**Cursor-based Pagination**) với `QueryCommentDto` (`cursor`, `limit`), áp dụng kỹ thuật **Peek Ahead** (`take: limit + 1`) tối ưu hóa trải nghiệm tải thêm bình luận và đạt hiệu năng truy vấn $O(1)$.
 - [x] Nạp thông tin hồ sơ người dùng (`author.profile.avatarUrl`) phục vụ render giao diện mạng xã hội trực quan.
 - [x] Kiểm thử toàn diện trên Swagger UI với đầy đủ kịch bản thành công và chặn lỗi 400, 401, 403, 404.
 
