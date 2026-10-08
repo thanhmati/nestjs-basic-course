@@ -12,6 +12,9 @@ import { JwtPayload } from './interfaces/jwt.interface';
 import { Role } from '@/generated/prisma/enums';
 import { GoogleUser } from './interfaces/google-user.interface';
 import * as crypto from 'crypto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EVENT } from '@/shared/constants/event.constant';
+import { UserRegisteredEvent } from '@/users/events/user-registered.event';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +22,7 @@ export class AuthService {
     private readonly hashService: HashService,
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -43,6 +47,11 @@ export class AuthService {
       user.id,
       user.email,
       user.role,
+    );
+
+    this.eventEmitter.emit(
+      EVENT.USER.REGISTERED,
+      new UserRegisteredEvent(user.id, user.email, user.name, user.createdAt),
     );
 
     return { user, accessToken };

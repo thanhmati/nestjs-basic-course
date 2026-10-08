@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -20,6 +20,13 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 import { CommentsModule } from './comments/comments.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
+import {
+  FileMailTransport,
+  FileTemplateEngine,
+  MailModule,
+} from '@nestjs/mail';
+import { join } from 'path';
+import { AppMailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -49,6 +56,21 @@ import { NotificationsModule } from './notifications/notifications.module';
       delimiter: '.',
       ignoreErrors: false,
     }),
+    MailModule.forRootAsync({
+      inject: [ConfigService],
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        transport: new FileMailTransport({ directory: 'var/mail' }),
+        templates: new FileTemplateEngine({
+          dir: join(__dirname, 'mail/templates'),
+          layout: 'layout',
+          cache: configService.get<string>('NODE_ENV') === 'production',
+        }),
+
+        from: 'Social Chat App <noreply@socialchat.example.com>',
+      }),
+    }),
+
     PrismaModule,
     SharedServiceModule,
     UsersModule,
@@ -56,6 +78,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AuthModule,
     CommentsModule,
     NotificationsModule,
+    AppMailModule,
   ],
   controllers: [AppController],
   providers: [
