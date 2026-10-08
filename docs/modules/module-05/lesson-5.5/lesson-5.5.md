@@ -28,7 +28,7 @@
 > - **Phát sự kiện (Emit)** từ `CommentsService` mà không cần phụ thuộc vào bất kỳ consumer/listener nào.
 > - **Lắng nghe bất đồng bộ (Subscribe)** với decorator `@OnEvent('comment.created', { async: true })` trong `NotificationsService`.
 > - **Xây dựng nghiệp vụ thực tế (Apply)**: Bộ lọc tự tương tác (Self-Interaction Filter — không gửi thông báo khi tự bình luận bài của mình) và lưu trữ thông báo vào cơ sở dữ liệu PostgreSQL qua Prisma ORM.
-> - **Thiết kế REST API (Design)**: Trọn bộ endpoints quản lý thông báo (`GET /notifications`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`) tích hợp Swagger OpenAPI và bảo mật bằng JWT.
+> - **Thiết kế REST API (Design)**: Trọn bộ endpoints quản lý thông báo (`GET /notifications` với phân trang Cursor-based & tính unreadCount, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all`) tích hợp Swagger OpenAPI và bảo mật bằng JWT.
 > - **Debug & Khắc phục lỗi (Debug)**: Phát hiện và xử lý các lỗi kinh điển như thiếu `forRoot()`, listener chặn luồng chính do quên `async: true`, hoặc lỗi Unhandled Rejection trong tác vụ ngầm.
 
 > [!IMPORTANT]
@@ -460,106 +460,6 @@ export class CommentsService {
 
     return comment;
   }
-
-  async findCommentsByPost(postId: number, query: QueryCommentDto) {
-    const post = await this.prisma.post.findUnique({
-      where: { id: postId },
-    });
-
-    if (!post) {
-      throw new NotFoundException(`Không tìm thấy bài viết với ID #${postId}`);
-    }
-
-    const { cursor, limit = 10 } = query;
-
-    const items = await this.prisma.comment.findMany({
-      where: { postId },
-      take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { id: 'desc' },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            profile: {
-              select: {
-                avatarUrl: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    let hasNextPage = false;
-    if (items.length > limit) {
-      hasNextPage = true;
-      items.pop();
-    }
-
-    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
-
-    return {
-      items,
-      meta: {
-        limit,
-        nextCursor,
-        hasNextPage,
-      },
-    };
-  }
-
-  async updateComment(
-    id: number,
-    authorId: number,
-    updateCommentDto: UpdateCommentDto,
-  ) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { id },
-    });
-
-    if (!comment) {
-      throw new NotFoundException(`Không tìm thấy bình luận với ID #${id}`);
-    }
-
-    if (comment.authorId !== authorId) {
-      throw new ForbiddenException(
-        'Bạn không có quyền chỉnh sửa bình luận của người khác!',
-      );
-    }
-
-    return await this.prisma.comment.update({
-      where: { id },
-      data: { content: updateCommentDto.content },
-    });
-  }
-
-  async deleteComment(id: number, userId: number, userRole: Role) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { id },
-      include: { post: true },
-    });
-
-    if (!comment) {
-      throw new NotFoundException(`Không tìm thấy bình luận với ID #${id}`);
-    }
-
-    const isCommentAuthor = comment.authorId === userId;
-    const isPostAuthor = comment.post.authorId === userId;
-    const isAdmin = userRole === Role.ADMIN;
-
-    if (!isCommentAuthor && !isPostAuthor && !isAdmin) {
-      throw new ForbiddenException('Bạn không có quyền xóa bình luận này!');
-    }
-
-    await this.prisma.comment.delete({
-      where: { id },
-    });
-
-    return { success: true };
-  }
 }
 ```
 
@@ -619,18 +519,17 @@ import { ToBoolean } from '@/shared/decorators/to-boolean.decorator';
 
 export class QueryNotificationDto {
   @ApiPropertyOptional({
-    description: 'Số thứ tự trang cần lấy (bắt đầu từ 1)',
-    default: 1,
-    example: 1,
+    description:
+      'Cursor là ID của thông báo cuối cùng nhận được từ lần tải trước (dùng cho phân trang cuộn tiếp)',
+    example: 45,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Số trang page phải là số nguyên' })
-  @Min(1, { message: 'Số trang tối thiểu là 1' })
-  page?: number = 1;
+  @IsInt({ message: 'cursor phải là số nguyên' })
+  cursor?: number;
 
   @ApiPropertyOptional({
-    description: 'Số lượng thông báo trên mỗi trang (tối đa 50)',
+    description: 'Số lượng thông báo trên mỗi lần tải (mặc định 10, tối đa 50)',
     default: 10,
     example: 10,
   })
@@ -732,43 +631,45 @@ export class NotificationsService {
   }
 
   /**
-   * Lấy danh sách thông báo của người dùng hiện tại có phân trang và đếm số lượng chưa đọc
+   * Lấy danh sách thông báo của người dùng hiện tại
+   * kết hợp tính toán số lượng thông báo chưa đọc (unreadCount)
    */
   async getUserNotifications(userId: number, query: QueryNotificationDto) {
-    const { page = 1, limit = 10, isRead } = query;
-    const skip = (page - 1) * limit;
+    const { cursor, limit = 10, isRead } = query;
 
     const where: Prisma.NotificationWhereInput = { userId };
     if (typeof isRead === 'boolean') {
       where.isRead = isRead;
     }
 
-    // Chạy song song truy vấn dữ liệu và đếm số lượng để tối ưu hiệu năng DB
-    const [items, totalItems, unreadCount] = await Promise.all([
+    // Lấy dư 1 bản ghi (take: limit + 1) để kiểm tra hasNextPage mà không cần count toàn bảng
+    const [items, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
+        take: limit + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        orderBy: { id: 'desc' },
       }),
-      this.prisma.notification.count({ where }),
       this.prisma.notification.count({
         where: { userId, isRead: false },
       }),
     ]);
 
-    const totalPages = Math.ceil(totalItems / limit);
+    let hasNextPage = false;
+    if (items.length > limit) {
+      hasNextPage = true;
+      items.pop(); // Bỏ phần tử thứ (limit + 1) dùng để thăm dò trang sau
+    }
+
+    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
 
     return {
       items,
       meta: {
-        page,
         limit,
-        totalItems,
-        totalPages,
+        nextCursor,
+        hasNextPage,
         unreadCount,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
       },
     };
   }
@@ -827,8 +728,6 @@ Tạo file `src/notifications/notifications.controller.ts` để định nghĩa 
 📄 **`src/notifications/notifications.controller.ts`**
 
 ```typescript
-import { CurrentUser } from '@/shared/decorators/current-user.decorator';
-import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import {
   Controller,
   Get,
@@ -837,32 +736,20 @@ import {
   Patch,
   Query,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-import { QueryNotificationDto } from './dto/query-notification.dto';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { QueryNotificationDto } from './dto/query-notification.dto';
 
 @ApiTags('notifications')
-@ApiBearerAuth()
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @ApiOperation({
     summary: 'Lấy danh sách thông báo của người dùng đang đăng nhập',
-    description:
-      'Hỗ trợ phân trang (page, limit) và lọc theo trạng thái đã đọc (isRead=true/false). Luôn tính toán số lượng thông báo chưa đọc (unreadCount).',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy danh sách thông báo thành công',
-  })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực Bearer Token JWT' })
   @Get()
   @ResponseMessage('Lấy danh sách thông báo thành công!')
   getUserNotifications(
@@ -874,14 +761,7 @@ export class NotificationsController {
 
   @ApiOperation({
     summary: 'Đánh dấu tất cả thông báo là đã đọc',
-    description:
-      'Cập nhật toàn bộ thông báo chưa đọc của người dùng hiện tại sang trạng thái isRead=true.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Đánh dấu tất cả thông báo đã đọc thành công',
-  })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực Bearer Token JWT' })
   @Patch('read-all')
   @ResponseMessage('Đánh dấu tất cả thông báo đã đọc thành công!')
   markAllAsRead(@CurrentUser('userId') userId: number) {
@@ -890,25 +770,6 @@ export class NotificationsController {
 
   @ApiOperation({
     summary: 'Đánh dấu một thông báo cụ thể là đã đọc',
-    description: 'Chỉ chính chủ nhận thông báo mới có quyền thao tác.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID định danh của thông báo',
-    example: 1,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Đánh dấu thông báo đã đọc thành công',
-  })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực Bearer Token JWT' })
-  @ApiResponse({
-    status: 403,
-    description: 'Không có quyền thao tác trên thông báo của người khác',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Không tìm thấy thông báo mục tiêu',
   })
   @Patch(':id/read')
   @ResponseMessage('Đánh dấu thông báo đã đọc thành công!')
@@ -1024,7 +885,7 @@ export TOKEN_USER_A="eyJhbGciOiJIUzI1NiIsIn..."
 Gọi API lấy danh sách thông báo:
 
 ```bash
-curl -X GET "http://localhost:3000/api/v1/notifications?page=1&limit=10" \
+curl -X GET "http://localhost:3000/api/v1/notifications?limit=10" \
   -H "Authorization: Bearer $TOKEN_USER_A"
 ```
 
@@ -1046,13 +907,10 @@ curl -X GET "http://localhost:3000/api/v1/notifications?page=1&limit=10" \
       }
     ],
     "meta": {
-      "page": 1,
       "limit": 10,
-      "totalItems": 1,
-      "totalPages": 1,
-      "unreadCount": 1,
+      "nextCursor": null,
       "hasNextPage": false,
-      "hasPreviousPage": false
+      "unreadCount": 1
     }
   }
 }
