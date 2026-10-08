@@ -245,16 +245,22 @@ TypeScript compiler **không tự động copy file HTML** vào thư mục `dist
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": ["mail/templates/**/*"],
+    "assets": [
+      {
+        "include": "mail/templates/**/*",
+        "outDir": "dist/src"
+      }
+    ],
     "watchAssets": true
   }
 }
 ```
 
-| Option        | Mô tả                                                                     |
-| ------------- | ------------------------------------------------------------------------- |
-| `assets`      | Glob pattern cho các file không phải TypeScript cần copy vào `dist/`.     |
-| `watchAssets` | `true` = tự động copy lại khi file thay đổi (trong `nest start --watch`). |
+| Option        | Mô tả                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `include`     | Glob pattern cho các file không phải TypeScript cần copy vào bản build (`mail/templates/**/*`).                       |
+| `outDir`      | Thư mục đích nhận assets (`dist/src`). Khi project có file gốc (như `prisma.config.ts`), code build nằm ở `dist/src`. |
+| `watchAssets` | `true` = tự động copy lại khi file template thay đổi (trong `nest start --watch`).                                    |
 
 ### 3.5 Tạo Thư Mục Cấu Trúc Mail Templates
 
@@ -967,23 +973,47 @@ pnpm add @nestjs/mail
 
 #### Lỗi 2: `Error: No template "welcome" in .../mail/templates`
 
-**Nguyên nhân:** File `welcome.html` không có trong thư mục `dist/mail/templates/`.
+**Triệu chứng:**
 
-**Fix:**
+```text
+ERROR [UserMailHandler] ❌ Lỗi gửi Welcome Email: No template "welcome" in /.../dist/src/mail/templates (looked for welcome.html)
+```
 
-1. Kiểm tra file tồn tại trong `src/mail/templates/welcome.html`.
-2. Kiểm tra `nest-cli.json` đã cấu hình `assets`:
+**Nguyên nhân:**
+
+- Khi project có các file TypeScript ở thư mục gốc (như `prisma.config.ts`), TypeScript compiler tự động đặt output của mã nguồn vào `dist/src/` (thay vì `dist/`).
+- Do đó `app.module.js` nằm ở `dist/src/`, khiến `join(__dirname, 'mail/templates')` trỏ tới `dist/src/mail/templates`.
+- Trong khi đó, `nest-cli.json` mặc định lại copy assets ra `dist/mail/templates`, gây ra lỗi lệch đường dẫn.
+
+**Cách khắc phục:**
+
+1. **Cách 1: Cấu hình `outDir` trong `nest-cli.json`:**
 
 ```json
 {
   "compilerOptions": {
-    "assets": ["mail/templates/**/*"],
+    "assets": [
+      {
+        "include": "mail/templates/**/*",
+        "outDir": "dist/src"
+      }
+    ],
     "watchAssets": true
   }
 }
 ```
 
-3. Restart `nest start --watch` để copy lại assets.
+2. **Cách 2: Giải quyết đường dẫn linh hoạt trong `AppModule` với `existsSync`:**
+
+```typescript
+const templatesDir = existsSync(join(__dirname, 'mail/templates'))
+  ? join(__dirname, 'mail/templates')
+  : existsSync(join(__dirname, '../mail/templates'))
+    ? join(__dirname, '../mail/templates')
+    : join(process.cwd(), 'src/mail/templates');
+```
+
+3. Restart `nest start --watch` để áp dụng cấu hình build mới.
 
 #### Lỗi 3: Template render sai — hiển thị `{{ name }}` thay vì giá trị thực
 
