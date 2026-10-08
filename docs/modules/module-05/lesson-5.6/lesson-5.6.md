@@ -1318,10 +1318,10 @@ mindmap
 ---
 
 > [!TIP]
-> 🎉 **Chúc mừng!** Bạn đã hoàn thành Lesson 5.6 và tích hợp thành công hệ thống gửi email vào Social Chat App!
-> Ở **Module 6 (Real-Time WebSockets Chat & Performance Caching)**, chúng ta sẽ kết hợp sự kiện `comment.created` với **Socket.IO Gateway** để đẩy thông báo tức thì lên màn hình người dùng — không cần refresh trang!
+> 🚀 **Tiếp tục hoàn thiện hệ thống Email!**  
+> Ở **Lesson 5.7**, chúng ta sẽ nâng cấp hệ thống email lên chuẩn Production: chuyển đổi linh hoạt giữa `FileMailTransport` (dev) và `SmtpTransport` (production) thông qua **Factory Pattern**!
 
 ---
 
-👈 **Bài trước:** [Lesson 5.5: Event-Driven Architecture — Tách Rời Nghiệp Vụ & Tự Động Tạo Notification](../lesson-5.5/lesson-5.5.md)
-👉 **Bài tiếp theo:** [Lesson 6.1: WebSockets Gateway — Khởi Tạo WebSocket Gateway Với @WebSocketGateway() (Socket.IO)](../../module-06/lesson-6.1/lesson-6.1.md)
+👈 **Bài trước:** [Lesson 5.5: Event-Driven Architecture — Tách Rời Nghiệp Vụ & Tự Động Tạo Notification](../lesson-5.5/lesson-5.5.md)  
+👉 **Bài tiếp theo:** [Lesson 5.7: Cấu Hình Gửi Mail Trong Production Với SmtpTransport & Factory Pattern](../lesson-5.7/lesson-5.7.md)
