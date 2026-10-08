@@ -139,31 +139,22 @@ import {
 } from 'class-validator';
 
 export class CreatePostDto {
-  @ApiProperty({
-    description: 'Tiêu đề bài viết (tối thiểu 5 ký tự)',
-    example: 'Xây dựng REST API hoàn chỉnh với NestJS & Prisma',
-  })
-  @IsString({ message: 'Tiêu đề bài viết phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Tiêu đề bài viết không được để trống' })
-  @MinLength(5, { message: 'Tiêu đề bài viết phải có ít nhất 5 ký tự' })
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
   title: string;
 
-  @ApiProperty({
-    description: 'Nội dung chi tiết của bài viết',
-    example:
-      'Bài viết này hướng dẫn chi tiết cách thiết kế schema và kỹ thuật phân trang tối ưu...',
-  })
-  @IsString({ message: 'Nội dung bài viết phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Nội dung bài viết không được để trống' })
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
   content: string;
 
   @ApiPropertyOptional({
-    description: 'Trạng thái xuất bản bài viết công khai',
     default: false,
-    example: true,
   })
   @IsOptional()
-  @IsBoolean({ message: 'Trạng thái xuất bản phải là kiểu boolean' })
+  @IsBoolean()
   published?: boolean;
 }
 ```
@@ -189,55 +180,43 @@ import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 export class QueryPostDto {
   // --- Các tham số cho Offset-based Pagination ---
   @ApiPropertyOptional({
-    description: 'Số thứ tự trang (bắt đầu từ 1)',
     default: 1,
-    example: 1,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Số trang (page) phải là số nguyên' })
-  @Min(1, { message: 'Số trang tối thiểu là 1' })
+  @IsInt()
+  @Min(1)
   page?: number = 1;
 
   @ApiPropertyOptional({
-    description: 'Số lượng bài viết trên 1 trang (tối đa 100)',
     default: 10,
-    example: 10,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Giới hạn bản ghi (limit) phải là số nguyên' })
-  @Min(1, { message: 'Giới hạn bản ghi tối thiểu là 1' })
-  @Max(100, { message: 'Tối đa 100 bản ghi trên 1 trang' })
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number = 10;
 
   // --- Các tham số cho Cursor-based Pagination ---
-  @ApiPropertyOptional({
-    description: 'Con trỏ (ID bài viết cuối cùng đã tải) cho infinite scroll',
-    example: 105,
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Cursor phải là ID của bài viết dạng số nguyên' })
+  @IsInt()
   cursor?: number;
 
   @ApiPropertyOptional({
-    description: 'Số lượng bài viết muốn lấy tiếp theo (Cursor pagination)',
     default: 10,
-    example: 10,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Take phải là số nguyên' })
-  @Min(1, { message: 'Take tối thiểu là 1' })
-  @Max(100, { message: 'Take tối đa là 100' })
+  @IsInt()
+  @Min(1)
+  @Max(100)
   take?: number = 10;
 
   // --- Bộ lọc tìm kiếm ---
-  @ApiPropertyOptional({
-    description: 'Từ khóa tìm kiếm theo tiêu đề hoặc nội dung',
-    example: 'NestJS',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   search?: string;
@@ -479,7 +458,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Public } from '@/shared/decorators/public.decorator';
 import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
@@ -496,17 +475,8 @@ export class PostsController {
   // 1. POST /api/v1/posts — Tạo bài viết mới (Tự động yêu cầu JWT Bearer Token)
   @ApiOperation({
     summary: 'Tạo bài viết mới',
-    description:
-      'Yêu cầu Bearer Token của người dùng đang đăng nhập để gắn quyền tác giả',
   })
-  @ApiResponse({ status: 201, description: 'Tạo bài viết mới thành công' })
-  @ApiResponse({
-    status: 400,
-    description: 'Dữ liệu đầu vào không hợp lệ (Validation Error)',
-  })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Bearer Token' })
   @Post()
-  @HttpCode(HttpStatus.CREATED)
   @ResponseMessage('Tạo bài viết mới thành công!')
   create(
     @CurrentUser('userId') userId: number,
@@ -517,15 +487,6 @@ export class PostsController {
 
   // 2. GET /api/v1/posts — Lấy danh sách bài viết phân trang Offset (Public API)
   @Public()
-  @ApiOperation({
-    summary: 'Lấy danh sách bài viết (Offset-based Pagination)',
-    description:
-      'Phù hợp cho Web Admin / Data Table với số trang (page) và giới hạn (limit)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy danh sách bài viết phân trang thành công',
-  })
   @Get()
   @ResponseMessage('Lấy danh sách bài viết phân trang thành công!')
   findAllOffset(@Query() query: QueryPostDto) {
@@ -536,12 +497,6 @@ export class PostsController {
   @Public()
   @ApiOperation({
     summary: 'Lấy Newsfeed bài viết (Cursor-based Pagination)',
-    description:
-      'Phù hợp cho bảng tin di động, cuộn vô tận (Infinite Scroll Feed)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy newsfeed cuộn vô tận thành công',
   })
   @Get('feed')
   @ResponseMessage('Lấy newsfeed cuộn vô tận thành công!')
@@ -553,19 +508,7 @@ export class PostsController {
   @Public()
   @ApiOperation({
     summary: 'Xem chi tiết bài viết theo ID',
-    description:
-      'Trả về thông tin bài viết kèm tác giả và danh sách bình luận mới nhất',
   })
-  @ApiParam({
-    name: 'id',
-    description: 'ID số nguyên của bài viết cần xem',
-    example: 1,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy thông tin chi tiết bài viết thành công',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
   @Get(':id')
   @ResponseMessage('Lấy thông tin chi tiết bài viết thành công!')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -575,21 +518,7 @@ export class PostsController {
   // 5. PATCH /api/v1/posts/:id — Chỉnh sửa bài viết (Yêu cầu chính chủ tác giả)
   @ApiOperation({
     summary: 'Chỉnh sửa bài viết',
-    description:
-      'Chỉ chính chủ tác giả (authorId khớp với userId trong Token) mới có quyền chỉnh sửa',
   })
-  @ApiParam({
-    name: 'id',
-    description: 'ID bài viết cần chỉnh sửa',
-    example: 1,
-  })
-  @ApiResponse({ status: 200, description: 'Cập nhật bài viết thành công' })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Bearer Token' })
-  @ApiResponse({
-    status: 403,
-    description: 'Không có quyền chỉnh sửa bài viết của người khác',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
   @Patch(':id')
   @ResponseMessage('Cập nhật bài viết thành công!')
   update(
@@ -603,16 +532,7 @@ export class PostsController {
   // 6. DELETE /api/v1/posts/:id — Xóa bài viết (Yêu cầu chính chủ tác giả)
   @ApiOperation({
     summary: 'Xóa bài viết',
-    description: 'Chỉ chính chủ tác giả mới có quyền xóa bài viết này',
   })
-  @ApiParam({ name: 'id', description: 'ID bài viết cần xóa', example: 1 })
-  @ApiResponse({ status: 200, description: 'Xóa bài viết thành công' })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Bearer Token' })
-  @ApiResponse({
-    status: 403,
-    description: 'Không có quyền xóa bài viết của người khác',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
   @Delete(':id')
   @ResponseMessage('Xóa bài viết thành công!')
   remove(

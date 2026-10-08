@@ -176,14 +176,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateCommentDto {
-  @ApiProperty({
-    description: 'Nội dung của bình luận (tối đa 1000 ký tự)',
-    example: 'Bài viết rất hữu ích và chi tiết! Cảm ơn tác giả nhiều.',
-  })
-  @IsString({ message: 'Nội dung bình luận phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Nội dung bình luận không được để trống' })
-  @MinLength(1, { message: 'Nội dung bình luận phải có ít nhất 1 ký tự' })
-  @MaxLength(1000, { message: 'Nội dung bình luận tối đa 1000 ký tự' })
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(1000)
   content: string;
 }
 ```
@@ -197,14 +194,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateCommentDto {
-  @ApiProperty({
-    description: 'Nội dung cập nhật của bình luận',
-    example: 'Nội dung bình luận sau khi đã được chỉnh sửa bổ sung.',
-  })
-  @IsString({ message: 'Nội dung bình luận phải là chuỗi ký tự' })
-  @IsNotEmpty({ message: 'Nội dung bình luận không được để trống' })
-  @MinLength(1, { message: 'Nội dung bình luận phải có ít nhất 1 ký tự' })
-  @MaxLength(1000, { message: 'Nội dung bình luận tối đa 1000 ký tự' })
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(1000)
   content: string;
 }
 ```
@@ -223,26 +217,20 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class QueryCommentDto {
-  @ApiPropertyOptional({
-    description:
-      'ID của bình luận làm mốc con trỏ (cursor) để tải tiếp các bình luận cũ hơn',
-    example: 50,
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Cursor phải là số nguyên ID bình luận' })
+  @IsInt()
   cursor?: number;
 
   @ApiPropertyOptional({
-    description: 'Số lượng bình luận muốn lấy trong mỗi lần tải (tối đa 50)',
     default: 10,
-    example: 10,
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Số lượng bản ghi limit phải là số nguyên' })
-  @Min(1, { message: 'Số lượng bản ghi tối thiểu là 1' })
-  @Max(50, { message: 'Tối đa 50 bình luận trên mỗi lần tải' })
+  @IsInt()
+  @Min(1)
+  @Max(50)
   limit?: number = 10;
 }
 ```
@@ -506,7 +494,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserData } from '../auth/interfaces/jwt.interface';
 import { CurrentUser } from '../shared/decorators/current-user.decorator';
 import { Public } from '../shared/decorators/public.decorator';
@@ -523,20 +511,8 @@ export class CommentsController {
 
   @ApiOperation({
     summary: 'Thêm bình luận mới dưới bài viết',
-    description:
-      'Yêu cầu Bearer Token đăng nhập. Hệ thống sẽ tự động xác thực bài viết tồn tại trước khi tạo bình luận.',
   })
-  @ApiParam({
-    name: 'postId',
-    description: 'ID của bài viết cần thêm bình luận',
-    example: 1,
-  })
-  @ApiResponse({ status: 201, description: 'Tạo bình luận thành công' })
-  @ApiResponse({ status: 400, description: 'Dữ liệu bình luận không hợp lệ' })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Token' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
   @Post('posts/:postId/comments')
-  @HttpCode(HttpStatus.CREATED)
   @ResponseMessage('Thêm bình luận mới thành công!')
   createComment(
     @Param('postId', ParseIntPipe) postId: number,
@@ -549,19 +525,7 @@ export class CommentsController {
   @Public()
   @ApiOperation({
     summary: 'Lấy danh sách bình luận của bài viết (Cursor Pagination)',
-    description:
-      'API công khai. Hỗ trợ phân trang theo con trỏ (cursor) và số lượng (limit), phù hợp cho tính năng xem thêm hoặc cuộn vô tận.',
   })
-  @ApiParam({
-    name: 'postId',
-    description: 'ID của bài viết cần lấy bình luận',
-    example: 1,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy danh sách bình luận thành công',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
   @Get('posts/:postId/comments')
   @ResponseMessage('Lấy danh sách bình luận thành công!')
   findCommentsByPost(
@@ -574,15 +538,7 @@ export class CommentsController {
   @Public()
   @ApiOperation({
     summary: 'Xem chi tiết một bình luận theo ID',
-    description:
-      'API công khai để xem nội dung và thông tin người đăng bình luận.',
   })
-  @ApiParam({ name: 'id', description: 'ID của bình luận', example: 1 })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy thông tin bình luận thành công',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bình luận' })
   @Get('comments/:id')
   @ResponseMessage('Lấy chi tiết bình luận thành công!')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -591,22 +547,7 @@ export class CommentsController {
 
   @ApiOperation({
     summary: 'Chỉnh sửa nội dung bình luận',
-    description:
-      'Chỉ chính chủ tác giả đã tạo bình luận mới có quyền chỉnh sửa.',
   })
-  @ApiParam({
-    name: 'id',
-    description: 'ID của bình luận cần chỉnh sửa',
-    example: 1,
-  })
-  @ApiResponse({ status: 200, description: 'Cập nhật bình luận thành công' })
-  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Token' })
-  @ApiResponse({
-    status: 403,
-    description: 'Không có quyền chỉnh sửa bình luận này',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bình luận' })
   @Patch('comments/:id')
   @ResponseMessage('Cập nhật bình luận thành công!')
   updateComment(
@@ -619,21 +560,7 @@ export class CommentsController {
 
   @ApiOperation({
     summary: 'Xóa bình luận',
-    description:
-      'Chỉ tác giả bình luận, chủ bài viết (Post Owner) hoặc Quản trị viên (ADMIN) mới có quyền xóa bình luận này.',
   })
-  @ApiParam({
-    name: 'id',
-    description: 'ID của bình luận cần xóa',
-    example: 1,
-  })
-  @ApiResponse({ status: 200, description: 'Xóa bình luận thành công' })
-  @ApiResponse({ status: 401, description: 'Chưa xác thực JWT Token' })
-  @ApiResponse({
-    status: 403,
-    description: 'Không có quyền xóa bình luận này',
-  })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy bình luận' })
   @Delete('comments/:id')
   @ResponseMessage('Xóa bình luận thành công!')
   removeComment(
