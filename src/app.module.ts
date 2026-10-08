@@ -20,13 +20,10 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 import { CommentsModule } from './comments/comments.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
-import {
-  FileMailTransport,
-  FileTemplateEngine,
-  MailModule,
-} from '@nestjs/mail';
+import { FileTemplateEngine, MailModule } from '@nestjs/mail';
 import { join } from 'path';
 import { AppMailModule } from './mail/mail.module';
+import { createMailTransport } from './mail/transports/mail-transport.factory';
 
 @Module({
   imports: [
@@ -60,14 +57,17 @@ import { AppMailModule } from './mail/mail.module';
       inject: [ConfigService],
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        transport: new FileMailTransport({ directory: 'var/mail' }),
+        transport: createMailTransport(configService),
         templates: new FileTemplateEngine({
           dir: join(__dirname, 'mail/templates'),
           layout: 'layout',
           cache: configService.get<string>('NODE_ENV') === 'production',
         }),
 
-        from: 'Social Chat App <noreply@socialchat.example.com>',
+        from: configService.get<string>(
+          'MAIL_FROM',
+          'Social Chat App <noreply@socialchat.example.com>',
+        ),
       }),
     }),
 
