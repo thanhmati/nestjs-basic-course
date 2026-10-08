@@ -108,6 +108,7 @@ timeline
 - **5.3** [_File Upload:_ Upload ảnh đại diện/bài viết với Multer.](./modules/module-05/lesson-5.3/lesson-5.3.md)
 - **5.4** [_Comments API:_ Thêm bình luận dưới bài viết.](./modules/module-05/lesson-5.4/lesson-5.4.md)
 - **5.5** [_Event-Driven:_ Bắn sự kiện `comment.created` với `@nestjs/event-emitter` để tự động tạo Notification.](./modules/module-05/lesson-5.5/lesson-5.5.md)
+- **5.6** [_Mail:_ Gửi Welcome Email khi đăng ký tài khoản với `@nestjs/mail` & Event-Driven.](./modules/module-05/lesson-5.6/lesson-5.6.md)
 
 ---
 

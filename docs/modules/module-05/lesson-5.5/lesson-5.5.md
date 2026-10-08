@@ -1366,11 +1366,10 @@ mindmap
 ---
 
 > [!TIP]
-> 🚀 **Chúc mừng bạn đã hoàn thành xuất sắc Module 5!**  
-> Ở **Module 6 (Real-Time WebSockets Chat & Performance Caching)**, chúng ta sẽ mở khóa một đỉnh cao công nghệ mới:  
-> Thay vì người dùng phải làm mới trang (F5) để thấy thông báo mới trong cơ sở dữ liệu, chúng ta sẽ kết hợp sự kiện `comment.created` với **Socket.IO Gateway** để đẩy thông báo nhảy popover tức thì (**Real-Time Push Notification**) lên màn hình người dùng trong tích tắc!
+> 🚀 **Tiếp tục hành trình Module 5!**  
+> Ở **Lesson 5.6**, chúng ta sẽ tích hợp kỹ thuật gửi Email trong NestJS với thư viện `@nestjs/mail` và mô hình hướng sự kiện (Event-Driven) để tự động gửi Welcome Email khi người dùng đăng ký tài khoản thành công!
 
 ---
 
 👈 **Bài trước:** [Lesson 5.4: Comments API — Thêm Bình Luận Dưới Bài Viết Trong NestJS](../lesson-5.4/lesson-5.4.md)  
-👉 **Bài tiếp theo:** [Lesson 6.1: WebSockets Gateway — Khởi Tạo WebSocket Gateway Với @WebSocketGateway() (Socket.IO)](../../module-06/lesson-6.1/lesson-6.1.md)
+👉 **Bài tiếp theo:** [Lesson 5.6: Gửi Mail Trong NestJS — Welcome Email Khi Đăng Ký Tài Khoản Với @nestjs/mail](../lesson-5.6/lesson-5.6.md)
