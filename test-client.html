@@ -1,9 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Test Real-time Chat Gateway</title>
-    <!-- Load Socket.io Client từ CDN -->
+    <title>Test Real-time Chat Gateway (WsJwtGuard)</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
       body {
@@ -13,66 +12,92 @@
       }
       #box {
         border: 1px solid #ccc;
-        height: 260px;
+        height: 250px;
         overflow-y: scroll;
         padding: 12px;
         margin-bottom: 12px;
       }
       .msg {
         margin-bottom: 6px;
-        padding: 4px 8px;
+        padding: 6px 10px;
         border-radius: 4px;
         background: #f1f5f9;
+      }
+      .err {
+        background: #fee2e2;
+        color: #991b1b;
       }
       input,
       button {
         padding: 8px 12px;
         font-size: 14px;
+        margin-bottom: 8px;
       }
     </style>
   </head>
   <body>
-    <h3>⚡ NestJS WebSocket Chat Test</h3>
-    <div id="status">Trạng thái: ⏳ Đang kết nối...</div>
+    <h3>🛡️ NestJS WebSocket Chat Test (WsJwtGuard)</h3>
+
+    <div>
+      <input
+        id="tokenInput"
+        placeholder="Dán Access Token (Bearer eyJ...)"
+        style="width: 75%"
+      />
+      <button onclick="connectSocket()">Kết Nối</button>
+    </div>
+
+    <div id="status">Trạng thái: ⚪ Chưa kết nối</div>
     <div id="box"></div>
-    <input id="txt" placeholder="Nhập tin nhắn..." style="width: 70%;" />
-    <button onclick="send()">Gửi</button>
+
+    <input id="msgInput" placeholder="Nhập tin nhắn..." style="width: 75%" />
+    <button onclick="send()">Gửi Tin Nhắn</button>
 
     <script>
-      // 1. Kết nối tới NestJS Gateway với namespace /chat (port 3000)
-      const socket = io('http://localhost:3000/chat');
+      let socket = null;
       const box = document.getElementById('box');
       const status = document.getElementById('status');
 
-      socket.on('connect', () => {
-        status.innerHTML = `Trạng thái: 🟢 <b>Đã kết nối!</b> (Socket ID: ${socket.id})`;
-      });
+      function connectSocket() {
+        if (socket) socket.disconnect();
 
-      socket.on('disconnect', () => {
-        status.innerHTML = 'Trạng thái: 🔴 <b>Đã ngắt kết nối!</b>';
-      });
+        const token = document.getElementById('tokenInput').value.trim();
+        status.innerHTML = 'Trạng thái: ⏳ Đang kết nối...';
 
-      // 2. Lắng nghe tin nhắn broadcast từ server
-      socket.on('new_message', (data) => {
-        const el = document.createElement('div');
-        el.className = 'msg';
-        el.innerHTML = `<b>${data.sender}:</b> ${data.content} <small style="color:gray;">(${data.timestamp})</small>`;
-        box.appendChild(el);
-        box.scrollTop = box.scrollHeight;
-      });
-
-      // 3. Gửi tin nhắn lên server
-      function send() {
-        const input = document.getElementById('txt');
-        if (!input.value) return;
-
-        socket.emit(
-          'chat_message',
-          { sender: 'Học viên A', content: input.value },
-          (ack) => {
-            console.log('✅ Server xác nhận đã nhận tin:', ack);
+        // Gửi token qua trường auth của Socket.IO
+        socket = io('http://localhost:3000/chat', {
+          auth: {
+            token: token,
           },
-        );
+        });
+
+        socket.on('connect', () => {
+          status.innerHTML = `Trạng thái: 🟢 <b>Đã kết nối!</b> (Socket ID: ${socket.id})`;
+        });
+
+        socket.on('disconnect', () => {
+          status.innerHTML = 'Trạng thái: 🔴 <b>Đã ngắt kết nối!</b>';
+        });
+
+        // Bắt lỗi WsException từ server trả về
+        socket.on('exception', (data) => {
+          box.innerHTML += `<div class="msg err">⚠️ Lỗi Guard: ${JSON.stringify(data.message || data)}</div>`;
+          box.scrollTop = box.scrollHeight;
+        });
+
+        socket.on('new_message', (data) => {
+          box.innerHTML += `<div class="msg"><b>${data.senderEmail}:</b> ${data.content} <small style="color:gray;">(${data.timestamp})</small></div>`;
+          box.scrollTop = box.scrollHeight;
+        });
+      }
+
+      function send() {
+        const input = document.getElementById('msgInput');
+        if (!input.value || !socket) return;
+
+        socket.emit('chat_message', { content: input.value }, (ack) => {
+          console.log('✅ Phản hồi server:', ack);
+        });
         input.value = '';
       }
     </script>

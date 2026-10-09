@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -10,7 +10,11 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
+import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
+import { CurrentWsUser } from './decorators/current-ws-user.decorator';
+import type { UserData } from '@/auth/interfaces/jwt.interface';
 
+@UseGuards(WsJwtGuard)
 @WebSocketGateway({
   namespace: '/chat',
   cors: {
@@ -49,13 +53,15 @@ export class ChatGateway
 
   @SubscribeMessage('chat_message')
   handleChatMessage(
-    @MessageBody() payload: { sender: string; content: string },
+    @MessageBody() payload: { content: string },
     @ConnectedSocket() client: Socket,
+    @CurrentWsUser() user: UserData,
   ) {
-    this.logger.log(`💬 Tin nhắn từ [${payload.sender}]: ${payload.content}`);
+    this.logger.log(`💬 Tin nhắn từ [${user.email}]: ${payload.content}`);
 
     const broadcastData = {
-      sender: payload.sender,
+      senderId: user.userId,
+      senderEmail: user.email,
       content: payload.content,
       senderSocketId: client.id,
       timestamp: new Date().toISOString(),

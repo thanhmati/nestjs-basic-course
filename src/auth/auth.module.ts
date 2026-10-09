@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { WsJwtGuard } from './guards/ws-jwt.guard';
 
 @Module({
   imports: [
@@ -28,9 +29,10 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
     AuthService,
     JwtStrategy,
     JwtAuthGuard,
+    WsJwtGuard,
     GoogleStrategy,
     GoogleAuthGuard,
   ],
-  exports: [JwtModule, PassportModule],
+  exports: [JwtModule, PassportModule, WsJwtGuard],
 })
 export class AuthModule {}
