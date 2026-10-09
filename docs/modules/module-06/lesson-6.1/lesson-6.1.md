@@ -158,7 +158,7 @@ src/
 Sử dụng `pnpm` để cài đặt gói WebSockets của NestJS và Socket.io:
 
 ```bash
-pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
+pnpm add @nestjs/websockets@11.2.7 @nestjs/platform-socket.io@11.2.7 socket.io
 ```
 
 ---
