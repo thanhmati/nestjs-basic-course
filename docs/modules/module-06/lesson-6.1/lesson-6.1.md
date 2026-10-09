@@ -182,6 +182,7 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Namespace, Socket } from 'socket.io';
+import { Public } from '@/shared/decorators/public.decorator';
 
 @WebSocketGateway({
   namespace: '/chat', // Phân vùng không gian tên riêng biệt cho tính năng Chat
@@ -189,6 +190,7 @@ import { Namespace, Socket } from 'socket.io';
     origin: '*', // Cho phép kết nối từ mọi client (tránh lỗi CORS)
   },
 })
+@Public()
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -200,17 +202,21 @@ export class ChatGateway
 
   // Lifecycle Hook 1: Khi Gateway vừa được khởi tạo thành công
   afterInit(server: Namespace) {
-    this.logger.log('🚀 WebSocket Chat Gateway (/chat) đã sẵn sàng hoạt động!');
+    this.logger.log(
+      `🚀 WebSocket Chat Gateway ${server.name} đã sẵn sàng hoạt động!`,
+    );
   }
 
   // Lifecycle Hook 2: Khi có một Client mới vừa kết nối tới namespace /chat
   handleConnection(client: Socket) {
-    this.logger.log(`🟢 Client kết nối vào [/chat]: ${client.id}`);
+    this.logger.log(`🟢 Client kết nối vào ${this.server.name}: ${client.id}`);
   }
 
   // Lifecycle Hook 3: Khi một Client ngắt kết nối
   handleDisconnect(client: Socket) {
-    this.logger.warn(`🔴 Client ngắt kết nối khỏi [/chat]: ${client.id}`);
+    this.logger.warn(
+      `🔴 Client ngắt kết nối khỏi ${this.server.name}: ${client.id}`,
+    );
   }
 
   // Event 1: Kiểm tra kết nối nhanh (Ping - Pong)
