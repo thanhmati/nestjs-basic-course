@@ -1,4 +1,3 @@
-import { Public } from '@/shared/decorators/public.decorator';
 import { Logger } from '@nestjs/common';
 import {
   WebSocketGateway,
@@ -18,7 +17,6 @@ import { Namespace, Socket } from 'socket.io';
     origin: '*',
   },
 })
-@Public()
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
