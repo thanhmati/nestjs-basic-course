@@ -113,7 +113,7 @@ Trong NestJS, thành phần chịu trách nhiệm tiếp nhận và định tuy�
 ```text
 HTTP Controller                vs                WebSocket Gateway
 ─────────────────────────────────                ─────────────────────────────────
-@Controller('posts')                             @WebSocketGateway({ cors: true })
+@Controller('posts')                             @WebSocketGateway({ namespace: '/chat', cors: true })
 @Get(':id')                                      @SubscribeMessage('send_message')
 @Param('id')                                     @MessageBody()
 Request / Response ngắn hạn                      Persistent Socket hai chiều
@@ -122,6 +122,18 @@ Request / Response ngắn hạn                      Persistent Socket hai chi�
 - **Platform-Agnostic:** NestJS trừu tượng hóa WebSocket qua hai adapter chính: **`socket.io`** (mặc định phổ biến) và **`ws`** (siêu nhẹ).
 - **Provider đích thực:** Gateway là một `@Injectable()` provider. Bạn hoàn toàn có thể inject Service, Repository hay PrismaService vào Gateway qua constructor.
 - **Port:** Mặc định Gateway chạy chung cổng với HTTP server (ví dụ port 3000), không cần mở thêm port riêng.
+
+### 🌐 Phân Vùng Đa Kênh Với Namespace (Multiplexing)
+
+Khi xây dựng ứng dụng lớn có nhiều tính năng real-time (Chat, Thông báo, Tọa độ xe, Quản trị hệ thống), việc dồn toàn bộ sự kiện vào một kênh gốc (`/`) sẽ gây ra tình trạng hỗn loạn và khó phân quyền.
+
+Socket.IO cung cấp cơ chế **Namespace (Không gian tên)** để ghép kênh (Multiplexing) trên cùng 1 kết nối TCP:
+
+```text
+                               ┌─── Namespace: /chat ──────────> ChatGateway (Tin nhắn, Typing)
+TCP Connection (Port 3000) ────┼─── Namespace: /notifications ──> NotificationsGateway (Bình luận, Thả tim)
+                               └─── Namespace: /admin ──────────> AdminGateway (System Monitor, Server Logs)
+```
 
 ---
 
@@ -169,9 +181,10 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 
 @WebSocketGateway({
+  namespace: '/chat', // Phân vùng không gian tên riêng biệt cho tính năng Chat
   cors: {
     origin: '*', // Cho phép kết nối từ mọi client (tránh lỗi CORS)
   },
@@ -181,23 +194,23 @@ export class ChatGateway
 {
   private readonly logger = new Logger(ChatGateway.name);
 
-  // 1. Inject native Socket.IO Server để broadcast tới tất cả client
+  // 1. Khi Gateway có namespace, @WebSocketServer() sẽ inject đối tượng Namespace của Socket.io
   @WebSocketServer()
-  server: Server;
+  server: Namespace;
 
   // Lifecycle Hook 1: Khi Gateway vừa được khởi tạo thành công
-  afterInit(server: Server) {
-    this.logger.log('🚀 WebSocket Chat Gateway đã sẵn sàng hoạt động!');
+  afterInit(server: Namespace) {
+    this.logger.log('🚀 WebSocket Chat Gateway (/chat) đã sẵn sàng hoạt động!');
   }
 
-  // Lifecycle Hook 2: Khi có một Client mới vừa kết nối tới
+  // Lifecycle Hook 2: Khi có một Client mới vừa kết nối tới namespace /chat
   handleConnection(client: Socket) {
-    this.logger.log(`🟢 Client kết nối: ${client.id}`);
+    this.logger.log(`🟢 Client kết nối vào [/chat]: ${client.id}`);
   }
 
   // Lifecycle Hook 3: Khi một Client ngắt kết nối
   handleDisconnect(client: Socket) {
-    this.logger.warn(`🔴 Client ngắt kết nối: ${client.id}`);
+    this.logger.warn(`🔴 Client ngắt kết nối khỏi [/chat]: ${client.id}`);
   }
 
   // Event 1: Kiểm tra kết nối nhanh (Ping - Pong)
@@ -340,8 +353,8 @@ Tạo file `test-client.html` ở thư mục gốc để mở trực tiếp trê
     <button onclick="send()">Gửi</button>
 
     <script>
-      // 1. Kết nối tới NestJS Gateway (port 3000)
-      const socket = io('http://localhost:3000');
+      // 1. Kết nối tới NestJS Gateway với namespace /chat (port 3000)
+      const socket = io('http://localhost:3000/chat');
       const box = document.getElementById('box');
       const status = document.getElementById('status');
 
@@ -412,6 +425,15 @@ Tạo file `test-client.html` ở thư mục gốc để mở trực tiếp trê
 - **Nguyên nhân:** Tên event trong `@SubscribeMessage('chat_message')` không khớp với tên event client gửi `socket.emit('chatMessage')`.
 - **Cách khắc phục:** Chuẩn hóa tên event (khuyến nghị dùng snake_case hoặc dot-notation, ví dụ: `chat:message`, `chat:typing`).
 
+### 🔴 4. Sai Hoặc Thiếu Namespace Phía Client (Namespace Mismatch)
+
+- **Hiện tượng:** Server đã bật và hiển thị log `afterInit`, nhưng khi client kết nối thì `handleConnection` không bao giờ được gọi.
+- **Nguyên nhân:** Gateway cấu hình `namespace: '/chat'` nhưng Client lại kết nối vào root URL mặc định `io('http://localhost:3000')`.
+- **Cách khắc phục:** Đảm bảo client chỉ định chính xác namespace tương ứng:
+  ```javascript
+  const socket = io('http://localhost:3000/chat');
+  ```
+
 ---
 
 ## 7. Bài Tập Thực Hành (Challenge)
@@ -432,7 +454,8 @@ Tạo file `test-client.html` ở thư mục gốc để mở trực tiếp trê
 1. WebSocket    ──> Kênh song công Full-Duplex trên 1 kết nối TCP duy nhất, độ trễ cực thấp.
 2. Handshake    ──> Bắt đầu bằng HTTP Upgrade, chuyển giao thức với mã phản hồi 101.
 3. Gateway      ──> Class với @WebSocketGateway(), đóng vai trò định tuyến sự kiện Socket.io.
-4. Decorators   ──> @SubscribeMessage() (nghe), @MessageBody() (lấy data), @WebSocketServer() (broadcast).
+4. Namespace    ──> Ghép kênh (Multiplexing) trên 1 kết nối TCP, phân tách độc lập (/chat, /notifications).
+5. Decorators   ──> @SubscribeMessage() (nghe), @MessageBody() (lấy data), @WebSocketServer() (broadcast).
 ```
 
 👉 **Bài tiếp theo (Lesson 6.2):** Xác thực người dùng và giải mã JWT Token an toàn ngay từ giai đoạn bắt tay Socket Handshake!
