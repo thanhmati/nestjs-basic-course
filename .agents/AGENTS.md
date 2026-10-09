@@ -492,23 +492,21 @@ Không nên có cảm giác giống:
 
 ## 13.2 🌍 Real-World First
 
-AI Agent phải ưu tiên các bối cảnh có thể tồn tại trong đời thực.
+AI Agent phải ưu tiên các bối cảnh và đối tượng kỹ thuật thực tế thay vì hình ảnh trừu tượng viễn tưởng.
 
 ### Ưu tiên
 
 ```text
-Real office
-Real workstation
-Real laptop
-Real monitor
-Real server
-Real database infrastructure
-Real development environment
-Real developer
-Real meeting room
-Real architecture sketch
-Real desk objects
+Real server rack & datacenter hardware
+Real network modules & gateway infrastructure
+Real database storage hardware & media
+Physical engineering metaphors & modular components
+Technical blueprint / engineering notebook sketch
+Clean developer terminal / UI client (khi cần minh họa API)
 ```
+
+> [!WARNING]
+> **Tránh lạm dụng con người & bàn làm việc:** Không mặc định đưa "developer ngồi bàn làm việc với cốc cà phê" vào mọi bài học. Ưu tiên visual thể hiện trực tiếp bản chất hạ tầng hoặc cơ chế kỹ thuật của bài học.
 
 ### Hạn chế
 
@@ -522,87 +520,6 @@ Glowing networks
 Futuristic laboratories
 Sci-fi control rooms
 ```
-
----
-
-## 13.3 ⚓ Realism Anchors
-
-Mỗi image prompt nên có ít nhất một số **Realism Anchors** phù hợp với context.
-
-Ví dụ:
-
-```text
-real office environment
-natural desk materials
-realistic laptop
-mechanical keyboard
-ordinary monitor
-subtle cable management
-natural window light
-realistic human proportions
-realistic materials
-slight environmental imperfections
-practical lighting
-human-scale objects
-```
-
-Mục đích là tạo cảm giác:
-
-> "Đây là một cảnh có thể tồn tại ngoài đời."
-
-thay vì:
-
-> "Đây là một thế giới công nghệ được AI tưởng tượng."
-
----
-
-## 13.4 👨‍💻 Human-Centered Visuals
-
-Khi lesson liên quan đến developer experience, ưu tiên sự xuất hiện của con người.
-
-Ví dụ:
-
-### Developer workflow
-
-```text
-software engineer
-+
-laptop
-+
-code editor
-+
-coffee
-+
-notebook
-+
-real office
-```
-
-### Debugging
-
-```text
-developer
-+
-real application logs
-+
-monitor
-+
-debugging notes
-```
-
-### API development
-
-```text
-developer
-+
-REST client
-+
-browser
-+
-backend application
-```
-
-Không bắt buộc phải có người trong mọi visual.
 
 ---
 
@@ -854,6 +771,8 @@ glowing circuits
 
 AI Agent phải tránh các visual clichés sau:
 
+### Sci-Fi & AI Clichés (Cấm viễn tưởng/hư ảo)
+
 ```text
 cyberpunk
 sci-fi
@@ -881,7 +800,20 @@ AI marketing aesthetic
 technology advertisement aesthetic
 ```
 
-Không sử dụng các yếu tố trên nếu lesson thực sự không yêu cầu.
+### Stock Photo & Office Clichés (Cấm rập khuôn văn phòng/con người)
+
+```text
+developer drinking coffee
+coffee mug / coffee cup on desk
+generic wooden office desk
+programmer looking at screen stock photo
+laptop on wooden table cliché
+repetitive office worker at workstation
+casual office clutter
+generic home office setup
+```
+
+Không sử dụng các yếu tố trên nếu bài giảng không thực sự yêu cầu.
 
 ---
 
@@ -896,43 +828,43 @@ specific futuristic hardware
 specific trendy UI
 short-lived visual trends
 excessive sci-fi aesthetics
+repetitive developer-at-desk photos
 ```
 
 Ưu tiên:
 
 ```text
-timeless office
-developer workstation
-server infrastructure
-technical illustration
-engineering metaphor
-real-world objects
+server infrastructure & datacenter hardware
+technical product visualization
+modular physical engineering metaphors
+network switches, routers & gateway hardware
+storage arrays & database server modules
+clean architectural diagrams & blueprint sketches
+real-world physical devices
 ```
 
 Mục tiêu:
 
-> Hình ảnh vẫn phù hợp với course sau 3–5 năm.
+> Hình ảnh vẫn phù hợp và mang tính chuyên môn cao sau 3–5 năm.
 
 ---
 
 ## 13.14 🖼️ Visual Style Selection
 
-AI Agent chọn style dựa trên loại lesson:
+AI Agent chọn style và **đối tượng trọng tâm** dựa trên loại bài học:
 
-| Lesson Type         | Recommended Style                   |
-| ------------------- | ----------------------------------- |
-| Course Introduction | Documentary / Editorial Photography |
-| Developer Workflow  | Realistic Editorial                 |
-| Core Concept        | Technical Editorial Illustration    |
-| Architecture        | Mermaid / Technical Illustration    |
-| API                 | Realistic Developer Environment     |
-| Database            | Realistic 3D Product Visualization  |
-| Authentication      | Technical Editorial Illustration    |
-| Debugging           | Documentary Photography             |
-| Microservices       | Technical Editorial Illustration    |
-| Deployment          | Realistic Infrastructure            |
-| Security            | Technical Editorial Illustration    |
-| UI / Client         | Realistic UI Mockup                 |
+| Lesson Type         | Recommended Style                   | Subject Focus (Đối Tượng Trọng Tâm)                                  |
+| ------------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| Course Introduction | Documentary / Editorial Photography | Kỹ sư phần mềm hoặc đội ngũ kỹ thuật trong môi trường làm việc thực  |
+| Developer Workflow  | Realistic Editorial                 | Terminal, CLI tools, quy trình Git thực tế trên máy tính             |
+| Core Concept        | Technical Editorial Illustration    | Mô hình vật thể lắp ghép (Modular components, Lego-like connections) |
+| Architecture        | Mermaid / Technical Illustration    | Sơ đồ khối kiến trúc, luồng phân tầng dữ liệu                        |
+| WebSockets / Stream | Hardware 3D Product Visualization   | Gateway hardware module, server rack, kênh truyền song công 2 chiều  |
+| Database / Storage  | Realistic 3D Product Visualization  | Khối ổ đĩa máy chủ (Server blades, storage array, data blocks)       |
+| Authentication/Auth | Technical Editorial Illustration    | Hardware security key, cryptographic seal, access control gate       |
+| Event-Driven / EDA  | Technical Editorial Illustration    | Message bus hub, bộ phân loại gói tin, các đường dẫn tín hiệu        |
+| Caching / Redis     | Technical Editorial Illustration    | Bộ nhớ đệm tốc độ cao (High-speed memory module, fast-access tier)   |
+| Deployment / Docker | Realistic Infrastructure            | Tủ rack máy chủ thực tế, datacenter container, cloud hardware        |
 
 ---
 
@@ -1029,30 +961,17 @@ AI Agent nên xây prompt theo cấu trúc:
 [Negative style constraints]
 ```
 
-Ví dụ:
+Ví dụ chuẩn Concept-First (WebSockets Gateway):
 
 ```text
-A realistic editorial technical illustration of a software engineer
-working at a real development workstation.
-
-The scene visually represents dependency injection through
-modular physical components being assembled and connected.
-
-Modern but ordinary software development office,
-real laptop and monitor,
-natural daylight,
-soft shadows,
-realistic materials,
-warm gray and dark navy environment,
-subtle NestJS red accent,
-professional engineering textbook aesthetic,
-clean composition,
-photorealistic details,
-human-scale proportions.
-
-Avoid cyberpunk, futuristic environments, holograms,
-neon lighting, floating UI, glowing code, sci-fi technology,
-excessive particles, and artificial-looking surfaces.
+A premium editorial technical 3D visualization of a real-time WebSocket gateway and full-duplex data streaming.
+At the center is a sleek, minimalist matte dark-slate hardware gateway hub mounted on a server rack.
+Two clean, illuminated optical data channels extend horizontally, representing simultaneous bidirectional data flow:
+discreet data packets moving fluidly in opposite directions simultaneously without collision.
+Industrial design and modern network infrastructure aesthetic, studio lighting with soft shadows, realistic matte aluminum and ceramic textures.
+Deep charcoal and slate-blue background with subtle NestJS red (#E0234E) status indicators.
+Crisp architectural composition, elegant depth of field.
+Completely free of humans, no people, no coffee cups, no office desks, no laptops, no clutter, no cyberpunk neon chaos.
 ```
 
 ---
@@ -1088,6 +1007,35 @@ Technology cliché
 ### Final rule
 
 > **Nếu phải lựa chọn giữa một hình ảnh đẹp nhưng futuristic và một hình ảnh đơn giản nhưng giống đời thực, hãy chọn hình ảnh giống đời thực.**
+
+---
+
+## 13.19 🚫 Anti-Cliché Banner Rule (Cấm Rập Khuôn "Người + Coffee + Bàn làm việc")
+
+> [!CAUTION]
+> **TUYỆT ĐỐI KHÔNG BIẾN MỌI LESSON OVERVIEW BANNER THÀNH MỘT MÔ-TÍP DUY NHẤT:**
+>
+> ❌ **Cấm:** Lập trình viên ngồi bàn gỗ + cốc cà phê bên cạnh + laptop + màn hình máy tính (Stock photo cliché).
+>
+> Đây là lỗi tư duy rập khuôn nghiêm trọng khiến mọi bài học (dù là Database, Auth, WebSockets hay Microservices) trông hoàn toàn vô hồn và giống hệt nhau.
+
+### Quy tắc Concept-First bắt buộc khi tạo Banner:
+
+1. **Trực quan hóa "Linh Hồn Kỹ Thuật" của bài học (Concept-Driven Visualization):**
+   - **WebSockets / Gateway / Real-time:** Hardware network gateway, server rack switch, kênh truyền song công full-duplex, optical packet conduits.
+   - **Database / Prisma / PostgreSQL:** Server blade storage array, physical data blocks, high-density storage rack.
+   - **Authentication / JWT / Guards:** Hardware security tokens, cryptographic seals, access control barrier modules.
+   - **Event-Driven / Queue / EDA:** Message routing hub, dispatch conduits, decoupled asynchronous channels.
+   - **Caching / Redis:** High-speed RAM module architecture, fast-access tier buffers, heat-sink memory units.
+   - **Docker / Cloud Deploy:** Datacenter server racks, industrial containerized infrastructure units.
+
+2. **Loại bỏ con người và đồ dùng văn phòng cá nhân:**
+   - Mặc định **KHÔNG vẽ người, KHÔNG vẽ cốc cà phê, KHÔNG vẽ bàn gỗ làm việc cá nhân** trong các bài kỹ thuật chuyên sâu.
+   - Luôn bổ sung vào negative prompt:
+     ```text
+     no humans, no people, no coffee cups, no wooden desks, no casual office clutter, no laptops
+     ```
+   - Chỉ xuất hiện con người trong bài giới thiệu tổng quan khóa học (Course Overview) hoặc bài về quy chuẩn teamwork.
 
 ---
 
