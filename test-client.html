@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Test Real-time Chat Gateway</title>
+    <!-- Load Socket.io Client từ CDN -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 600px;
+        margin: 40px auto;
+      }
+      #box {
+        border: 1px solid #ccc;
+        height: 260px;
+        overflow-y: scroll;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .msg {
+        margin-bottom: 6px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: #f1f5f9;
+      }
+      input,
+      button {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>⚡ NestJS WebSocket Chat Test</h3>
+    <div id="status">Trạng thái: ⏳ Đang kết nối...</div>
+    <div id="box"></div>
+    <input id="txt" placeholder="Nhập tin nhắn..." style="width: 70%;" />
+    <button onclick="send()">Gửi</button>
+
+    <script>
+      // 1. Kết nối tới NestJS Gateway với namespace /chat (port 3000)
+      const socket = io('http://localhost:3000/chat');
+      const box = document.getElementById('box');
+      const status = document.getElementById('status');
+
+      socket.on('connect', () => {
+        status.innerHTML = `Trạng thái: 🟢 <b>Đã kết nối!</b> (Socket ID: ${socket.id})`;
+      });
+
+      socket.on('disconnect', () => {
+        status.innerHTML = 'Trạng thái: 🔴 <b>Đã ngắt kết nối!</b>';
+      });
+
+      // 2. Lắng nghe tin nhắn broadcast từ server
+      socket.on('new_message', (data) => {
+        const el = document.createElement('div');
+        el.className = 'msg';
+        el.innerHTML = `<b>${data.sender}:</b> ${data.content} <small style="color:gray;">(${data.timestamp})</small>`;
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+      });
+
+      // 3. Gửi tin nhắn lên server
+      function send() {
+        const input = document.getElementById('txt');
+        if (!input.value) return;
+
+        socket.emit(
+          'chat_message',
+          { sender: 'Học viên A', content: input.value },
+          (ack) => {
+            console.log('✅ Server xác nhận đã nhận tin:', ack);
+          },
+        );
+        input.value = '';
+      }
+    </script>
+  </body>
+</html>
