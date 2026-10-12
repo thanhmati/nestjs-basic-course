@@ -98,23 +98,42 @@ hoặc khi project yêu cầu rõ ràng.
 
 ---
 
-## 3.2 Framework Version
+## 3.2 Framework & Dependency Versions
 
-Mọi bài giảng phải target đúng version NestJS được project quy định.
-
-Ví dụ:
+Mọi bài giảng phải target chính xác version NestJS và dependencies của dự án thực tế:
 
 ```text
-NestJS 12.x
-Node.js 22+
-TypeScript
-pnpm
+NestJS: 11.x (^11.0.1)
+Node.js: 22+
+TypeScript: 5.7+
+Prisma ORM: 7.x (^7.9.1) với @prisma/adapter-pg & pg pool
+WebSockets: Socket.io 11.2.7 / 4.8.4
+Package Manager: pnpm
 ```
 
 Không tự ý sử dụng API/decorator/behavior từ version khác nếu chưa xác minh compatibility.
 
 > [!WARNING]
-> Khi behavior của NestJS phụ thuộc version, AI Agent phải kiểm tra documentation tương ứng thay vì suy đoán.
+> Khi behavior của NestJS hoặc Prisma phụ thuộc version, AI Agent phải kiểm tra documentation tương ứng hoặc mã nguồn thực tế thay vì suy đoán.
+
+---
+
+## 3.3 📖 Bắt Buộc Đọc Tài Liệu Kiến Trúc & Codebase Dự Án
+
+> [!IMPORTANT]
+> **MANDATORY PRE-REQUISITE CHO MỌI AI AGENT:**
+>
+> Mỗi lần chuẩn bị tạo mới, chỉnh sửa, refactor hoặc review bất kỳ bài giảng nào, AI Agent **BẮT BUỘC PHẢI ĐỌC VÀ ĐỐI CHIẾU** với tài liệu kiến trúc dự án:
+>
+> 📄 **[`docs/04-project-architecture-and-codebase.md`](file:///Users/tanthanh/Documents/Project/nestjs-basic-course/docs/04-project-architecture-and-codebase.md)**
+
+### Mục đích của việc đọc tài liệu kiến trúc:
+
+1. **Nắm vững nghiệp vụ thực tế:** Hiểu rõ ứng dụng Capstone là Social Chat App gồm các entity (`User`, `Profile`, `Post`, `Comment`, `Message`, `Notification`), các quan hệ và cascade rule.
+2. **Nắm rõ Request Pipeline hiện có:** Biết ứng dụng đã cấu hình global những gì (`LoggerMiddleware`, `JwtAuthGuard` mặc định bảo vệ toàn bộ API trừ `@Public()`, `RolesGuard`, `CustomThrottlerGuard`, `TransformInterceptor`, `PrismaClientExceptionFilter`, `HttpExceptionFilter`).
+3. **Nắm rõ Event-Driven & WebSockets:** Biết hệ thống dùng `@nestjs/event-emitter` với format sự kiện (`comment.created`, `user.registered`), namespace `/chat`, `WsJwtGuard` xác thực qua handshake.
+4. **Không bịa đặt mã nguồn:** Mọi code snippet, tên class, decorator (`@CurrentUser`, `@Public`, `@ResponseMessage`), tên model và quan hệ CSDL phải kế thừa và ăn khớp 100% với codebase thực tế.
+5. **Hiểu trạng thái hiện tại của Khóa học:** Nhận biết codebase đang ở Module nào (Module 1-5 đã hoàn thành, Module 6 đang triển khai từ 6.1-6.2 đến 6.3...) để giảng dạy theo đúng tiến trình sư phạm liên tục (Pedagogical Continuity).
 
 ---
 
@@ -1801,9 +1820,10 @@ Trước khi hoàn thành một lesson, AI Agent phải tự kiểm tra toàn b�
 
 ## Technical
 
-- [ ] Đúng NestJS version.
-- [ ] Đúng Node.js/project conventions.
-- [ ] Không có API behavior bị suy đoán.
+- [ ] Đã đọc và đối chiếu với `docs/04-project-architecture-and-codebase.md`.
+- [ ] Đúng NestJS version (11.x) và dependencies thực tế.
+- [ ] Đúng Node.js/project conventions (`pnpm`, Prisma 7).
+- [ ] Không có API behavior bị suy đoán; kế thừa đúng các module/guard/filter đã có.
 - [ ] Official documentation được ưu tiên.
 - [ ] Code examples chính xác.
 - [ ] Code path chính xác.

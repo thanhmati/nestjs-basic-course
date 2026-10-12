@@ -5,7 +5,8 @@
 </p>
 
 > **NestJS & TypeScript Thực Chiến: Xây Dựng Real-time Chat App với PostgreSQL, Prisma, WebSockets & Docker**  
-> Khung chương trình 7 Modules tinh gọn (Pragmatic Path) sắp xếp chuẩn theo tiến trình phát triển ứng dụng từ cơ bản đến nâng cao.
+> Khung chương trình 7 Modules tinh gọn (Pragmatic Path) sắp xếp chuẩn theo tiến trình phát triển ứng dụng từ cơ bản đến nâng cao.  
+> 📖 **Tài liệu tham khảo cốt lõi:** [Kiến Trúc & Codebase Dự Án (04-project-architecture-and-codebase.md)](./04-project-architecture-and-codebase.md) | [Capstone Spec (02-capstone-project-spec.md)](./02-capstone-project-spec.md) | [Pedagogical Strategy (01-pedagogical-strategy.md)](./01-pedagogical-strategy.md)
 
 ---
 
