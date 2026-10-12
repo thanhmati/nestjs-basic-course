@@ -2,103 +2,178 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Test Real-time Chat Gateway (WsJwtGuard)</title>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <title>Test NestJS WebSockets Chat Rooms</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <style>
       body {
-        font-family: sans-serif;
-        max-width: 600px;
-        margin: 40px auto;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+        margin: 20px;
       }
-      #box {
-        border: 1px solid #ccc;
-        height: 250px;
-        overflow-y: scroll;
-        padding: 12px;
-        margin-bottom: 12px;
-      }
-      .msg {
-        margin-bottom: 6px;
-        padding: 6px 10px;
-        border-radius: 4px;
-        background: #f1f5f9;
-      }
-      .err {
-        background: #fee2e2;
-        color: #991b1b;
+      .card {
+        background: #1e293b;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        border: 1px solid #334155;
       }
       input,
       button {
         padding: 8px 12px;
-        font-size: 14px;
+        border-radius: 4px;
+        border: 1px solid #475569;
+        background: #0f172a;
+        color: white;
+        margin-right: 8px;
+      }
+      button {
+        background: #e0234e;
+        border-color: #e0234e;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button:hover {
+        background: #b81c3e;
+      }
+      #messages {
+        height: 260px;
+        overflow-y: auto;
+        background: #0f172a;
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid #334155;
+        list-style: none;
+      }
+      #messages li {
         margin-bottom: 8px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        background: #1e293b;
+      }
+      .system {
+        color: #38bdf8;
+        font-style: italic;
       }
     </style>
   </head>
   <body>
-    <h3>🛡️ NestJS WebSocket Chat Test (WsJwtGuard)</h3>
+    <h2>🚀 NestJS Socket.IO Rooms & Persistence Tester</h2>
 
-    <div>
+    <div class="card">
+      <label>Access Token (Bearer): </label>
       <input
-        id="tokenInput"
-        placeholder="Dán Access Token (Bearer eyJ...)"
-        style="width: 75%"
+        type="text"
+        id="token"
+        placeholder="Dán JWT Access Token vào đây"
+        style="width: 50%"
       />
-      <button onclick="connectSocket()">Kết Nối</button>
+      <button onclick="connectSocket()">Kết Nối Gateway</button>
+      <span id="connStatus" style="color: #ef4444; font-weight: bold"
+        >Chưa kết nối</span
+      >
     </div>
 
-    <div id="status">Trạng thái: ⚪ Chưa kết nối</div>
-    <div id="box"></div>
+    <div class="card">
+      <input
+        type="text"
+        id="roomName"
+        placeholder="Tên phòng (ví dụ: room:general)"
+        value="room:general"
+      />
+      <button onclick="joinRoom()">Tham Gia Phòng</button>
+      <button onclick="leaveRoom()">Rời Phòng</button>
+    </div>
 
-    <input id="msgInput" placeholder="Nhập tin nhắn..." style="width: 75%" />
-    <button onclick="send()">Gửi Tin Nhắn</button>
+    <div class="card">
+      <input
+        type="number"
+        id="receiverId"
+        placeholder="Receiver ID (để trống nếu chat phòng)"
+        style="width: 140px"
+      />
+      <input
+        type="text"
+        id="msgContent"
+        placeholder="Nhập nội dung tin nhắn..."
+        style="width: 40%"
+      />
+      <button onclick="sendMessage()">Gửi Tin Nhắn</button>
+    </div>
+
+    <div class="card">
+      <h3>Lịch Sử Tin Nhắn:</h3>
+      <ul id="messages"></ul>
+    </div>
 
     <script>
       let socket = null;
-      const box = document.getElementById('box');
-      const status = document.getElementById('status');
 
       function connectSocket() {
-        if (socket) socket.disconnect();
+        const token = document.getElementById('token').value.trim();
+        if (!token) return alert('Vui lòng nhập Access Token!');
 
-        const token = document.getElementById('tokenInput').value.trim();
-        status.innerHTML = 'Trạng thái: ⏳ Đang kết nối...';
-
-        // Gửi token qua trường auth của Socket.IO
         socket = io('http://localhost:3000/chat', {
-          auth: {
-            token: token,
-          },
+          auth: { token },
         });
 
         socket.on('connect', () => {
-          status.innerHTML = `Trạng thái: 🟢 <b>Đã kết nối!</b> (Socket ID: ${socket.id})`;
+          document.getElementById('connStatus').innerText =
+            `Đã kết nối (Socket ID: ${socket.id})`;
+          document.getElementById('connStatus').style.color = '#22c55e';
         });
 
-        socket.on('disconnect', () => {
-          status.innerHTML = 'Trạng thái: 🔴 <b>Đã ngắt kết nối!</b>';
+        socket.on('connect_error', (err) => {
+          document.getElementById('connStatus').innerText =
+            `Lỗi: ${err.message}`;
+          document.getElementById('connStatus').style.color = '#ef4444';
         });
 
-        // Bắt lỗi WsException từ server trả về
-        socket.on('exception', (data) => {
-          box.innerHTML += `<div class="msg err">⚠️ Lỗi Guard: ${JSON.stringify(data.message || data)}</div>`;
-          box.scrollTop = box.scrollHeight;
+        // Nhận tin nhắn trong phòng
+        socket.on('new_room_message', (msg) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>[${msg.senderEmail}]:</strong> ${msg.content} <small style="color:#64748b;">(${msg.createdAt})</small>`;
+          document.getElementById('messages').appendChild(li);
         });
 
-        socket.on('new_message', (data) => {
-          box.innerHTML += `<div class="msg"><b>${data.senderEmail}:</b> ${data.content} <small style="color:gray;">(${data.timestamp})</small></div>`;
-          box.scrollTop = box.scrollHeight;
+        // Thông báo thành viên vào phòng
+        socket.on('user_joined', (data) => {
+          const li = document.createElement('li');
+          li.className = 'system';
+          li.innerText = `👋 Thành viên ${data.email} vừa tham gia phòng.`;
+          document.getElementById('messages').appendChild(li);
         });
       }
 
-      function send() {
-        const input = document.getElementById('msgInput');
-        if (!input.value || !socket) return;
-
-        socket.emit('chat_message', { content: input.value }, (ack) => {
-          console.log('✅ Phản hồi server:', ack);
+      function joinRoom() {
+        const roomId = document.getElementById('roomName').value;
+        socket.emit('join_room', { roomId }, (ack) => {
+          alert(ack.message);
         });
-        input.value = '';
+      }
+
+      function leaveRoom() {
+        const roomId = document.getElementById('roomName').value;
+        socket.emit('leave_room', { roomId }, (ack) => {
+          alert(ack.message);
+        });
+      }
+
+      function sendMessage() {
+        const content = document.getElementById('msgContent').value;
+        const roomId = document.getElementById('roomName').value;
+        const receiverIdVal = document.getElementById('receiverId').value;
+        const receiverId = receiverIdVal ? Number(receiverIdVal) : undefined;
+
+        socket.emit(
+          'send_room_message',
+          { content, roomId, receiverId },
+          (ack) => {
+            console.log('Ack server:', ack);
+            document.getElementById('msgContent').value = '';
+          },
+        );
       }
     </script>
   </body>
