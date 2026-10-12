@@ -23,9 +23,9 @@ timeline
         Module 4 : Auth JWT & Rate-Limiting
     section Phase 3 - Core & Realtime
         Module 5 : Social Features & Events
-        Module 6 : WebSockets Chat & Caching
+        Module 6 : WebSockets Chat & Full-Stack Integration
     section Phase 4 - Production Ready
-        Module 7 : Logging, Terminus & Deploy
+        Module 7 : Performance, Testing & Cloud Deploy
 ```
 
 ---
@@ -114,27 +114,27 @@ timeline
 
 ---
 
-### Module 6: Real-Time WebSockets Chat & Performance Caching
+### Module 6: Real-Time WebSockets Chat & Full-Stack Integration
 
 > [!TIP]  
-> **Mục tiêu:** Tạo tính năng Chat nhóm/1-1 Real-time và tăng tốc tải trang với Caching.
+> **Mục tiêu:** Xây dựng tính năng Chat thời gian thực (1-1 & Room), đồng bộ thông báo tức thì, hoàn thiện trọn vẹn bộ REST API và ghép nối với giao diện Frontend (React UI Starter) thành Website demo hoàn chỉnh.
 
 - **6.1** [_WebSockets:_ Tạo Gateway với `@WebSocketGateway()` (Socket.io).](./modules/module-06/lesson-6.1/lesson-6.1.md)
 - **6.2** [_WebSocket Authentication:_ Chuẩn hóa xác thực WebSockets trong NestJS.](./modules/module-06/lesson-6.2/lesson-6.2.md)
 - **6.3** [_Chat Room:_ Join Room, Broadcast message real-time & lưu DB.](./modules/module-06/lesson-6.3/lesson-6.3.md)
 - **6.4** [_Sockets + Events:_ Đẩy thông báo tức thì khi có sự kiện `comment.created`.](./modules/module-06/lesson-6.4/lesson-6.4.md)
-- **6.5** _Caching:_ Tăng tốc API Hot Feed với `@nestjs/cache-manager`.
-- **6.6** _Frontend:_ Ghép nối Backend với Template React UI Starter.
+- **6.5** [_API Integration:_ Hoàn thiện bộ REST API Full-Stack cho Frontend (User Directory DB, Cập nhật Profile, Chat Conversations & History REST API, CORS).](./modules/module-06/lesson-6.5/lesson-6.5.md)
+- **6.6** _Frontend:_ Ghép nối Backend với Template React UI Starter (Full-Stack Social Chat App Demo).
 
 ---
 
-### Module 7: Advanced Logging, Healthchecks (Terminus), Testing & Cloud Deploy
+### Module 7: Performance Optimization, Healthchecks, Testing & Cloud Deploy
 
 > [!IMPORTANT]  
-> **Mục tiêu:** Kiểm tra sức khỏe ứng dụng, viết Unit Test và Deploy lên Cloud.
+> **Mục tiêu:** Tối ưu hóa hiệu năng hệ thống (Caching), kiểm tra sức khỏe ứng dụng (Healthchecks), viết Unit/E2E Test và triển khai lên Cloud.
 
-- **7.1** _Logging:_ Ghi log hệ thống dạng Structured JSON cho môi trường Production.
-- **7.2** _Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.
-- **7.3** _Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.
-- **7.4** _Dockerize:_ Viết `Dockerfile` & `docker-compose.yml` tối ưu.
-- **7.5** _Cloud Deploy:_ Deploy miễn phí ứng dụng lên Render / Railway.
+- **7.1** _Performance Caching:_ Tăng tốc API Newsfeed & Hot Posts với `@nestjs/cache-manager` (In-Memory & Redis Cache).
+- **7.2** _Logging:_ Ghi log hệ thống dạng Structured JSON cho môi trường Production.
+- **7.3** _Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.
+- **7.4** _Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.
+- **7.5** _Dockerize & Cloud Deploy:_ Viết `Dockerfile` & `docker-compose.yml` tối ưu và Deploy lên Render / Railway.
