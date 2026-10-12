@@ -13,7 +13,7 @@ import { Namespace, Socket } from 'socket.io';
 import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
 import type { UserData } from '@/auth/interfaces/jwt.interface';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
-import { CHAT_EVENTS } from './constants/chat.constant';
+import { CHAT_EVENTS, CHAT_ROOM } from './constants/chat.constant';
 import { ChatService } from './chat.service';
 import { GetHistoryDto } from './dto/get-history.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
@@ -56,6 +56,24 @@ export class ChatGateway
   handlePing(@ConnectedSocket() client: Socket): string {
     this.logger.debug(`Ping nhận được từ [${client.id}]`);
     return 'pong';
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.SUBSCRIBE_NOTIFICATIONS)
+  async handleSubscribeNotifications(
+    @ConnectedSocket() client: Socket,
+    @CurrentUser() user: UserData,
+  ) {
+    const userRoom = `${CHAT_ROOM.USER_PREFIX}${user.userId}`;
+    await client.join(userRoom);
+
+    this.logger.log(
+      `🔔 [${user.email}] (${client.id}) đã đăng ký nhận thông báo real-time (${userRoom})`,
+    );
+
+    return {
+      status: 'subscribed',
+      room: userRoom,
+    };
   }
 
   @SubscribeMessage(CHAT_EVENTS.JOIN_ROOM)
@@ -155,5 +173,14 @@ export class ChatGateway
       status: 'success',
       data: history,
     };
+  }
+
+  /**
+   * Phát tán thông báo thời gian thực tới một người dùng cụ thể thông qua User Room
+   */
+  sendNotificationToUser(userId: number, payload: unknown) {
+    const userRoom = `${CHAT_ROOM.USER_PREFIX}${userId}`;
+    this.server.to(userRoom).emit(CHAT_EVENTS.NEW_NOTIFICATION, payload);
+    this.logger.log(`🔔 Đã đẩy thông báo tới phòng người dùng [${userRoom}]`);
   }
 }

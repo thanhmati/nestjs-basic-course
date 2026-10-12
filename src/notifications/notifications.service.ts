@@ -10,12 +10,16 @@ import {
 import { OnEvent } from '@nestjs/event-emitter';
 import { QueryNotificationDto } from './dto/query-notification.dto';
 import { Prisma } from '@/generated/prisma/client';
+import { ChatGateway } from '@/chat/chat.gateway';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   @OnEvent(EVENT.COMMENT.CREATED, { async: true })
   async handleCommentCreated(event: CommentCreatedEvent) {
@@ -47,6 +51,16 @@ export class NotificationsService {
       this.logger.log(
         `🔔 Đã tạo thông báo #${notification.id} thành công cho người dùng #${event.postAuthorId}`,
       );
+
+      this.chatGateway.sendNotificationToUser(event.postAuthorId, {
+        id: notification.id,
+        title: notification.title,
+        content: notification.content,
+        postId: event.postId,
+        commentAuthorId: event.commentAuthorId,
+        commentAuthorName: event.commentAuthorName,
+        createdAt: notification.createdAt.toISOString(),
+      });
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
