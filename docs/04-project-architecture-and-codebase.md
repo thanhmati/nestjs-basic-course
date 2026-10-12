@@ -249,9 +249,11 @@ src/
 │   ├── templates/               # Handlebars/EJS mail templates
 │   └── transports/              # Factory tạo FileTransport hoặc SmtpTransport
 │
-├── chat/                        # WebSockets Real-time Communication
-│   ├── chat.module.ts           # Đóng gói ChatGateway
+├── chat/                        # WebSockets Real-time Communication & REST Chat APIs
+│   ├── chat.module.ts           # Đóng gói ChatGateway & ChatController
+│   ├── chat.controller.ts       # Conversations, Message History & Read status REST APIs
 │   ├── chat.gateway.ts          # WebSocketGateway (/chat namespace, WsJwtGuard)
+│   ├── chat.service.ts          # Lưu tin nhắn, phòng chat & lịch sử hội thoại
 │   └── dto/                     # Chat message payloads
 │
 └── shared/                      # Các tiện ích & Pipeline dùng chung
@@ -329,15 +331,15 @@ sequenceDiagram
 
 ## 8. 📊 Trạng Thái Hiện Tại Của Khóa Học (Course Progress Map)
 
-| Module       | Tên Module                                               |  Trạng Thái Codebase   | Các bài đã hoàn thành                                                |
-| :----------- | :------------------------------------------------------- | :--------------------: | :------------------------------------------------------------------- |
-| **Module 1** | Khởi tạo dự án, Code Quality & Core Concepts             |   ✅ 100% Hoàn thành   | 1.1 đến 1.10 (Full markdown + slides)                                |
-| **Module 2** | PostgreSQL & Prisma ORM                                  |   ✅ 100% Hoàn thành   | 2.1 đến 2.9 (Setup, Relations, Seeds, Filters)                       |
-| **Module 3** | Chuẩn hóa REST API & Request Pipeline                    |   ✅ 100% Hoàn thành   | 3.1 đến 3.6 (Versioning, DTO, Pipes, Filters, Interceptors)          |
-| **Module 4** | Authentication, Security & Rate-Limiting                 |   ✅ 100% Hoàn thành   | 4.1 đến 4.8 (JWT, Passport, Google OAuth, Roles, Throttler)          |
-| **Module 5** | Swagger, Social Features & Event-Driven                  |   ✅ 100% Hoàn thành   | 5.1 đến 5.7 (Posts, Upload, Comments, Events, Mail)                  |
-| **Module 6** | Real-Time WebSockets Chat & Caching                      | ⏳ **Đang triển khai** | **6.1, 6.2, 6.3 & 6.4 đã xong.** Chuẩn bị: **6.5 (Cache), 6.6 (UI)** |
-| **Module 7** | Logging, Healthchecks (Terminus), Testing & Cloud Deploy | ⏳ Kế hoạch tiếp theo  | 7.1 đến 7.5 (Terminus, Jest Unit/E2E, Docker, Cloud)                 |
+| Module       | Tên Module                                         |  Trạng Thái Codebase   | Các bài đã hoàn thành                                                     |
+| :----------- | :------------------------------------------------- | :--------------------: | :------------------------------------------------------------------------ |
+| **Module 1** | Khởi tạo dự án, Code Quality & Core Concepts       |   ✅ 100% Hoàn thành   | 1.1 đến 1.10 (Full markdown + slides)                                     |
+| **Module 2** | PostgreSQL & Prisma ORM                            |   ✅ 100% Hoàn thành   | 2.1 đến 2.9 (Setup, Relations, Seeds, Filters)                            |
+| **Module 3** | Chuẩn hóa REST API & Request Pipeline              |   ✅ 100% Hoàn thành   | 3.1 đến 3.6 (Versioning, DTO, Pipes, Filters, Interceptors)               |
+| **Module 4** | Authentication, Security & Rate-Limiting           |   ✅ 100% Hoàn thành   | 4.1 đến 4.8 (JWT, Passport, Google OAuth, Roles, Throttler)               |
+| **Module 5** | Swagger, Social Features & Event-Driven            |   ✅ 100% Hoàn thành   | 5.1 đến 5.7 (Posts, Upload, Comments, Events, Mail)                       |
+| **Module 6** | Real-Time WebSockets Chat & Full-Stack Integration | ⏳ **Đang triển khai** | **6.1, 6.2, 6.3, 6.4 & 6.5 đã xong.** Chuẩn bị: **6.6 (React UI)**        |
+| **Module 7** | Performance Optimization, Testing & Cloud Deploy   | ⏳ Kế hoạch tiếp theo  | 7.1 (Caching), 7.2 (Logging), 7.3 (Terminus), 7.4 (Testing), 7.5 (Deploy) |
 
 ---
 
