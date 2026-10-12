@@ -1,4 +1,4 @@
-# Lesson 6.2: Socket Auth — Chuẩn Hóa Xác Thực WebSockets Với WsJwtGuard (Passport.js)
+# Lesson 6.2: WebSocket Authentication — Chuẩn Hóa Xác Thực WebSockets Trong NestJS
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Framework-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" />
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Socket Auth with WsJwtGuard and Passport.js" width="85%" />
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — WebSocket Authentication In NestJS" width="85%" />
 </p>
 
 ---
@@ -22,7 +22,7 @@
 > - **NestJS Architecture:** Hiểu cơ chế hoạt động của WebSocket Guards theo tài liệu chính thức của NestJS (`docs.nestjs.com/websockets/guards`).
 > - **Implement `WsJwtGuard`:** Kế thừa trực tiếp `AuthGuard('jwt')` của Passport, override `getRequest()` để map dữ liệu socket handshake và ném `WsException` chuẩn quy ước.
 > - **Zero Code Duplication:** Tái sử dụng trọn vẹn `JwtStrategy` đã viết ở Module 4 mà không cần viết lại bất kỳ dòng code verify token nào.
-> - **Refactor `ChatGateway`:** Làm sạch Gateway bằng decorator `@UseGuards(WsJwtGuard)`, kết hợp `@CurrentWsUser()` lấy danh tính an toàn từ `client.data.user`.
+> - **Refactor `ChatGateway` & Multi-Protocol Decorator:** Làm sạch Gateway bằng decorator `@UseGuards(WsJwtGuard)`, đồng thời nâng cấp decorator `@CurrentUser()` (từ Lesson 4.6) trở thành decorator đa giao thức (hỗ trợ cả HTTP và WebSockets).
 > - **Verify & Debug:** Kiểm thử cơ chế bảo vệ với Web Client test script và xử lý lỗi `WsException` trả về cho client.
 
 > [!IMPORTANT]
@@ -125,9 +125,10 @@ src/
 │   │   ├── jwt-auth.guard.ts  (Dành cho HTTP)
 │   │   └── ws-jwt.guard.ts    <-- THÊM MỚI: Tái sử dụng Passport cho WebSockets
 │   └── auth.module.ts         (Exports WsJwtGuard)
+├── shared/
+│   └── decorators/
+│       └── current-user.decorator.ts <-- CẬP NHẬT: Hỗ trợ đa giao thức HTTP & WebSockets
 └── chat/
-    ├── decorators/
-    │   └── current-ws-user.decorator.ts
     ├── chat.module.ts         (Imports AuthModule)
     └── chat.gateway.ts        <-- Gọn gàng với @UseGuards(WsJwtGuard)
 ```
@@ -141,7 +142,7 @@ Tạo file `src/auth/guards/ws-jwt.guard.ts`:
 📄 **`src/auth/guards/ws-jwt.guard.ts`**
 
 ```typescript
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
@@ -156,15 +157,13 @@ export interface AuthenticatedSocket extends Socket {
 
 @Injectable()
 export class WsJwtGuard extends AuthGuard('jwt') {
+  private readonly logger = new Logger(WsJwtGuard.name);
+
   // 1. Chuyển đổi WebSocket Context thành Request Object mà Passport hiểu được
   getRequest(context: ExecutionContext) {
     const client = context.switchToWs().getClient<Socket>();
     const auth = client.handshake?.auth as Record<string, unknown> | undefined;
-    const authHeader = client.handshake?.headers?.authorization;
-
-    const rawToken =
-      (typeof auth?.token === 'string' ? auth.token : undefined) ??
-      (typeof authHeader === 'string' ? authHeader : undefined);
+    const rawToken = typeof auth?.token === 'string' ? auth.token : undefined;
 
     const token =
       rawToken && !rawToken.startsWith('Bearer ')
@@ -239,21 +238,47 @@ export class AuthModule {}
 
 ---
 
-### Bước 3: Tạo Custom Decorator `@CurrentWsUser()`
+### Bước 3: Nâng Cấp `@CurrentUser()` Trở Thành Multi-Protocol Decorator (HTTP & WebSockets)
 
-Tạo file `src/chat/decorators/current-ws-user.decorator.ts` để trích xuất dữ liệu người dùng gọn gàng:
+Ở [Lesson 4.6](../../module-04/lesson-4.6/lesson-4.6.md), chúng ta đã tạo decorator `@CurrentUser()` dùng cho các HTTP Controller.
 
-📄 **`src/chat/decorators/current-ws-user.decorator.ts`**
+Thay vì tạo thêm một decorator riêng biệt như `@CurrentWsUser()` (khiến codebase bị phân mảnh và lập trình viên phải ghi nhớ decorator riêng cho từng giao thức truyền tải), giải pháp chuẩn mực và chuyên nghiệp nhất trong NestJS là **nâng cấp `@CurrentUser()` thành decorator đa giao thức (Multi-Protocol)**.
+
+Nhờ cơ chế trừu tượng hóa của `ExecutionContext`, ta dùng `context.getType()` để nhận diện giao thức hiện tại:
+
+- `'http'`: Trích xuất `request['user']` do `JwtAuthGuard` gán vào.
+- `'ws'`: Trích xuất `client.data?.user` do `WsJwtGuard` gán vào.
+
+Mở file `src/shared/decorators/current-user.decorator.ts` và cập nhật như sau:
+
+📄 **`src/shared/decorators/current-user.decorator.ts`**
 
 ```typescript
+import { AuthenticatedSocket } from '@/auth/guards/ws-jwt.guard';
+import { UserData } from '@/auth/interfaces/jwt.interface';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { AuthenticatedSocket } from '@/auth/guards/ws-jwt.guard';
-import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { Request } from 'express';
 
-export const CurrentWsUser = createParamDecorator(
-  (data: keyof UserData | undefined, context: ExecutionContext) => {
-    const client = context.switchToWs().getClient<AuthenticatedSocket>();
-    const user = client.data?.user;
+export const CurrentUser = createParamDecorator(
+  (data: keyof UserData, context: ExecutionContext) => {
+    let user: UserData | undefined;
+
+    switch (true) {
+      case context.getType() === 'http':
+        {
+          const request = context.switchToHttp().getRequest<Request>();
+          user = request['user'] as UserData;
+        }
+        break;
+      case context.getType() === 'ws':
+        {
+          const client = context.switchToWs().getClient<AuthenticatedSocket>();
+          user = client.data?.user;
+        }
+        break;
+      default:
+        return null;
+    }
 
     if (!user) {
       return null;
@@ -290,10 +315,10 @@ import {
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
 import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
-import { CurrentWsUser } from './decorators/current-ws-user.decorator';
 import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
-@UseGuards(WsJwtGuard) // 🛡️ Bảo vệ toàn bộ sự kiện trong Gateway
+@UseGuards(WsJwtGuard)
 @WebSocketGateway({
   namespace: '/chat',
   cors: {
@@ -335,11 +360,9 @@ export class ChatGateway
   handleChatMessage(
     @MessageBody() payload: { content: string },
     @ConnectedSocket() client: Socket,
-    @CurrentWsUser() user: UserData, // Lấy an toàn từ Passport User
+    @CurrentUser() user: UserData,
   ) {
-    this.logger.log(
-      `💬 Tin nhắn từ [${user.email}] (ID: ${user.userId}): ${payload.content}`,
-    );
+    this.logger.log(`💬 Tin nhắn từ [${user.email}]: ${payload.content}`);
 
     const broadcastData = {
       senderId: user.userId,
@@ -552,8 +575,9 @@ Mở file `test-client.html` và thêm khả năng gửi kèm Token trong đối
 ```text
 1. WsJwtGuard       ──> Kế thừa AuthGuard('jwt'), tái sử dụng 100% Passport JwtStrategy.
 2. getRequest()     ──> Chuyển đổi socket.handshake.auth.token thành HTTP header format.
-3. WsException      ──> Quy chuẩn ngoại lệ bắt buộc của NestJS WebSocket Pipeline.
-4. Zero Duplication ──> Mọi Gateway đều được bảo vệ chỉ với một decorator @UseGuards(WsJwtGuard).
+3. Multi-Protocol   ──> Nâng cấp @CurrentUser() hỗ trợ cả HTTP và WS qua context.getType().
+4. WsException      ──> Quy chuẩn ngoại lệ bắt buộc của NestJS WebSocket Pipeline.
+5. Zero Duplication ──> Mọi Gateway đều được bảo vệ chỉ với một decorator @UseGuards(WsJwtGuard).
 ```
 
 👉 **Bài tiếp theo (Lesson 6.3):** Xây dựng phòng chat theo nhóm (Chat Rooms) với cơ chế Join Room, Leave Room và lưu trữ tin nhắn vào PostgreSQL qua Prisma ORM!
