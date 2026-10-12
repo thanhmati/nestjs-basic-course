@@ -60,10 +60,18 @@ export class PostsService {
         select: {
           id: true,
           title: true,
+          content: true,
           published: true,
           createdAt: true,
           author: {
-            select: { id: true, email: true, name: true },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              profile: {
+                select: { avatarUrl: true },
+              },
+            },
           },
           _count: {
             select: { comments: true },
@@ -108,10 +116,18 @@ export class PostsService {
       select: {
         id: true,
         title: true,
+        content: true,
         published: true,
         createdAt: true,
         author: {
-          select: { id: true, email: true, name: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            profile: {
+              select: { avatarUrl: true },
+            },
+          },
         },
         _count: {
           select: { comments: true },
@@ -141,9 +157,28 @@ export class PostsService {
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
-        author: { select: { id: true, email: true, name: true } },
+        author: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            profile: { select: { avatarUrl: true } },
+          },
+        },
         comments: {
-          select: { id: true, content: true, createdAt: true, authorId: true },
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            authorId: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                profile: { select: { avatarUrl: true } },
+              },
+            },
+          },
           orderBy: { createdAt: 'desc' },
         },
       },

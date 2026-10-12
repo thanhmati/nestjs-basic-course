@@ -1,12 +1,24 @@
-import { Body, Controller, Get, Post, UploadedFile } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { ApiImageUpload } from '@/shared/decorators/api-file.decorator';
 import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import { createImageValidationPipe } from '@/shared/pipes/image-validation.pipe';
+import { Public } from '@/shared/decorators/public.decorator';
 
 @ApiTags('users')
 @Controller('users')
@@ -14,38 +26,51 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng trong hệ thống' })
-  @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
-  findAll() {
-    return this.usersService.findAll();
-  }
-
-  @Post()
-  @ApiOperation({ summary: 'Tạo người dùng mới (Dành cho Quản trị viên)' })
-  @ApiResponse({ status: 201, description: 'Tạo người dùng thành công' })
-  createUser(@Body() body: CreateUserDto) {
-    return this.usersService.create(body);
+  @ApiOperation({
+    summary: 'Lấy danh sách thành viên trong hệ thống (User Directory)',
+    description:
+      'Trả về danh sách người dùng kèm Avatar và Bio để hiển thị danh bạ hoặc tìm kiếm người nhắn tin. Tự động loại trừ tài khoản đang đăng nhập.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách thành viên thành công',
+  })
+  @ResponseMessage('Lấy danh sách thành viên thành công!')
+  findAll(
+    @CurrentUser('userId') currentUserId?: number,
+    @Query() query?: QueryUserDto,
+  ) {
+    return this.usersService.findAll(currentUserId, query);
   }
 
   @Get('profile')
   @ApiOperation({
-    summary: 'Xem hồ sơ cá nhân của người dùng hiện tại',
+    summary: 'Xem hồ sơ cá nhân đầy đủ của người dùng hiện tại',
     description:
-      'Trích xuất thông tin người dùng từ JWT Access Token trong Header.',
+      'Truy vấn CSDL lấy đầy đủ thông tin: họ tên, email, vai trò, avatar, bio, location.',
   })
   @ApiResponse({
     status: 200,
     description: 'Lấy thông tin hồ sơ tài khoản thành công',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Chưa xác thực hoặc Bearer Token không hợp lệ / đã hết hạn',
+  @ResponseMessage('Lấy thông tin hồ sơ tài khoản thành công!')
+  getProfile(@CurrentUser('userId') userId: number) {
+    return this.usersService.getProfile(userId);
+  }
+
+  @Patch('profile')
+  @ApiOperation({
+    summary: 'Cập nhật thông tin hồ sơ cá nhân',
+    description:
+      'Cập nhật họ tên hiển thị, tiểu sử (bio) và địa điểm (location).',
   })
-  getProfile(@CurrentUser() userData: UserData) {
-    return {
-      message: 'Xác thực tài khoản thành công',
-      user: userData,
-    };
+  @ApiResponse({ status: 200, description: 'Cập nhật hồ sơ thành công' })
+  @ResponseMessage('Cập nhật thông tin hồ sơ thành công!')
+  updateProfile(
+    @CurrentUser('userId') userId: number,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(userId, updateProfileDto);
   }
 
   @Post('avatar')
@@ -69,5 +94,27 @@ export class UsersController {
       mimetype: file.mimetype,
       url: result.avatarUrl,
     };
+  }
+
+  @Public()
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Xem hồ sơ công khai của một thành viên theo ID',
+    description:
+      'Bất kỳ ai cũng có thể xem hồ sơ công khai của thành viên khác.',
+  })
+  @ApiResponse({ status: 200, description: 'Lấy hồ sơ người dùng thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy người dùng' })
+  @ResponseMessage('Lấy thông tin hồ sơ người dùng thành công!')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.findOne(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Tạo người dùng mới (Dành cho Quản trị viên)' })
+  @ApiResponse({ status: 201, description: 'Tạo người dùng thành công' })
+  @ResponseMessage('Tạo người dùng thành công!')
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
   }
 }
