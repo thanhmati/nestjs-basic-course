@@ -127,45 +127,87 @@ Khi một tin nhắn được gửi lên Server, hệ thống triển khai một
 sequenceDiagram
     autonumber
     actor Alice as "💻 Client A (Alice - ID #1)"
-    participant Gateway as "🚪 ChatGateway"
-    participant ChatSvc as "💾 ChatService"
+    participant Gateway as "🚪 ChatGateway (Thin Transport)"
+    participant ChatSvc as "💾 ChatService (Business Logic)"
     participant DB as "🗄️ PostgreSQL (Prisma)"
     actor Bob as "💻 Client B (Bob - ID #2)"
 
     Note over Alice, Gateway: 1. Gửi tin nhắn vào cuộc trò chuyện
-    Alice->>Gateway: emit('send_message', { receiverId: 2, content: "Chào Bob!" })
+    Alice->>Gateway: emit('send_room_message', { receiverId: 2, content: "Chào Bob!" })
 
-    Note over Gateway, DB: 2. Lưu trữ bền vững (Persistence)
-    Gateway->>ChatSvc: saveMessage(senderId=1, receiverId=2, content)
-    ChatSvc->>DB: prisma.message.create({ ... })
-    DB-->>ChatSvc: Bản ghi Message (id, createdAt...)
-    ChatSvc-->>Gateway: messageData đầy đủ quan hệ
+    Note over Gateway, ChatSvc: 2. Ủy quyền toàn bộ nghiệp vụ cho Service
+    Gateway->>ChatSvc: processRoomMessage(user, dto)
+    alt Có receiverId (Direct Chat 1-1)
+        ChatSvc->>DB: saveDirectMessage() -> prisma.message.create({ ... })
+        DB-->>ChatSvc: Bản ghi Message (id, sender, receiver...)
+    end
+    ChatSvc-->>Gateway: { targetRoom, broadcastPayload }
 
-    Note over Gateway, Bob: 3. Phát tán thời gian thực theo Room
-    par Báo cho các thành viên trong Room
-        Gateway->>Bob: emit('new_message', messageData) (qua room 'conversation_1_2')
-        Gateway-->>Alice: emit('message_sent', { status: 'success', messageId: 42 })
+    Note over Gateway, Bob: 3. Phát tán thời gian thực theo Room (Transport Layer)
+    par Gửi cho thành viên trong Room
+        Gateway->>Bob: emit('new_room_message', broadcastPayload) (qua room 'conversation:1_2')
+        Gateway-->>Alice: return { status: 'sent', message: broadcastPayload }
     end
 ```
 
 ---
 
-## 3. Thiết Kế Quy Ước Đặt Tên Room & DTOs (How - Step 1)
+## 3. Chuẩn Hóa Hằng Số (Constants) & Khởi Tạo DTOs (How - Step 1)
 
-### 3.1 Quy Ước Định Danh Phòng (Room Naming Convention)
+Trước khi viết code logic, chúng ta cần tuân thủ **2 nguyên tắc Clean Code cốt lõi**:
 
-Hệ thống của chúng ta hỗ trợ 2 loại phòng chat:
+1. **Loại bỏ hoàn toàn Magic Strings:** Mọi tên sự kiện Socket.io và định dạng tên phòng phải được quy tụ về một nơi duy nhất. Tuyệt đối không gõ trực tiếp chuỗi ký tự `'join_room'`, `'send_room_message'`... rải rác trong code.
+2. **Type Safety & Data Validation:** Mọi payload nhận từ client phải được validate chặt chẽ qua DTO class.
+
+### 3.1 Định Nghĩa Hằng Số WebSocket Sự Kiện & Phòng Chat
+
+Tạo file constants mới trong module chat:
+
+📄 **`src/chat/constants/chat.constant.ts`**
+
+```typescript
+export const CHAT_EVENTS = {
+  // Client to Server
+  PING: 'ping',
+  JOIN_ROOM: 'join_room',
+  LEAVE_ROOM: 'leave_room',
+  SEND_ROOM_MESSAGE: 'send_room_message',
+  GET_HISTORY: 'get_history',
+
+  // Server to Client
+  USER_JOINED: 'user_joined',
+  USER_LEFT: 'user_left',
+  NEW_ROOM_MESSAGE: 'new_room_message',
+} as const;
+
+export const CHAT_ROOM = {
+  CONVERSATION_PREFIX: 'conversation:',
+} as const;
+```
+
+> [!TIP]
+> **Lợi ích của `as const` và Hằng số tập trung:**
+>
+> - IDE tự động gợi ý code (IntelliSense), ngăn chặn 100% lỗi gõ nhầm chính tả (typo).
+> - Khi cần đổi tên event, bạn chỉ cần sửa ở đúng 1 dòng trong file constant thay vì phải đi tìm và thay thế hàng chục file.
+> - Có thể export và tái sử dụng trực tiếp sang dự án Frontend Client (Next.js/React/Vue).
+
+---
+
+### 3.2 Quy Ước Định Danh Phòng (Room Naming Convention)
+
+Hệ thống hỗ trợ 2 loại phòng chat:
 
 1. **Phòng thảo luận theo chủ đề / Nhóm (Group Room):**  
    Định dạng: `room:<topic_name>` (ví dụ: `room:general`, `room:nestjs`).
 2. **Cuộc trò chuyện trực tiếp 1-1 (Direct Message):**  
-   Để đảm bảo dù Alice nhắn cho Bob hay Bob nhắn cho Alice thì cả hai đều tham gia chung một phòng, chúng ta sắp xếp `userId` tăng dần:  
+   Để đảm bảo dù Alice nhắn cho Bob hay Bob nhắn cho Alice thì cả hai đều tham gia chung một phòng, chúng ta sắp xếp `userId` tăng dần kết hợp với tiền tố `CHAT_ROOM.CONVERSATION_PREFIX`:  
    Định dạng: `conversation:${Math.min(user1, user2)}_${Math.max(user1, user2)}`  
    _(Ví dụ: User #1 và User #5 luôn trò chuyện trong room `conversation:1_5`)_.
 
 ---
 
-### 3.2 Khởi Tạo Data Transfer Objects (DTO)
+### 3.3 Khởi Tạo Data Transfer Objects (DTO)
 
 Tạo thư mục DTO cho chat:
 
@@ -208,19 +250,70 @@ export class SendMessageDto {
 }
 ```
 
+📄 **`src/chat/dto/get-history.dto.ts`**
+
+```typescript
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
+
+export class GetHistoryDto {
+  @Type(() => Number)
+  @IsInt({ message: 'ID người nhận phải là một số nguyên' })
+  receiverId: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Số lượng tin nhắn phải là một số nguyên' })
+  @Min(1, { message: 'Số lượng tin nhắn tối thiểu là 1' })
+  @Max(100, { message: 'Số lượng tin nhắn tối đa là 100' })
+  limit?: number = 20;
+}
+```
+
 ---
 
-## 4. Xây Dựng `ChatService` Kết Nối Prisma ORM (How - Step 2)
+## 4. Xây Dựng `ChatService` Kết Nối Prisma ORM & Đóng Gói Nghiệp Vụ (How - Step 2)
 
-Theo kiến trúc phân tầng NestJS, Gateway chỉ chịu trách nhiệm nhận/bắn gói tin Socket. Toàn bộ thao tác truy vấn CSDL PostgreSQL phải được đóng gói bên trong **`ChatService`**.
+> [!IMPORTANT]
+> **Nguyên tắc Kiến Trúc: Đưa Business Logic vào Service!**  
+> Gateway chỉ là **Network Transport (Tầng truyền dẫn)**. Toàn bộ logic kiểm tra hợp lệ, truy vấn CSDL, sinh mã phòng, và định dạng dữ liệu phát tán (`broadcastPayload`) **bắt buộc phải nằm trong `ChatService`**.
 
-Tạo file mới:
+Tạo và hoàn thiện `ChatService`:
 
 📄 **`src/chat/chat.service.ts`**
 
 ```typescript
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { CHAT_ROOM } from './constants/chat.constant';
+import { SendMessageDto } from './dto/send-message.dto';
+
+export interface ChatBroadcastPayload {
+  messageId: number | null;
+  senderId: number;
+  senderEmail: string;
+  senderName: string;
+  content: string;
+  roomId: string;
+  createdAt: string;
+}
+
+export interface UserRoomEventPayload {
+  userId: number;
+  email: string;
+  timestamp: string;
+}
+
+export interface ProcessedMessageResult {
+  targetRoom: string;
+  broadcastPayload: ChatBroadcastPayload;
+}
 
 @Injectable()
 export class ChatService {
@@ -233,18 +326,77 @@ export class ChatService {
    */
   getConversationRoomId(user1Id: number, user2Id: number): string {
     const sortedIds = [user1Id, user2Id].sort((a, b) => a - b);
-    return `conversation:${sortedIds[0]}_${sortedIds[1]}`;
+    return `${CHAT_ROOM.CONVERSATION_PREFIX}${sortedIds[0]}_${sortedIds[1]}`;
   }
 
   /**
-   * Lưu trữ tin nhắn trực tiếp vào PostgreSQL
+   * Xử lý toàn bộ logic gửi tin nhắn (Direct chat 1-1 lưu DB hoặc Room chat)
+   */
+  async processRoomMessage(
+    sender: UserData,
+    dto: SendMessageDto,
+  ): Promise<ProcessedMessageResult> {
+    let targetRoom = dto.roomId;
+    let savedMessage: Awaited<
+      ReturnType<ChatService['saveDirectMessage']>
+    > | null = null;
+
+    // 1. Nếu có receiverId -> Đây là Direct Chat 1-1: Lưu DB và lấy mã phòng 1-1
+    if (dto.receiverId) {
+      savedMessage = await this.saveDirectMessage(
+        sender.userId,
+        dto.receiverId,
+        dto.content,
+      );
+
+      targetRoom = this.getConversationRoomId(sender.userId, dto.receiverId);
+    }
+
+    // 2. Bảo vệ: Nếu không có cả roomId lẫn receiverId -> Ném lỗi nghiệp vụ
+    if (!targetRoom) {
+      throw new BadRequestException(
+        'Vui lòng cung cấp roomId (phòng chat) hoặc receiverId (người nhận)!',
+      );
+    }
+
+    // 3. Đóng gói payload broadcast chuẩn hóa
+    const broadcastPayload: ChatBroadcastPayload = {
+      messageId: savedMessage?.id || null,
+      senderId: sender.userId,
+      senderEmail: sender.email,
+      senderName: savedMessage?.sender?.name || sender.email,
+      content: dto.content,
+      roomId: targetRoom,
+      createdAt: savedMessage?.createdAt
+        ? savedMessage.createdAt.toISOString()
+        : new Date().toISOString(),
+    };
+
+    return {
+      targetRoom,
+      broadcastPayload,
+    };
+  }
+
+  /**
+   * Đóng gói payload sự kiện thành viên vào/rời phòng
+   */
+  createUserRoomEventPayload(user: UserData): UserRoomEventPayload {
+    return {
+      userId: user.userId,
+      email: user.email,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Lưu trữ tin nhắn trực tiếp vào PostgreSQL thông qua Prisma ORM
    */
   async saveDirectMessage(
     senderId: number,
     receiverId: number,
     content: string,
   ) {
-    // 1. Kiểm tra sự tồn tại của người nhận
     const receiver = await this.prisma.user.findUnique({
       where: { id: receiverId },
       select: { id: true, name: true, email: true },
@@ -256,7 +408,6 @@ export class ChatService {
       );
     }
 
-    // 2. Lưu bản ghi tin nhắn vào bảng 'messages'
     const message = await this.prisma.message.create({
       data: {
         senderId,
@@ -292,7 +443,7 @@ export class ChatService {
   }
 
   /**
-   * Lấy lịch sử tin nhắn gần nhất giữa 2 người dùng (phục vụ khi mới vào phòng)
+   * Lấy lịch sử tin nhắn gần nhất giữa 2 người dùng
    */
   async getConversationHistory(
     user1Id: number,
@@ -322,7 +473,6 @@ export class ChatService {
       },
     });
 
-    // Đảo ngược danh sách để hiển thị theo thứ tự thời gian tự nhiên (cũ -> mới)
     return messages.reverse();
   }
 }
@@ -330,9 +480,9 @@ export class ChatService {
 
 ---
 
-## 5. Cập Nhật `ChatGateway` Quản Lý Rooms & Persistence (How - Step 3)
+## 5. Cập Nhật `ChatGateway` — Tầng Truyền Dẫn Mạng Tinh Gọn (How - Step 3)
 
-Mở file Gateway và bổ sung các Message Handlers cho phòng chat:
+Nhờ chuyển toàn bộ business logic sang `ChatService` và sử dụng hằng số `CHAT_EVENTS`, file Gateway giờ đây cực kỳ gọn gàng, trong sáng và chỉ đóng vai trò **Bộ điều hướng mạng (Network Dispatcher)**:
 
 📄 **`src/chat/chat.gateway.ts`**
 
@@ -352,7 +502,9 @@ import { Namespace, Socket } from 'socket.io';
 import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
 import type { UserData } from '@/auth/interfaces/jwt.interface';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { CHAT_EVENTS } from './constants/chat.constant';
 import { ChatService } from './chat.service';
+import { GetHistoryDto } from './dto/get-history.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 
@@ -375,22 +527,30 @@ export class ChatGateway
 
   afterInit(server: Namespace) {
     this.logger.log(
-      `🚀 ChatGateway đã khởi động trên namespace ${server.name}`,
+      `🚀 WebSocket Chat Gateway ${server.name} đã sẵn sàng hoạt động!`,
     );
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`🟢 Client kết nối: ${client.id}`);
+    this.logger.log(`🟢 Client kết nối vào ${this.server.name}: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.warn(`🔴 Client ngắt kết nối: ${client.id}`);
+    this.logger.warn(
+      `🔴 Client ngắt kết nối khỏi ${this.server.name}: ${client.id}`,
+    );
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.PING)
+  handlePing(@ConnectedSocket() client: Socket): string {
+    this.logger.debug(`Ping nhận được từ [${client.id}]`);
+    return 'pong';
   }
 
   // =================================================================
   // 1. THAM GIA PHÒNG CHAT (JOIN ROOM)
   // =================================================================
-  @SubscribeMessage('join_room')
+  @SubscribeMessage(CHAT_EVENTS.JOIN_ROOM)
   async handleJoinRoom(
     @MessageBody() dto: JoinRoomDto,
     @ConnectedSocket() client: Socket,
@@ -398,19 +558,19 @@ export class ChatGateway
   ) {
     const { roomId } = dto;
 
-    // Đưa Socket Client vào Room của Socket.io
     await client.join(roomId);
 
     this.logger.log(
       `📥 [${user.email}] (${client.id}) đã tham gia phòng: ${roomId}`,
     );
 
-    // Báo cho những người KHÁC trong phòng biết có người mới vào
-    client.to(roomId).emit('user_joined', {
-      userId: user.userId,
-      email: user.email,
-      joinedAt: new Date().toISOString(),
-    });
+    // Gửi sự kiện thông báo cho các client KHÁC trong phòng
+    client
+      .to(roomId)
+      .emit(
+        CHAT_EVENTS.USER_JOINED,
+        this.chatService.createUserRoomEventPayload(user),
+      );
 
     return {
       status: 'success',
@@ -422,7 +582,7 @@ export class ChatGateway
   // =================================================================
   // 2. RỜI PHÒNG CHAT (LEAVE ROOM)
   // =================================================================
-  @SubscribeMessage('leave_room')
+  @SubscribeMessage(CHAT_EVENTS.LEAVE_ROOM)
   async handleLeaveRoom(
     @MessageBody() dto: JoinRoomDto,
     @ConnectedSocket() client: Socket,
@@ -436,12 +596,12 @@ export class ChatGateway
       `📤 [${user.email}] (${client.id}) đã rời khỏi phòng: ${roomId}`,
     );
 
-    // Báo cho các thành viên còn lại
-    client.to(roomId).emit('user_left', {
-      userId: user.userId,
-      email: user.email,
-      leftAt: new Date().toISOString(),
-    });
+    client
+      .to(roomId)
+      .emit(
+        CHAT_EVENTS.USER_LEFT,
+        this.chatService.createUserRoomEventPayload(user),
+      );
 
     return {
       status: 'success',
@@ -451,57 +611,31 @@ export class ChatGateway
   }
 
   // =================================================================
-  // 3. GỬI TIN NHẮN THEO PHÒNG & LƯU CSDL (SEND MESSAGE)
+  // 3. GỬI TIN NHẮN THEO PHÒNG (SEND ROOM MESSAGE)
   // =================================================================
-  @SubscribeMessage('send_room_message')
+  @SubscribeMessage(CHAT_EVENTS.SEND_ROOM_MESSAGE)
   async handleSendRoomMessage(
     @MessageBody() dto: SendMessageDto,
     @ConnectedSocket() client: Socket,
     @CurrentUser() user: UserData,
   ) {
-    let targetRoom = dto.roomId;
-    let savedMessage = null;
+    // Ủy quyền toàn bộ nghiệp vụ xử lý tin nhắn & lưu DB cho Service
+    const { targetRoom, broadcastPayload } =
+      await this.chatService.processRoomMessage(user, dto);
 
-    // A. Nếu có receiverId -> Đây là Direct Chat 1-1
+    // Nếu là chat 1-1, đảm bảo người gửi đã join room cuộc trò chuyện
     if (dto.receiverId) {
-      // 1. Lưu tin nhắn bền vững vào bảng messages
-      savedMessage = await this.chatService.saveDirectMessage(
-        user.userId,
-        dto.receiverId,
-        dto.content,
-      );
-
-      // 2. Tự động sinh tên phòng 1-1 và đảm bảo client đã join phòng
-      targetRoom = this.chatService.getConversationRoomId(
-        user.userId,
-        dto.receiverId,
-      );
       await client.join(targetRoom);
     }
 
-    // Đóng gói gói tin broadcast
-    const broadcastPayload = {
-      messageId: savedMessage?.id || null,
-      senderId: user.userId,
-      senderEmail: user.email,
-      senderName: savedMessage?.sender?.name || user.email,
-      content: dto.content,
-      roomId: targetRoom,
-      createdAt: savedMessage?.createdAt || new Date().toISOString(),
-    };
+    // Phát tán gói tin ĐỘC QUYỀN vào targetRoom
+    this.server
+      .to(targetRoom)
+      .emit(CHAT_EVENTS.NEW_ROOM_MESSAGE, broadcastPayload);
+    this.logger.log(
+      `💬 [Room: ${targetRoom}] Tin nhắn từ [${user.email}]: ${dto.content}`,
+    );
 
-    // B. Phát tán ĐỘC QUYỀN vào targetRoom (Gửi cho TẤT CẢ client trong room)
-    if (targetRoom) {
-      this.server.to(targetRoom).emit('new_room_message', broadcastPayload);
-      this.logger.log(
-        `💬 [Room: ${targetRoom}] Tin nhắn từ [${user.email}]: ${dto.content}`,
-      );
-    } else {
-      // Nếu không có room, fallback về gửi toàn namespace
-      this.server.emit('new_room_message', broadcastPayload);
-    }
-
-    // Trả về xác nhận cho người gửi
     return {
       status: 'sent',
       message: broadcastPayload,
@@ -511,15 +645,15 @@ export class ChatGateway
   // =================================================================
   // 4. LẤY LỊCH SỬ TIN NHẮN (CONVERSATION HISTORY)
   // =================================================================
-  @SubscribeMessage('get_history')
+  @SubscribeMessage(CHAT_EVENTS.GET_HISTORY)
   async handleGetHistory(
-    @MessageBody() payload: { receiverId: number; limit?: number },
+    @MessageBody() dto: GetHistoryDto,
     @CurrentUser() user: UserData,
   ) {
     const history = await this.chatService.getConversationHistory(
       user.userId,
-      payload.receiverId,
-      payload.limit || 20,
+      dto.receiverId,
+      dto.limit,
     );
 
     return {
@@ -774,13 +908,23 @@ Tạo một trang web test nhỏ để giả lập 2 người dùng trò chuyệ
 ### ❌ Lỗi 3: Tạo Room Name không nhất quán giữa 2 người dùng
 
 - **Triệu chứng:** Alice nhắn cho Bob thì dùng room `conversation:1_2`, nhưng Bob nhắn cho Alice lại dùng room `conversation:2_1`. Kết quả là 2 người ở 2 phòng khác nhau và không ai thấy tin nhắn của ai!
-- **Cách sửa:** Luôn sắp xếp ID tăng dần thông qua hàm chuẩn hóa:
+- **Cách sửa:** Luôn sắp xếp ID tăng dần thông qua hàm chuẩn hóa kết hợp hằng số:
   ```typescript
   getConversationRoomId(id1: number, id2: number) {
     const [min, max] = [id1, id2].sort((a, b) => a - b);
-    return `conversation:${min}_${max}`;
+    return `${CHAT_ROOM.CONVERSATION_PREFIX}${min}_${max}`;
   }
   ```
+
+### ❌ Lỗi 4: Rải rác Magic Strings & Nhồi nhét Business Logic vào Gateway (Fat Gateway)
+
+- **Triệu chứng:**
+  - Viết chuỗi sự kiện tự do `'join_room'`, `'send_room_message'`, gõ nhầm một ký tự khiến client không bao giờ nhận được phản hồi mà compiler không hề cảnh báo.
+  - Gateway chứa hàng chục dòng query Prisma, validate logic người nhận, format payload dẫn đến code phình to, khó bảo trì và không thể viết unit test.
+- **Nguyên nhân:** Vi phạm nguyên tắc **Clean Code** và **Single Responsibility Principle (SRP)**.
+- **Cách sửa:**
+  - Quy tụ toàn bộ chuỗi sự kiện vào file hằng số `src/chat/constants/chat.constant.ts`.
+  - Gateway chỉ đóng vai trò bộ chuyển tiếp mạng (Thin Gateway); toàn bộ nghiệp vụ kiểm tra, lưu trữ CSDL và đóng gói dữ liệu phải được ủy quyền cho `ChatService`.
 
 ---
 
@@ -788,7 +932,7 @@ Tạo một trang web test nhỏ để giả lập 2 người dùng trò chuyệ
 
 ### 🟢 Level 1: Follow Along
 
-Thực hiện tạo `ChatService`, tích hợp `PrismaService`, cấu hình event `join_room` và `send_room_message` trong `ChatGateway` theo hướng dẫn trên. Kiểm tra bằng `test-chat-room.html`.
+Thực hiện tạo `CHAT_EVENTS`, `ChatService`, tích hợp `PrismaService`, cấu hình event `join_room` và `send_room_message` trong `ChatGateway` theo hướng dẫn trên. Kiểm tra bằng `test-chat-room.html`.
 
 ### 🟡 Level 2: Debugging Challenge
 
@@ -799,9 +943,10 @@ _Gợi ý:_ Khảo sát `client.rooms` trong sự kiện `disconnecting` của S
 
 Xây dựng tính năng **Typing Indicator** (Thông báo người dùng đang soạn tin nhắn):
 
-1. Lắng nghe sự kiện `@SubscribeMessage('typing')`.
-2. Dùng `client.to(roomId).emit('user_typing', { userId: user.userId })` để báo cho đối phương.
-3. Khi người dùng dừng gõ, lắng nghe `@SubscribeMessage('stop_typing')` và thông báo `user_stop_typing`.
+1. Bổ sung `TYPING: 'typing'` và `STOP_TYPING: 'stop_typing'` vào `CHAT_EVENTS`.
+2. Lắng nghe sự kiện `@SubscribeMessage(CHAT_EVENTS.TYPING)`.
+3. Dùng `client.to(roomId).emit(CHAT_EVENTS.USER_TYPING, { userId: user.userId })` để báo cho đối phương.
+4. Khi người dùng dừng gõ, lắng nghe `@SubscribeMessage(CHAT_EVENTS.STOP_TYPING)` và thông báo `USER_STOP_TYPING`.
 
 ---
 
@@ -810,16 +955,18 @@ Xây dựng tính năng **Typing Indicator** (Thông báo người dùng đang s
 ### 🎯 Điểm Cốt Lõi Cần Nhớ
 
 - **Socket.IO Room** là cơ chế nhóm socket logic trên bộ nhớ RAM, là chìa khóa để triển khai chat nhóm và chat 1-1 mà không gây lãng phí tài nguyên mạng.
+- **Clean Architecture & Thin Gateway:** Gateway chỉ đóng vai trò tầng truyền dẫn (Transport Dispatcher), toàn bộ nghiệp vụ lưu trữ CSDL, validate và đóng gói payload thuộc về `ChatService`.
+- **Eliminate Magic Strings:** Tuyệt đối không hardcode chuỗi sự kiện; luôn sử dụng hằng số tập trung `CHAT_EVENTS` và `CHAT_ROOM` để đảm bảo an toàn kiểu và khả năng refactor.
 - Sử dụng `this.server.to(room).emit()` để gửi cho mọi người trong phòng; dùng `client.to(room).emit()` để loại trừ người gửi.
-- Tách bạch rõ rệt giữa **Tầng truyền dẫn (ChatGateway)** và **Tầng nghiệp vụ & Lưu trữ (ChatService + Prisma)**.
 - Kết hợp Socket.io và Prisma ORM biến ứng dụng từ giao tiếp tạm thời (ephemeral) thành một hệ sinh thái mạng xã hội hoàn chỉnh có lưu trữ lịch sử tin nhắn.
 
 ### ✅ Checklist Hoàn Thành Bài Học
 
 - [x] Hiểu bản chất Socket.IO Room và cấu trúc dữ liệu lưu trữ phía server.
-- [x] Tạo `JoinRoomDto` và `SendMessageDto` với `class-validator`.
-- [x] Xây dựng `ChatService` lưu trữ tin nhắn vào PostgreSQL và truy vấn lịch sử với `PrismaService`.
-- [x] Triển khai `join_room`, `leave_room`, `send_room_message` trong `ChatGateway`.
+- [x] Loại bỏ Magic Strings bằng file hằng số `chat.constant.ts`.
+- [x] Tạo `JoinRoomDto`, `SendMessageDto` và `GetHistoryDto` với `class-validator`.
+- [x] Đóng gói toàn bộ nghiệp vụ tin nhắn vào `ChatService.processRoomMessage()`.
+- [x] Xây dựng `ChatGateway` tinh gọn theo chuẩn SRP kết hợp `CHAT_EVENTS`.
 - [x] Kiểm thử gửi nhận tin nhắn đa phòng và kiểm tra dữ liệu trong bảng `messages`.
 
 ---
