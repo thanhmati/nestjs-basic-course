@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Test Real-time Notifications Alert (WebSockets + Events)</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+        margin: 30px;
+      }
+      .card {
+        background: #1e293b;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #334155;
+        max-width: 650px;
+      }
+      input,
+      button {
+        padding: 10px 14px;
+        border-radius: 6px;
+        border: 1px solid #475569;
+        background: #0f172a;
+        color: white;
+        font-size: 14px;
+      }
+      button {
+        background: #e0234e;
+        border-color: #e0234e;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button:hover {
+        background: #b81c3e;
+      }
+      .badge-bell {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 12px;
+      }
+      .count-tag {
+        background: #ef4444;
+        color: white;
+        border-radius: 9999px;
+        padding: 2px 8px;
+        font-size: 12px;
+      }
+      #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 9999;
+      }
+      .toast {
+        background: #1e293b;
+        border-left: 4px solid #38bdf8;
+        border-top: 1px solid #334155;
+        border-right: 1px solid #334155;
+        border-bottom: 1px solid #334155;
+        padding: 14px 18px;
+        border-radius: 6px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      .toast-title {
+        font-weight: bold;
+        color: #38bdf8;
+        margin-bottom: 4px;
+      }
+      .toast-content {
+        font-size: 13px;
+        color: #cbd5e1;
+      }
+      .toast-time {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 4px;
+      }
+      #logs {
+        height: 200px;
+        overflow-y: auto;
+        background: #0f172a;
+        padding: 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 13px;
+        border: 1px solid #334155;
+        list-style: none;
+      }
+      #logs li {
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🔔 Real-time Notifications Tester (WebSockets + Event-Driven)</h2>
+
+    <div class="card">
+      <div class="badge-bell">
+        🔔 Trung Tâm Thông Báo
+        <span id="unreadCount" class="count-tag">0</span>
+      </div>
+      <div>
+        <input
+          type="text"
+          id="token"
+          placeholder="Dán JWT Access Token của Tác giả bài viết (User A)..."
+          style="width: 65%"
+        />
+        <button onclick="connectAndSubscribe()">Kết Nối & Đăng Ký</button>
+      </div>
+      <p id="status" style="color: #ef4444; margin-top: 10px">⚪ Chưa kết nối</p>
+    </div>
+
+    <div class="card">
+      <h3>📜 Nhật Ký Sự Kiện Real-Time:</h3>
+      <ul id="logs"></ul>
+    </div>
+
+    <!-- Vùng hiển thị thông báo Toast -->
+    <div id="toast-container"></div>
+
+    <script>
+      let socket = null;
+      let count = 0;
+
+      function connectAndSubscribe() {
+        const token = document.getElementById('token').value.trim();
+        if (!token) return alert('Vui lòng nhập Access Token!');
+
+        socket = io('http://localhost:3000/chat', {
+          auth: { token },
+        });
+
+        socket.on('connect', () => {
+          document.getElementById('status').innerText =
+            `🟢 Đã kết nối Socket ID: ${socket.id}`;
+          document.getElementById('status').style.color = '#22c55e';
+
+          // Tự động tham gia phòng thông báo cá nhân user:ID
+          socket.emit('subscribe_notifications', {}, (ack) => {
+            addLog(`✅ Đã đăng ký phòng cá nhân: ${ack.room}`);
+          });
+        });
+
+        socket.on('connect_error', (err) => {
+          document.getElementById('status').innerText =
+            `🔴 Lỗi kết nối: ${err.message}`;
+          document.getElementById('status').style.color = '#ef4444';
+        });
+
+        // LẮNG NGHE THÔNG BÁO MỚI TỪ SERVER ĐẨY VỀ!
+        socket.on('new_notification', (data) => {
+          count++;
+          document.getElementById('unreadCount').innerText = count;
+
+          addLog(`🔔 Nhận thông báo #${data.id}: "${data.title}"`);
+          showToast(data);
+        });
+      }
+
+      function showToast(data) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+          <div class="toast-title">${data.title}</div>
+          <div class="toast-content">${data.content}</div>
+          <div class="toast-time">${data.createdAt} (Post #${data.postId})</div>
+        `;
+        container.appendChild(toast);
+
+        // Tự động biến mất sau 5 giây
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.5s';
+          setTimeout(() => toast.remove(), 500);
+        }, 5000);
+      }
+
+      function addLog(text) {
+        const li = document.createElement('li');
+        li.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
+        document.getElementById('logs').appendChild(li);
+      }
+    </script>
+  </body>
+</html>

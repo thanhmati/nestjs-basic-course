@@ -122,7 +122,7 @@ timeline
 - **6.1** [_WebSockets:_ Tạo Gateway với `@WebSocketGateway()` (Socket.io).](./modules/module-06/lesson-6.1/lesson-6.1.md)
 - **6.2** [_WebSocket Authentication:_ Chuẩn hóa xác thực WebSockets trong NestJS.](./modules/module-06/lesson-6.2/lesson-6.2.md)
 - **6.3** [_Chat Room:_ Join Room, Broadcast message real-time & lưu DB.](./modules/module-06/lesson-6.3/lesson-6.3.md)
-- **6.4** _Sockets + Events:_ Đẩy thông báo tức thì khi có sự kiện `comment.created`.
+- **6.4** [_Sockets + Events:_ Đẩy thông báo tức thì khi có sự kiện `comment.created`.](./modules/module-06/lesson-6.4/lesson-6.4.md)
 - **6.5** _Caching:_ Tăng tốc API Hot Feed với `@nestjs/cache-manager`.
 - **6.6** _Frontend:_ Ghép nối Backend với Template React UI Starter.
 

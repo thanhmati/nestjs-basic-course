@@ -329,15 +329,15 @@ sequenceDiagram
 
 ## 8. 📊 Trạng Thái Hiện Tại Của Khóa Học (Course Progress Map)
 
-| Module       | Tên Module                                               |  Trạng Thái Codebase   | Các bài đã hoàn thành                                                                             |
-| :----------- | :------------------------------------------------------- | :--------------------: | :------------------------------------------------------------------------------------------------ |
-| **Module 1** | Khởi tạo dự án, Code Quality & Core Concepts             |   ✅ 100% Hoàn thành   | 1.1 đến 1.10 (Full markdown + slides)                                                             |
-| **Module 2** | PostgreSQL & Prisma ORM                                  |   ✅ 100% Hoàn thành   | 2.1 đến 2.9 (Setup, Relations, Seeds, Filters)                                                    |
-| **Module 3** | Chuẩn hóa REST API & Request Pipeline                    |   ✅ 100% Hoàn thành   | 3.1 đến 3.6 (Versioning, DTO, Pipes, Filters, Interceptors)                                       |
-| **Module 4** | Authentication, Security & Rate-Limiting                 |   ✅ 100% Hoàn thành   | 4.1 đến 4.8 (JWT, Passport, Google OAuth, Roles, Throttler)                                       |
-| **Module 5** | Swagger, Social Features & Event-Driven                  |   ✅ 100% Hoàn thành   | 5.1 đến 5.7 (Posts, Upload, Comments, Events, Mail)                                               |
-| **Module 6** | Real-Time WebSockets Chat & Caching                      | ⏳ **Đang triển khai** | **6.1 & 6.2 đã xong.** Chuẩn bị: **6.3 (Chat Room & DB), 6.4 (WS Events), 6.5 (Cache), 6.6 (UI)** |
-| **Module 7** | Logging, Healthchecks (Terminus), Testing & Cloud Deploy | ⏳ Kế hoạch tiếp theo  | 7.1 đến 7.5 (Terminus, Jest Unit/E2E, Docker, Cloud)                                              |
+| Module       | Tên Module                                               |  Trạng Thái Codebase   | Các bài đã hoàn thành                                                |
+| :----------- | :------------------------------------------------------- | :--------------------: | :------------------------------------------------------------------- |
+| **Module 1** | Khởi tạo dự án, Code Quality & Core Concepts             |   ✅ 100% Hoàn thành   | 1.1 đến 1.10 (Full markdown + slides)                                |
+| **Module 2** | PostgreSQL & Prisma ORM                                  |   ✅ 100% Hoàn thành   | 2.1 đến 2.9 (Setup, Relations, Seeds, Filters)                       |
+| **Module 3** | Chuẩn hóa REST API & Request Pipeline                    |   ✅ 100% Hoàn thành   | 3.1 đến 3.6 (Versioning, DTO, Pipes, Filters, Interceptors)          |
+| **Module 4** | Authentication, Security & Rate-Limiting                 |   ✅ 100% Hoàn thành   | 4.1 đến 4.8 (JWT, Passport, Google OAuth, Roles, Throttler)          |
+| **Module 5** | Swagger, Social Features & Event-Driven                  |   ✅ 100% Hoàn thành   | 5.1 đến 5.7 (Posts, Upload, Comments, Events, Mail)                  |
+| **Module 6** | Real-Time WebSockets Chat & Caching                      | ⏳ **Đang triển khai** | **6.1, 6.2, 6.3 & 6.4 đã xong.** Chuẩn bị: **6.5 (Cache), 6.6 (UI)** |
+| **Module 7** | Logging, Healthchecks (Terminus), Testing & Cloud Deploy | ⏳ Kế hoạch tiếp theo  | 7.1 đến 7.5 (Terminus, Jest Unit/E2E, Docker, Cloud)                 |
 
 ---
 
