@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Event-Driven Architecture with NestJS EventEmitter" width="100%" />
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Event-Driven Architecture with NestJS EventEmitter" width="85%" />
 </p>
 
 ---
