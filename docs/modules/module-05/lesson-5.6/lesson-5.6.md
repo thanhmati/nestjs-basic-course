@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Gửi Email Với @nestjs/mail Trong NestJS" width="100%" />
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Gửi Email Với @nestjs/mail Trong NestJS" width="85%" />
 </p>
 
 ---
@@ -74,7 +74,7 @@ Hãy nhìn vào trải nghiệm đăng ký của các nền tảng lớn:
 Tất cả đều gửi email **ngay sau khi user đăng ký thành công**. Đây không phải tính năng "nice-to-have" — đây là **tiêu chuẩn của ứng dụng production**.
 
 <p align="center">
-  <img src="./assets/email_notification_mockup.png" alt="Email Notification Mockup — Email Gửi Tới Người Dùng Trong Môi Trường Thực Tế" width="95%" />
+  <img src="./assets/email_notification_mockup.png" alt="Email Notification Mockup — Email Gửi Tới Người Dùng Trong Môi Trường Thực Tế" width="85%" />
 </p>
 
 ### 🎯 Mục Tiêu Bài Học
