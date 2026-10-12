@@ -56,7 +56,7 @@ Cách tiếp cận này dẫn tới **3 vấn đề kiến trúc nghiêm trọng
    Nhiệm vụ của Gateway là điều phối sự kiện thời gian thực (Real-time Event Dispatcher), không phải là nơi gánh vác logic kiểm tra phân quyền truy cập.
 
 <p align="center">
-  <img src="./assets/websocket_security_tunnel.png" alt="WebSocket Security Tunnel" width="85%" />
+  <img src="./assets/websocket_auth_guard.png" alt="NestJS WebSocket Authentication Guard Architecture" width="85%" />
 </p>
 
 👉 **Giải pháp chuẩn mực của NestJS:** Sử dụng **Guards** chuyên biệt cho WebSockets (`WsJwtGuard`) kết hợp Passport.js.
