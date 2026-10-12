@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Production Email Transport in NestJS" width="100%" />
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Production Email Transport in NestJS" width="85%" />
 </p>
 
 ---
@@ -263,6 +263,10 @@ export class AppModule {}
 4. **Kiểm tra kết quả:**
    - Terminal log: `[UserMailHandler] ✅ Đã gửi Welcome Email thành công cho your_personal_email@gmail.com`
    - Mở hòm thư cá nhân: Nhận được email chào mừng đẹp mắt được bọc trong `layout.html` với thông tin cá nhân hóa!
+
+<p align="center">
+  <img src="./assets/production_email_inbox_mockup.png" alt="Welcome Email Received In Real Inbox via SMTP" width="85%" />
+</p>
 
 ---
 
