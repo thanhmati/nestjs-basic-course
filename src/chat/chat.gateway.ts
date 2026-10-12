@@ -11,8 +11,8 @@ import {
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
 import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
-import { CurrentWsUser } from './decorators/current-ws-user.decorator';
 import type { UserData } from '@/auth/interfaces/jwt.interface';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 
 @UseGuards(WsJwtGuard)
 @WebSocketGateway({
@@ -55,7 +55,7 @@ export class ChatGateway
   handleChatMessage(
     @MessageBody() payload: { content: string },
     @ConnectedSocket() client: Socket,
-    @CurrentWsUser() user: UserData,
+    @CurrentUser() user: UserData,
   ) {
     this.logger.log(`💬 Tin nhắn từ [${user.email}]: ${payload.content}`);
 

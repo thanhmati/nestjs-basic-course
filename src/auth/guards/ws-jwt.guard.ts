@@ -18,11 +18,7 @@ export class WsJwtGuard extends AuthGuard('jwt') {
   getRequest(context: ExecutionContext) {
     const client = context.switchToWs().getClient<Socket>();
     const auth = client.handshake?.auth as Record<string, unknown> | undefined;
-    const authHeader = client.handshake?.headers?.authorization;
-
-    const rawToken =
-      (typeof auth?.token === 'string' ? auth.token : undefined) ??
-      (typeof authHeader === 'string' ? authHeader : undefined);
+    const rawToken = typeof auth?.token === 'string' ? auth.token : undefined;
 
     const token =
       rawToken && !rawToken.startsWith('Bearer ')
