@@ -9,6 +9,10 @@
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
+<p align="center">
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner — Hoàn Thiện Bộ REST API Full-Stack Cho Frontend" width="85%" />
+</p>
+
 ---
 
 > [!NOTE]
@@ -64,6 +68,10 @@ Tuy nhiên, khi chuẩn bị **ghép nối với một giao diện Frontend (Rea
 ```
 
 👉 **Giải pháp:** Trong bài học này, chúng ta sẽ hoàn thiện 100% các mảnh ghép REST API còn thiếu, chuẩn hóa dữ liệu trả về và mở CORS để hệ thống sẵn sàng tuyệt đối cho việc tích hợp giao diện người dùng.
+
+<p align="center">
+  <img src="./assets/fullstack_chat_ui_mockup.png" alt="Full-Stack Chat Application UI Mockup — Trải Nghiệm Người Dùng Tích Hợp Giữa REST API & WebSockets" width="85%" />
+</p>
 
 ---
 
