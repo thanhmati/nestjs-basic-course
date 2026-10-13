@@ -41,12 +41,12 @@ import { ChatModule } from './chat/chat.module';
       {
         name: 'medium',
         ttl: 10000,
-        limit: 20,
+        limit: 200,
       },
       {
         name: 'long',
         ttl: 60000,
-        limit: 100,
+        limit: 1000,
       },
     ]),
     EventEmitterModule.forRoot({
