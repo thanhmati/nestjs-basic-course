@@ -10,13 +10,24 @@ import { CHAT_ROOM } from './constants/chat.constant';
 import { SendMessageDto } from './dto/send-message.dto';
 
 export interface ChatBroadcastPayload {
+  id: number;
   messageId: number | null;
   senderId: number;
+  receiverId?: number | null;
   senderEmail: string;
   senderName: string;
   content: string;
-  roomId: string;
+  roomId?: string | null;
   createdAt: string;
+  sender?: {
+    id: number;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    profile?: {
+      avatarUrl?: string | null;
+    } | null;
+  };
 }
 
 export interface UserRoomEventPayload {
@@ -66,16 +77,43 @@ export class ChatService {
       );
     }
 
+    const senderUser =
+      savedMessage?.sender ??
+      (await this.prisma.user.findUnique({
+        where: { id: sender.userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: { select: { avatarUrl: true } },
+        },
+      }));
+
+    const resolvedId = savedMessage?.id || Date.now();
+    const resolvedName = senderUser?.name || sender.email;
+    const resolvedAvatar = senderUser?.profile?.avatarUrl || null;
+
     const broadcastPayload: ChatBroadcastPayload = {
-      messageId: savedMessage?.id || null,
+      id: resolvedId,
+      messageId: savedMessage?.id || resolvedId,
       senderId: sender.userId,
+      receiverId: dto.receiverId || null,
       senderEmail: sender.email,
-      senderName: savedMessage?.sender?.name || sender.email,
+      senderName: resolvedName,
       content: dto.content,
-      roomId: targetRoom,
+      roomId: dto.roomId || null,
       createdAt: savedMessage?.createdAt
         ? savedMessage.createdAt.toISOString()
         : new Date().toISOString(),
+      sender: {
+        id: sender.userId,
+        name: resolvedName,
+        email: sender.email,
+        avatarUrl: resolvedAvatar,
+        profile: {
+          avatarUrl: resolvedAvatar,
+        },
+      },
     };
 
     return {

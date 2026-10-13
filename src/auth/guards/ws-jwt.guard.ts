@@ -50,6 +50,11 @@ export class WsJwtGuard extends AuthGuard('jwt') {
     const client = context.switchToWs().getClient<AuthenticatedSocket>();
     client.data.user = user as unknown as UserData;
 
+    // Tự động gia nhập userRoom cho socket client ngay khi Guard xác thực thành công
+    if (client.data.user?.userId) {
+      void client.join(`user:${client.data.user.userId}`);
+    }
+
     return user;
   }
 }
