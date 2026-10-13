@@ -86,7 +86,7 @@ Ném HttpException (401 Unauthorized)              Ném WsException ('Unauthoriz
 Thay vì viết Guard từ con số 0, chúng ta chỉ cần **kế thừa lớp `AuthGuard('jwt')`** của Passport và override 2 phương thức:
 
 1. **`getRequest(context)`:** Lấy `client` từ `context.switchToWs().getClient<Socket>()`, sau đó đóng gói token từ `client.handshake.auth?.token` thành đối tượng `{ headers: { authorization: 'Bearer ...' } }` mà Passport mong đợi.
-2. **`handleRequest(err, user, info, context)`:** Nếu có lỗi hoặc không có `user`, ném **`WsException`**; nếu hợp lệ, gán `client.data.user = user`.
+2. **`handleRequest(err, user, info, context)`:** Nếu có lỗi hoặc không có `user`, ném **`WsException`**; nếu hợp lệ, gán `client.data.user = user` và tự động cho client gia nhập `userRoom` cá nhân (`user:{userId}`) để sẵn sàng nhận tin nhắn & thông báo tức thời.
 
 ```mermaid
 sequenceDiagram
@@ -196,6 +196,11 @@ export class WsJwtGuard extends AuthGuard('jwt') {
     // 3. Gắn thông tin User vào client.data để các handlers khác tái sử dụng
     const client = context.switchToWs().getClient<AuthenticatedSocket>();
     client.data.user = user as unknown as UserData;
+
+    // 4. Tự động gia nhập userRoom cho socket client ngay khi Guard xác thực thành công
+    if (client.data.user?.userId) {
+      void client.join(`user:${client.data.user.userId}`);
+    }
 
     return user;
   }
