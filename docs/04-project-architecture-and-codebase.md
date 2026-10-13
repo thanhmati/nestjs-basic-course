@@ -312,20 +312,26 @@ sequenceDiagram
 
 ## 7. ⚡ Phân Hệ WebSockets & Chat Thời Gian Thực
 
-### 7.1 Cấu Hình Gateway (`src/chat/chat.gateway.ts`)
+### 7.1 Cấu Hình Gateway & Security (`src/chat/chat.gateway.ts`, `src/auth/guards/ws-jwt.guard.ts`)
 
 - **Decorator:** `@WebSocketGateway({ namespace: '/chat', cors: { origin: '*' } })`
 - **Security:** `@UseGuards(WsJwtGuard)`
-  - Guard trích xuất Bearer token từ `client.handshake.auth.token` (hoặc header).
+  - Guard trích xuất Bearer token từ `client.handshake.auth.token` (hoặc `headers.authorization`).
   - Tự động gán thông tin `UserData` vào `client.data.user`.
-  - Sử dụng custom param decorator `@CurrentUser()` ngay trong message handler của WebSocket.
-- **Lifecycle Hooks:**
-  - `afterInit(server: Namespace)`: Log trạng thái gateway sẵn sàng.
-  - `handleConnection(client: Socket)`: Log kết nối socket client.
-  - `handleDisconnect(client: Socket)`: Log ngắt kết nối.
+  - **Tự động Join User Room:** Ngay trong `handleRequest()`, guard thực thi `void client.join(\`user:${client.data.user.userId}\`)`. Cơ chế này loại bỏ hoàn toàn việc phải verify token trùng lặp trong `handleConnection()`, đồng thời đảm bảo socket client luôn lập tức tham gia phòng cá nhân khi reconnect/refresh trang.
+  - Hỗ trợ custom param decorator `@CurrentUser()` ngay trong message handler của WebSocket.
+- **Quản lý Hằng Số:** Toàn bộ event (`CHAT_EVENTS`) và room prefix (`CHAT_ROOM`) được quản lý tập trung trong `src/chat/constants/chat.constant.ts`.
 - **Message Handlers:**
-  - `@SubscribeMessage('ping')`: Trả về `'pong'`.
-  - `@SubscribeMessage('chat_message')`: Nhận payload `{ content: string }`, đính kèm metadata người gửi từ `@CurrentUser()`, broadcast sự kiện `'new_message'` cho toàn namespace.
+  - `@SubscribeMessage(CHAT_EVENTS.PING)`: Heartbeat check, trả về `'pong'`.
+  - `@SubscribeMessage(CHAT_EVENTS.SUBSCRIBE_NOTIFICATIONS)`: Đăng ký phòng thông báo cá nhân (`user:${userId}`).
+  - `@SubscribeMessage(CHAT_EVENTS.JOIN_ROOM)` & `LEAVE_ROOM`: Quản lý tham gia / rời phòng chat nhóm và thông báo cho các thành viên còn lại.
+  - `@SubscribeMessage(CHAT_EVENTS.SEND_ROOM_MESSAGE)`:
+    - **Chat nhóm:** Broadcast sự kiện `CHAT_EVENTS.NEW_ROOM_MESSAGE` tới `targetRoom`.
+    - **Chat 1-1 (có `receiverId`):** Broadcast đồng thời tới cả 2 phòng người nhận và người gửi `[receiverUserRoom, senderUserRoom]`.
+    - **Payload chuẩn hóa (`ChatBroadcastPayload`):** Đảm bảo có `id`, `receiverId`, `roomId`, và object `sender` (bao gồm `profile: { avatarUrl }`) tương thích hoàn toàn với frontend.
+  - `@SubscribeMessage(CHAT_EVENTS.GET_HISTORY)`: Lấy lịch sử hội thoại từ database qua `ChatService`.
+- **Inter-Module Communication:**
+  - `sendNotificationToUser(userId, payload)`: Cung cấp method public cho `NotificationsService` đẩy thông báo realtime tới phòng `user:${userId}`.
 
 ---
 

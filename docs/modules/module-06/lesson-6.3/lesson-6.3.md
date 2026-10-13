@@ -295,13 +295,24 @@ import { CHAT_ROOM } from './constants/chat.constant';
 import { SendMessageDto } from './dto/send-message.dto';
 
 export interface ChatBroadcastPayload {
+  id: number;
   messageId: number | null;
   senderId: number;
+  receiverId?: number | null;
   senderEmail: string;
   senderName: string;
   content: string;
-  roomId: string;
+  roomId?: string | null;
   createdAt: string;
+  sender?: {
+    id: number;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    profile?: {
+      avatarUrl?: string | null;
+    } | null;
+  };
 }
 
 export interface UserRoomEventPayload {
@@ -359,17 +370,45 @@ export class ChatService {
       );
     }
 
-    // 3. Đóng gói payload broadcast chuẩn hóa
+    // 3. Lấy thông tin hồ sơ của người gửi để đính kèm Avatar và Tên hiển thị (Dùng ?? để short-circuit không query thừa khi chat 1-1)
+    const senderUser =
+      savedMessage?.sender ??
+      (await this.prisma.user.findUnique({
+        where: { id: sender.userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: { select: { avatarUrl: true } },
+        },
+      }));
+
+    const resolvedId = savedMessage?.id || Date.now();
+    const resolvedName = senderUser?.name || sender.email;
+    const resolvedAvatar = senderUser?.profile?.avatarUrl || null;
+
+    // 4. Đóng gói payload broadcast chuẩn hóa đồng bộ với Frontend
     const broadcastPayload: ChatBroadcastPayload = {
-      messageId: savedMessage?.id || null,
+      id: resolvedId,
+      messageId: savedMessage?.id || resolvedId,
       senderId: sender.userId,
+      receiverId: dto.receiverId || null,
       senderEmail: sender.email,
-      senderName: savedMessage?.sender?.name || sender.email,
+      senderName: resolvedName,
       content: dto.content,
-      roomId: targetRoom,
+      roomId: dto.roomId || null,
       createdAt: savedMessage?.createdAt
         ? savedMessage.createdAt.toISOString()
         : new Date().toISOString(),
+      sender: {
+        id: sender.userId,
+        name: resolvedName,
+        email: sender.email,
+        avatarUrl: resolvedAvatar,
+        profile: {
+          avatarUrl: resolvedAvatar,
+        },
+      },
     };
 
     return {
@@ -616,24 +655,28 @@ export class ChatGateway
   @SubscribeMessage(CHAT_EVENTS.SEND_ROOM_MESSAGE)
   async handleSendRoomMessage(
     @MessageBody() dto: SendMessageDto,
-    @ConnectedSocket() client: Socket,
     @CurrentUser() user: UserData,
   ) {
     // Ủy quyền toàn bộ nghiệp vụ xử lý tin nhắn & lưu DB cho Service
     const { targetRoom, broadcastPayload } =
       await this.chatService.processRoomMessage(user, dto);
 
-    // Nếu là chat 1-1, đảm bảo người gửi đã join room cuộc trò chuyện
-    if (dto.receiverId) {
-      await client.join(targetRoom);
-    }
+    // Socket.io hỗ trợ to(string | string[]): 1-1 thì phát tán 2 user room, nhóm thì phát tán targetRoom
+    const targetRooms = dto.receiverId
+      ? [
+          `${CHAT_ROOM.USER_PREFIX}${dto.receiverId}`,
+          `${CHAT_ROOM.USER_PREFIX}${user.userId}`,
+        ]
+      : targetRoom;
 
-    // Phát tán gói tin ĐỘC QUYỀN vào targetRoom
     this.server
-      .to(targetRoom)
+      .to(targetRooms)
       .emit(CHAT_EVENTS.NEW_ROOM_MESSAGE, broadcastPayload);
+
     this.logger.log(
-      `💬 [Room: ${targetRoom}] Tin nhắn từ [${user.email}]: ${dto.content}`,
+      dto.receiverId
+        ? `💬 [Direct Chat] [${user.email}] (#${user.userId}) -> User #${dto.receiverId}: ${dto.content}`
+        : `💬 [Room: ${targetRoom}] [${user.email}]: ${dto.content}`,
     );
 
     return {

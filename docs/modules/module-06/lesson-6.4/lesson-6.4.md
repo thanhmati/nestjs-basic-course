@@ -344,21 +344,27 @@ export class ChatGateway
   @SubscribeMessage(CHAT_EVENTS.SEND_ROOM_MESSAGE)
   async handleSendRoomMessage(
     @MessageBody() dto: SendMessageDto,
-    @ConnectedSocket() client: Socket,
     @CurrentUser() user: UserData,
   ) {
     const { targetRoom, broadcastPayload } =
       await this.chatService.processRoomMessage(user, dto);
 
-    if (dto.receiverId) {
-      await client.join(targetRoom);
-    }
+    // Socket.io hỗ trợ to(string | string[]): 1-1 thì phát tán 2 user room, nhóm thì phát tán targetRoom
+    const targetRooms = dto.receiverId
+      ? [
+          `${CHAT_ROOM.USER_PREFIX}${dto.receiverId}`,
+          `${CHAT_ROOM.USER_PREFIX}${user.userId}`,
+        ]
+      : targetRoom;
 
     this.server
-      .to(targetRoom)
+      .to(targetRooms)
       .emit(CHAT_EVENTS.NEW_ROOM_MESSAGE, broadcastPayload);
+
     this.logger.log(
-      `💬 [Room: ${targetRoom}] Tin nhắn từ [${user.email}]: ${dto.content}`,
+      dto.receiverId
+        ? `💬 [Direct Chat] [${user.email}] (#${user.userId}) -> User #${dto.receiverId}: ${dto.content}`
+        : `💬 [Room: ${targetRoom}] [${user.email}]: ${dto.content}`,
     );
 
     return {
