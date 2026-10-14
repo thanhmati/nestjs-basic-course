@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { QueryPostDto } from './dto/query-post.dto';
 
 @Injectable()
 export class PostsService {
@@ -68,5 +69,57 @@ export class PostsService {
     await this.prisma.post.delete({ where: { id } });
 
     return { id };
+  }
+
+  async findAllCursor(query: QueryPostDto) {
+    const { cursor, search, take = 10 } = query;
+
+    const items = await this.prisma.post.findMany({
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      take: take + 1,
+      orderBy: { id: 'desc' },
+      where: {
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { content: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        published: true,
+        content: true,
+        createdAt: true,
+        author: {
+          select: { id: true, email: true, name: true },
+        },
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
+    });
+
+    let hasNextPage = false;
+    if (items.length > take) {
+      hasNextPage = true;
+      items.pop();
+    }
+
+    const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
+
+    return {
+      items,
+      meta: {
+        take,
+        nextCursor,
+        hasNextPage,
+      },
+    };
   }
 }

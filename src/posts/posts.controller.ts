@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
@@ -15,6 +16,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Public } from '@/shared/decorators/public.decorator';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { QueryPostDto } from './dto/query-post.dto';
 
 @Controller('posts')
 export class PostsController {
@@ -30,6 +32,16 @@ export class PostsController {
     @Body() createPostDto: CreatePostDto,
   ) {
     return this.postsService.create(userId, createPostDto);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Lấy Newsfeed bài viết (Cursor-based Pagination)',
+  })
+  @Get('feed')
+  @ResponseMessage('Lấy newsfeed cuộn vô tận thành công!')
+  findAllCursor(@Query() query: QueryPostDto) {
+    return this.postsService.findAllCursor(query);
   }
 
   @Public()
