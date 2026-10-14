@@ -1,99 +1,153 @@
-# Lesson 5.3: File Upload — Upload Ảnh Đại Diện / Bài Viết Với Multer Trong NestJS
+# Lesson 5.3: File Upload — Hướng Dẫn Tải Lên & Lưu Trữ Tệp Tin Trong NestJS
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-Framework-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" />
   <img src="https://img.shields.io/badge/Multer-File_Upload-38BDF8?style=for-the-badge&logo=express&logoColor=white" alt="Multer" />
-  <img src="https://img.shields.io/badge/Security-Strict_Validation-10B981?style=for-the-badge&logo=auth0&logoColor=white" alt="Security Validation" />
-  <img src="https://img.shields.io/badge/OpenAPI-Multipart_Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" alt="Swagger Multipart" />
-  <img src="https://img.shields.io/badge/Static_Assets-Express_Serve-A855F7?style=for-the-badge&logo=fastapi&logoColor=white" alt="Static Assets" />
+  <img src="https://img.shields.io/badge/DiskStorage-Local_Storage-10B981?style=for-the-badge&logo=node.js&logoColor=white" alt="Disk Storage" />
+  <img src="https://img.shields.io/badge/Static_Assets-Express_Serve-F59E0B?style=for-the-badge&logo=fastapi&logoColor=white" alt="Static Assets" />
   <img src="https://img.shields.io/badge/pnpm-Package_Manager-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </p>
 
 <p align="center">
-  <img src="./assets/lesson_overview_banner.svg" alt="Lesson Overview Banner" width="100%" />
+  <img src="./assets/lesson_overview_banner.png" alt="Lesson Overview Banner" width="100%" />
 </p>
 
 ---
 
 > [!NOTE]
-> ⏱️ **Thời lượng:** 12 – 15 phút thực chiến  
-> 🎯 **Mục tiêu:** Nắm vững luồng upload tệp tin đa phương tiện (`multipart/form-data`) trong NestJS; thiết lập lá chắn bảo mật chống mã độc & tràn đĩa; tích hợp giao diện chọn file tương tác trên Swagger UI; hiện thực hóa 2 tính năng thực tế: **Đổi avatar tài khoản** (kèm cơ chế dọn dẹp file cũ) và **Upload album ảnh bài viết**.
+> ⏱️ **Thời lượng dự kiến:** 12 – 15 phút thực chiến  
+> 🎯 **Mục tiêu bài học:**
+>
+> - Giải thích được vì sao **không nên truyền file dưới dạng Base64 qua JSON** và tại sao chuẩn công nghiệp bắt buộc sử dụng **`multipart/form-data`**.
+> - So sánh ưu nhược điểm của **3 chiến lược lưu trữ file** phổ biến: Local Disk (`diskStorage`), In-Memory (`memoryStorage`), và Cloud Storage (S3 / R2).
+> - Hiểu cách thức NestJS tiếp nhận tệp tin từ Client thông qua **Multer** (`FileInterceptor` & `@UploadedFile()`).
+> - Biết cách lưu trữ tệp tin vào ổ đĩa máy chủ (`diskStorage`) với tên file ngẫu nhiên an toàn, tránh bị ghi đè.
+> - Biết cách kiểm tra tệp tin cơ bản (dung lượng tối đa 2MB, định dạng ảnh hợp lệ) bằng `ParseFilePipeBuilder`.
+> - Kích hoạt cấu hình phục vụ tệp tĩnh trong NestJS (`app.useStaticAssets`) để người dùng có thể xem ảnh trực tiếp qua đường dẫn URL.
+> - Áp dụng vào dự án thực tế: Xây dựng API **Upload ảnh đại diện (Avatar)** cho người dùng và lưu đường dẫn vào CSDL.
 
 ---
 
-## 1. Trực Quan Hóa Bài Toán & Ma Trận Rủi Ro An Ninh Mạng
+## 1. Đặt Vấn Đề: Upload File & Tại Sao Không Dùng Base64
 
-### 📱 Sản Phẩm Thực Tế Chúng Ta Sẽ Xây Dựng
+### 1.1 Trải Nghiệm Người Dùng Thực Tế
 
-Trước khi đi vào code, hãy cùng nhìn vào giao diện người dùng thực tế mà bộ API này sẽ phục vụ:
+Trong hầu hết các ứng dụng web và di động (như mạng xã hội, chat app), việc cho phép người dùng tải lên hình ảnh là tính năng cơ bản:
+
+- Đổi ảnh đại diện cá nhân (Avatar).
+- Đăng tải hình ảnh đính kèm bài viết.
 
 <p align="center">
   <img src="./assets/file_upload_ui_mockup.jpg" alt="Social App Media Upload UI Mockup" width="95%" />
 </p>
 
-- 👤 **Modal đổi Avatar:** Cho phép kéo-thả ảnh, giới hạn tối đa **2MB** (chỉ chấp nhận JPG/PNG/WEBP), cập nhật tức thì ảnh đại diện cá nhân.
-- 📝 **Modal tạo Bài Viết:** Đính kèm đồng thời nhiều ảnh album (**tối đa 5 ảnh**, mỗi ảnh tối đa 5MB) với thanh tiến trình tải lên.
-
 ---
 
-### 🔥 Góc Thực Chiến: 4 "Tai Nạn Kinh Hoàng" Khi Xử Lý File Upload
+### 1.2 Tại Sao Không Truyền File Dưới Dạng Base64 Qua JSON?
 
-> [!CAUTION]
->
-> 1. **Thảm họa ghi đè file (`avatar.png`):** Dùng trực tiếp tên file gốc của user. Khi User B tải lên ảnh tên `avatar.png`, toàn bộ avatar của User A trước đó bị ghi đè!
-> 2. **Lỗ hổng Path Traversal (`../../`):** Hacker gửi tên file `../../main.ts`. Server lưu đè và phá hủy toàn bộ mã nguồn khởi động hệ thống.
-> 3. **Tấn công DoS dung lượng:** Không chặn size, kẻ xấu gửi file nén rác 10GB liên tục làm tê liệt RAM và đầy ổ đĩa server.
-> 4. **Ngụy tạo định dạng (MIME Spoofing):** Đổi tên file mã độc `shell.php` thành `shell.jpg` hòng qua mặt bộ lọc sơ sài.
+Khi mới làm quen với phát triển Web API, nhiều bạn thường đặt câu hỏi:
 
----
+> _"Tại sao chúng ta không mã hóa file ảnh thành chuỗi Base64 (`data:image/png;base64,iVBORw0KGgo...`) rồi gửi kèm trong body JSON như bình thường, vừa tiện lợi vừa không cần cấu hình thêm thư viện?"_
 
-## 2. Kiến Trúc Request Pipeline & So Sánh Nơi Lưu Trữ
-
-### 🧩 Kiến Trúc Luồng Xử Lý Dữ Liệu Trong NestJS
-
-Dưới đây là sơ đồ chi tiết hành trình của một file ảnh từ khi rời khỏi thiết bị Client cho đến khi an tọa an toàn trong thư mục máy chủ và CSDL PostgreSQL:
+Hãy quan sát bức tranh so sánh kiến trúc dưới đây để thấy sự khác biệt mang tính sống còn giữa hai cách tiếp cận:
 
 <p align="center">
-  <img src="./assets/multipart_pipeline_architecture.svg" alt="NestJS Multipart Request Pipeline Architecture" width="100%" />
+  <img src="./assets/base64_vs_multipart.png" alt="File Upload Architecture: Base64 in JSON vs Multipart Stream" width="95%" />
 </p>
 
+Mặc dù Base64 có thể chạy được với những icon siêu nhỏ (< 20KB), nhưng trong kỹ thuật backend, đây là một **anti-pattern rất nguy hiểm** bởi 3 nguyên nhân cốt lõi:
+
+- 📈 **1. Phình to dung lượng mạng (~33% Overhead):**  
+  Thuật toán Base64 biến mỗi 3 bytes nhị phân thành 4 ký tự ASCII. Một bức ảnh gốc **10MB** khi chuyển sang Base64 sẽ phình to thành **~13.3MB**. Băng thông mạng và thời gian chờ đợi của người dùng bị lãng phí nghiêm trọng.
+- 💥 **2. Nghẽn Event Loop & Quá tải CPU / RAM (Memory Spikes):**  
+  Node.js là môi trường đơn luồng (Single-threaded). Để xử lý chuỗi Base64 hàng chục triệu ký tự, V8 Engine phải cấp phát RAM lớn để giữ chuỗi text, sau đó dùng CPU để decode ngược về Binary Buffer. Khi có 30–50 người dùng cùng upload ảnh một lúc, Event Loop sẽ bị đóng băng, Garbage Collector quá tải và làm đứng toàn bộ các request API khác của hệ thống!
+- 🌊 **3. Mất khả năng truyền theo luồng (No Streaming Support):**  
+  Với JSON, máy chủ **bắt buộc phải nhận đủ 100% toàn bộ chuỗi text** thì mới parse được. Trong khi đó, với `multipart/form-data`, dữ liệu nhị phân được chia nhỏ thành từng khối (chunks) và stream trực tiếp xuống ổ cứng, máy chủ không cần giữ toàn bộ file trong bộ nhớ RAM cùng một lúc.
+
+> [!IMPORTANT]
+> **Kết luận kiến trúc:**  
+> Chuẩn công nghiệp (RFC 7578) luôn sử dụng định dạng **`multipart/form-data`** để gửi file nhị phân. Dữ liệu được truyền dưới dạng luồng (Stream) nguyên bản, giữ nguyên dung lượng gốc và giải phóng hoàn toàn gánh nặng cho bộ nhớ RAM của máy chủ.
+
 ---
 
-### ⚖️ So Sánh 3 Chiến Lược Lưu Trữ File
+## 2. Các Chiến Lược Lưu Trữ File Trong Backend (Storage Strategies)
 
-| Tiêu chí       | 🏠 1. Local Disk (`diskStorage`)                                            | 🧠 2. In-Memory (`memoryStorage`)                           | ☁️ 3. Cloud Storage (S3/Cloudinary)                                                    |
-| :------------- | :-------------------------------------------------------------------------- | :---------------------------------------------------------- | :------------------------------------------------------------------------------------- |
-| **Vị trí lưu** | Thư mục cục bộ (`./uploads/`)                                               | Tạm thời trong RAM (`file.buffer`)                          | Máy chủ đám mây chuyên dụng qua CDN                                                    |
-| **Ưu điểm**    | ⚡ Cực kỳ đơn giản, không tốn tiền, không cần config bên thứ 3.             | Tiện xử lý ảnh nhanh (crop, resize, watermark với `sharp`). | 🚀 Vô hạn dung lượng, tải siêu tốc, hỗ trợ hệ thống nhiều cụm server (Multi-instance). |
-| **Nhược điểm** | ⚠️ Không đồng bộ khi chạy nhiều container Docker (Server nào biết file đó). | 💥 Dễ gây tràn RAM (OOM) nếu nhiều user upload cùng lúc.    | Cần thẻ tín dụng, setup SDK & quản lý access key bảo mật.                              |
-| **Ứng dụng**   | **Học tập, MVP, Server đơn lẻ (Monolith).**                                 | **Bước đệm xử lý ảnh trước khi đẩy lên S3.**                | **Môi trường Production thực tế quy mô lớn.**                                          |
+Sau khi nhận file từ Client, hệ thống Backend cần đưa ra quyết định: **File này sẽ được lưu ở đâu?**
+
+Dưới đây là bức tranh toàn cảnh 3 chiến lược lưu trữ file phổ biến nhất trong kỹ thuật phần mềm:
+
+<p align="center">
+  <img src="./assets/file_storage_strategies.png" alt="3 File Storage Strategies: Local Disk vs In-Memory vs Cloud Object Storage" width="95%" />
+</p>
+
+Hãy cùng phân tích ưu nhược điểm và ứng dụng thực tế của từng phương án:
+
+### 🏠 Option 1: Lưu trữ Ổ Đĩa Cục Bộ (Local Disk Storage — `diskStorage`)
+
+- **Cơ chế:** Server nhận các chunk nhị phân và ghi thẳng vào ổ cứng vật lý (`./uploads/avatars/...`).
+- **Ưu điểm:** ⚡ Đơn giản nhất, hoàn toàn miễn phí, không phụ thuộc dịch vụ bên thứ ba, RAM tiêu thụ gần như bằng 0 bất kể file lớn tới đâu.
+- **Nhược điểm:** File nằm cục bộ trên một máy chủ duy nhất. Nếu hệ thống mở rộng chạy nhiều container Docker (Multi-instance), các container sẽ không thấy file của nhau (trừ khi cấu hình Shared Network Volume).
+- **Phù hợp:** **Môi trường học tập, MVP, ứng dụng Monolith và dự án Capstone của chúng ta.**
+
+### 🧠 Option 2: Lưu trữ Bộ Nhớ Tạm (In-Memory Storage — `memoryStorage`)
+
+- **Cơ chế:** Toàn bộ file được nạp tạm thời vào bộ nhớ RAM của tiến trình Node.js dưới dạng `file.buffer`.
+- **Ưu điểm:** 🚀 Tốc độ truy xuất và xử lý cực nhanh (micro-seconds); hoàn hảo để kết hợp với thư viện xử lý ảnh (crop, resize, watermark với `sharp`) trước khi chuyển tiếp.
+- **Nhược điểm:** 💥 **Cực kỳ nguy hiểm nếu không giới hạn dung lượng:** Mỗi upload sẽ ngốn một lượng RAM tương ứng. Nhiều user upload cùng lúc sẽ kích hoạt lỗi sập máy chủ Out-Of-Memory (OOM Crash).
+- **Phù hợp:** File rất nhỏ (< 500KB) hoặc đóng vai trò **bước đệm xử lý ảnh** trong RAM trước khi đẩy lên đám mây.
+
+### ☁️ Option 3: Lưu trữ Đám Mây (Cloud Object Storage — S3 / Cloudflare R2)
+
+- **Cơ chế:** Server đóng vai trò trung chuyển, stream trực tiếp dữ liệu lên dịch vụ lưu trữ đối tượng đám mây (như AWS S3, Google Cloud Storage, Cloudflare R2) và phân phối qua CDN toàn cầu.
+- **Ưu điểm:** 🌐 Dung lượng vô hạn, độ bền dữ liệu 99.999999999%, tốc độ tải cực nhanh qua CDN, hỗ trợ hàng triệu container cùng truy cập mà không lo đồng bộ ổ đĩa.
+- **Nhược điểm:** 💳 Cần tài khoản thẻ tín dụng quốc tế, chi phí lưu trữ/băng thông và phải cài đặt cấu hình AWS SDK phức tạp hơn.
+- **Phù hợp:** **Môi trường Production thực tế quy mô doanh nghiệp.**
 
 ---
 
-## 3. Hướng Dẫn Thực Hành Step-by-Step
+### 💡 Bảng So Sánh Quyết Định Thiết Kế
 
-### 📂 Cấu Trúc Mã Nguồn Triển Khai
+| Tiêu Chí             | 🏠 1. Local Disk (`diskStorage`)                       | 🧠 2. In-Memory (`memoryStorage`)                          | ☁️ 3. Cloud Storage (AWS S3 / Cloudflare R2)            |
+| :------------------- | :----------------------------------------------------- | :--------------------------------------------------------- | :------------------------------------------------------ |
+| **Vị trí lưu**       | Lưu trực tiếp vào ổ đĩa cứng của server (`./uploads/`) | Lưu tạm thời trong RAM của Node.js process (`file.buffer`) | Lưu trên các dịch vụ Object Storage đám mây chuyên dụng |
+| **Mức tiêu hao RAM** | 🟢 Cực thấp (Dữ liệu ghi thẳng xuống đĩa)              | 🔴 Rất cao (Mỗi file chiếm dung lượng tương ứng trong RAM) | 🟡 Vừa phải (Chỉ đệm luồng stream trước khi đẩy lên S3) |
+| **Độ phức tạp**      | 🟢 Cực kỳ đơn giản, không cần cấu hình bên ngoài       | 🟢 Tích hợp sẵn trong Multer                               | 🔴 Cần tài khoản AWS, API Keys, Buckets & SDK           |
+| **Khả năng mở rộng** | 🟡 Giới hạn trên một máy chủ vật lý / volume           | 🔴 Không lưu trữ lâu dài                                   | 🟢 Vô hạn quy mô (High Scalability + Global CDN)        |
+| **Quyết định chọn**  | 🏆 **Lựa chọn cho bài học thực chiến này!**            | Bước đệm khi cần xử lý ảnh với `sharp`                     | Mục tiêu nâng cấp khi lên Production                    |
 
+> [!TIP]
+> **Quyết định thiết kế trong khóa học:**  
+> Chúng ta lựa chọn chiến lược **Local Disk (`diskStorage`)** — giải pháp kinh điển, an toàn tuyệt đối cho bộ nhớ RAM của máy chủ và dễ dàng tích hợp ngay trong đồ án thực chiến trước khi tiến tới các bài học Cloud Deployment ở Module nâng cao.
+
+---
+
+## 3. Cách Upload & Lưu Trữ File Trong NestJS Hoạt Động Như Thế Nào?
+
+NestJS tích hợp sẵn **Multer** — thư viện xử lý `multipart/form-data` tiêu chuẩn của Node.js/Express thông qua package `@nestjs/platform-express`.
+
+Quy trình xử lý file trong NestJS gồm 4 bước ngắn gọn:
+
+```mermaid
+flowchart LR
+    Client([Client gửi file\nmultipart/form-data]) --> Interceptor[FileInterceptor\nBắt trường 'avatar']
+    Interceptor --> Storage[diskStorage\nLưu file vào /uploads/avatars]
+    Storage --> Pipe[ParseFilePipe\nKiểm tra < 2MB & đúng loại ảnh]
+    Pipe --> Controller[Controller nhận file\nLưu URL vào CSDL]
+    Controller --> Response([Trả về URL ảnh tĩnh\ncho Client])
 ```
-src/
-├── shared/
-│   ├── decorators/
-│   │   └── api-file.decorator.ts       👈 Decorator Composition (Swagger + Multer Interceptor)
-│   ├── pipes/
-│   │   └── image-validation.pipe.ts    👈 Reusable Pipe Factory (Dung lượng + Định dạng)
-│   └── helpers/
-│       └── multer.helper.ts            👈 DiskStorage an toàn & Dọn dẹp rác file cũ
-├── users/
-│   ├── users.controller.ts             👈 Controller siêu sạch (chỉ 5 dòng code)
-│   └── users.service.ts                👈 Cập nhật Profile.avatarUrl & tự xóa file cũ
-├── posts/
-│   └── posts.controller.ts             👈 Upload Album đa tệp với @ApiImagesUpload
-└── main.ts                             👈 Kích hoạt Static Assets (/uploads)
-```
+
+1. **`FileInterceptor('avatar', { storage })`**: Đứng trước Route Handler, lắng nghe trường `avatar` trong form gửi lên và tiến hành lưu file theo cấu hình `storage`.
+2. **`diskStorage`**: Chỉ định thư mục lưu trữ (`destination`) và cách đặt tên file (`filename`).
+3. **`ParseFilePipe`**: Bộ lọc tự động từ chối nếu file quá nặng hoặc không phải ảnh.
+4. **`@UploadedFile()`**: Decorator giúp bạn lấy thông tin file (tên file, kích thước, đường dẫn) trong hàm xử lý.
 
 ---
 
-### 📌 Bước 1: Cài Đặt Type Definitions Cho Multer
+## 4. Thực Hành Từng Bước (Step-by-Step)
+
+### 📌 Bước 1: Cài đặt Type Definitions cho Multer
+
+Multer đã có sẵn bên trong NestJS (`@nestjs/platform-express`), bạn chỉ cần cài đặt thêm gói kiểu dữ liệu TypeScript cho trình biên dịch hiểu kiểu `Express.Multer.File`:
 
 ```bash
 pnpm add -D @types/multer
@@ -101,333 +155,201 @@ pnpm add -D @types/multer
 
 ---
 
-### 📌 Bước 2: Xây Dựng Helper Cấu Hình Multer & Dọn Rác File Cũ
+### 📌 Bước 2: Cấu hình nơi lưu trữ file với `diskStorage`
 
-Tệp helper này đảm nhiệm 3 nhiệm vụ quan trọng:
+Khi lưu file vào máy chủ, chúng ta cần đảm bảo:
 
-1. Tự động kiểm tra và tạo thư mục lưu trữ nếu chưa có.
-2. Sinh tên tệp ngẫu nhiên kết hợp UUIDv4 chống ghi đè và triệt tiêu lỗi **Path Traversal**.
-3. Cung cấp hàm **`deleteUploadedFile`** giúp dọn dẹp file cũ khi người dùng thay ảnh đại diện, tránh rác ổ cứng.
+- Thư mục lưu trữ tự động được tạo nếu chưa tồn tại.
+- Tên file phải là **duy nhất** (kết hợp `Date.now()` và UUID ngẫu nhiên) để tránh trường hợp hai người dùng upload cùng một tên file (ví dụ `avatar.png`) làm đè mất file của nhau.
 
-📄 **`src/shared/helpers/multer.helper.ts`**
+Tạo tệp helper gọn nhẹ 📄 **`src/shared/helpers/multer.helper.ts`**:
 
 ```typescript
-import { BadRequestException, Logger } from '@nestjs/common';
 import { diskStorage } from 'multer';
-import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import type { Request } from 'express';
-
-const logger = new Logger('MulterHelper');
 
 /**
- * 1. DiskStorage Factory: Tự động tạo thư mục và sinh tên tệp UUID an toàn
+ * Cấu hình lưu file vào ổ đĩa cục bộ
+ * @param subFolder Tên thư mục con bên trong 'uploads' (ví dụ: 'avatars', 'posts')
  */
-export const createMulterDiskStorage = (subFolder: string) => {
-  const destinationPath = join(process.cwd(), 'uploads', subFolder);
+export const saveImageToDisk = (subFolder: string) => {
+  const uploadPath = join(process.cwd(), 'uploads', subFolder);
 
   return diskStorage({
+    // 1. Chỉ định thư mục lưu file
     destination: (req, file, cb) => {
-      if (!existsSync(destinationPath)) {
-        mkdirSync(destinationPath, { recursive: true });
+      if (!existsSync(uploadPath)) {
+        mkdirSync(uploadPath, { recursive: true });
       }
-      cb(null, destinationPath);
+      cb(null, uploadPath);
     },
+    // 2. Đặt tên file ngẫu nhiên an toàn: [timestamp]-[uuid].[ext]
     filename: (req, file, cb) => {
-      // Làm sạch extension gốc (ví dụ: .JPG -> .jpg)
-      const fileExtension = extname(file.originalname).toLowerCase();
-      // Sinh tên file: [folder]-[timestamp]-[uuid].[ext]
-      const uniqueName = `${subFolder}-${Date.now()}-${randomUUID()}${fileExtension}`;
+      const ext = extname(file.originalname).toLowerCase();
+      const uniqueName = `${Date.now()}-${randomUUID()}${ext}`;
       cb(null, uniqueName);
     },
   });
 };
-
-export const ALLOWED_IMAGE_TYPES: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-};
-
-/**
- * 2. File Filter: Kiểm tra đuôi file và tự động chuẩn hóa mimetype
- */
-export const imageFileFilter = (
-  req: Request,
-  file: Express.Multer.File,
-  cb: (error: Error | null, acceptFile: boolean) => void,
-) => {
-  const ext = extname(file.originalname).toLowerCase();
-  const mimeType = ALLOWED_IMAGE_TYPES[ext];
-
-  if (!mimeType) {
-    return cb(
-      new BadRequestException(
-        `Chỉ chấp nhận file ảnh: ${Object.keys(ALLOWED_IMAGE_TYPES).join(', ')}`,
-      ),
-      false,
-    );
-  }
-
-  // Tự động gán đúng MIME chuẩn dựa vào extension đã qua kiểm duyệt
-  file.mimetype = mimeType;
-  cb(null, true);
-};
-
-/**
- * 3. File Cleanup Helper: Xóa file vật lý trên ổ đĩa một cách an toàn
- * @param relativePath Đường dẫn tương đối dạng '/uploads/avatars/abc.png'
- */
-export const deleteUploadedFile = (relativePath?: string | null) => {
-  if (!relativePath) return;
-
-  try {
-    // Loại bỏ dấu gạch chéo đầu nếu có để ghép path chuẩn
-    const sanitizedPath = relativePath.startsWith('/')
-      ? relativePath.slice(1)
-      : relativePath;
-    const fullPath = join(process.cwd(), sanitizedPath);
-
-    if (existsSync(fullPath)) {
-      unlinkSync(fullPath);
-      logger.log(`🗑️ Đã xóa file cũ: ${sanitizedPath}`);
-    }
-  } catch (error) {
-    logger.warn(`⚠️ Không thể xóa file: ${relativePath}`, error);
-  }
-};
 ```
 
 ---
 
-### 📌 Bước 3: Tạo Reusable Pipe Factory Cho Kiểm Tra File Ảnh
+### 📌 Bước 3: Cập nhật Service để lưu đường dẫn Avatar vào CSDL
 
-Thay vì phải gõ chuỗi `new ParseFilePipeBuilder().addFileTypeValidator(...).addMaxSizeValidator(...).build()` ở mọi controller, chúng ta tạo một hàm Factory tái sử dụng linh hoạt:
-
-Tạo tệp 📄 **`src/shared/pipes/image-validation.pipe.ts`**:
+Mở tệp 📄 **`src/users/users.service.ts`**, bổ sung hàm cập nhật `avatarUrl` cho người dùng vào bảng `Profile`:
 
 ```typescript
-import { HttpStatus, ParseFilePipeBuilder } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { PrismaService } from '@/prisma/prisma.service';
+import { HashService } from '@/shared/services/hash.service';
 
-interface ImageValidationOptions {
-  maxSizeInMb?: number; // Dung lượng tối đa (mặc định 2MB)
-  required?: boolean; // Bắt buộc phải có file hay không (mặc định true)
+export interface User {
+  id: number;
+  name: string;
+  email: string;
 }
-
-/**
- * Factory tạo Pipe kiểm duyệt file ảnh tái sử dụng toàn dự án
- */
-export const createImageValidationPipe = (options?: ImageValidationOptions) => {
-  const maxSizeInMb = options?.maxSizeInMb ?? 2;
-  const isRequired = options?.required ?? true;
-
-  return new ParseFilePipeBuilder()
-    .addFileTypeValidator({
-      fileType: /(jpg|jpeg|png|webp)$/i,
-      fallbackToMimetype: true, // Hỗ trợ diskStorage khi file.buffer không lưu trong RAM
-    })
-    .addMaxSizeValidator({
-      maxSize: maxSizeInMb * 1024 * 1024,
-      message: `Dung lượng ảnh không được vượt quá ${maxSizeInMb}MB!`,
-    })
-    .build({
-      errorHttpStatusCode: HttpStatus.BAD_REQUEST,
-      fileIsRequired: isRequired,
-    });
-};
-```
-
----
-
-### 📌 Bước 4: Xây Dựng Custom Decorators Với `applyDecorators`
-
-Áp dụng kỹ thuật Decorator Composition đã học từ **Lesson 3.5**, chúng ta gộp toàn bộ các cấu hình sau vào **01 Custom Decorator duy nhất**:
-
-1. `@UseInterceptors(FileInterceptor(...))` hoặc `@UseInterceptors(FilesInterceptor(...))`
-2. `@ApiConsumes('multipart/form-data')`
-3. `@ApiBody(...)` với Schema nhị phân tương thích Swagger UI
-
-Tạo tệp 📄 **`src/shared/decorators/api-file.decorator.ts`**:
-
-```typescript
-import { applyDecorators, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
-import {
-  createMulterDiskStorage,
-  imageFileFilter,
-} from '../helpers/multer.config';
-
-interface SingleFileUploadOptions {
-  folder: string; // Thư mục con lưu trữ (ví dụ: 'avatars', 'banners')
-  description?: string;
-}
-
-interface MultipleFilesUploadOptions {
-  folder: string; // Thư mục con lưu trữ (ví dụ: 'posts')
-  maxCount?: number; // Số lượng file tối đa (mặc định 5)
-  description?: string;
-}
-
-/**
- * Decorator tải lên 01 file ảnh: Tự động cấu hình Multer Interceptor & Swagger Form
- */
-export const ApiImageUpload = (
-  fieldName: string = 'file',
-  options: SingleFileUploadOptions,
-) => {
-  return applyDecorators(
-    UseInterceptors(
-      FileInterceptor(fieldName, {
-        storage: createMulterDiskStorage(options.folder),
-        fileFilter: imageFileFilter,
-      }),
-    ),
-    ApiConsumes('multipart/form-data'),
-    ApiBody({
-      description: options.description ?? 'Chọn file ảnh để tải lên',
-      schema: {
-        type: 'object',
-        properties: {
-          [fieldName]: {
-            type: 'string',
-            format: 'binary',
-          },
-        },
-        required: [fieldName],
-      },
-    }),
-  );
-};
-
-/**
- * Decorator tải lên nhiều file ảnh cùng lúc: Tự động cấu hình FilesInterceptor & Swagger Form
- */
-export const ApiImagesUpload = (
-  fieldName: string = 'files',
-  options: MultipleFilesUploadOptions,
-) => {
-  const maxCount = options.maxCount ?? 5;
-
-  return applyDecorators(
-    UseInterceptors(
-      FilesInterceptor(fieldName, maxCount, {
-        storage: createMulterDiskStorage(options.folder),
-        fileFilter: imageFileFilter,
-      }),
-    ),
-    ApiConsumes('multipart/form-data'),
-    ApiBody({
-      description:
-        options.description ?? `Chọn danh sách ảnh (tối đa ${maxCount} file)`,
-      schema: {
-        type: 'object',
-        properties: {
-          [fieldName]: {
-            type: 'array',
-            items: {
-              type: 'string',
-              format: 'binary',
-            },
-          },
-        },
-        required: [fieldName],
-      },
-    }),
-  );
-};
-```
-
----
-
-### 📌 Bước 5: Triển Khai API Upload Avatar Người Dùng (`UsersModule`)
-
-Hãy quan sát xem `UsersController` và `UsersService` trở nên sạch đẹp và mạnh mẽ như thế nào khi áp dụng bộ công cụ Reusable trên!
-
-Cập nhật tệp 📄 **`src/users/users.service.ts`**:
-
-```typescript
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { deleteUploadedFile } from '../shared/helpers/multer.config';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly hashService: HashService,
+  ) {}
+
+  // ... các hàm findAll(), create() giữ nguyên ...
 
   /**
-   * Cập nhật ảnh đại diện người dùng và tự động xóa bỏ ảnh cũ
+   * Lưu đường dẫn ảnh đại diện vào CSDL PostgreSQL (bảng profiles)
    */
-  async updateAvatar(userId: number, newAvatarUrl: string) {
-    // 1. Tìm bản ghi Profile hiện tại của User
-    const existingProfile = await this.prisma.profile.findUnique({
-      where: { userId },
-    });
-
-    // 2. Nếu đã có avatar trước đó, xóa bỏ file ảnh cũ trên đĩa cứng để tránh rác!
-    if (existingProfile?.avatarUrl) {
-      deleteUploadedFile(existingProfile.avatarUrl);
-    }
-
-    // 3. Cập nhật đường dẫn avatar mới vào CSDL
+  async updateAvatar(userId: number, avatarUrl: string) {
     const updatedProfile = await this.prisma.profile.upsert({
       where: { userId },
       create: {
         userId,
-        avatarUrl: newAvatarUrl,
+        avatarUrl,
       },
       update: {
-        avatarUrl: newAvatarUrl,
+        avatarUrl,
       },
     });
 
-    return {
-      userId,
-      avatarUrl: updatedProfile.avatarUrl,
-    };
+    return updatedProfile;
   }
 }
 ```
 
-Cập nhật tệp 📄 **`src/users/users.controller.ts`**:
+---
+
+### 📌 Bước 4: Viết API Upload Avatar trong Controller
+
+Mở tệp 📄 **`src/users/users.controller.ts`**, thêm route `POST /users/avatar`:
 
 ```typescript
-import { Controller, Post, UploadedFile } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  ParseFilePipeBuilder,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
-import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
-import { ApiImageUpload } from 'src/shared/decorators/api-file.decorator';
-import { createImageValidationPipe } from 'src/shared/pipes/image-validation.pipe';
+import { CreateUserDto } from './dto/create-user.dto';
+import { type UserData } from '@/auth/interfaces/jwt.interface';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { Roles } from '@/shared/decorators/roles.decorator';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
+import { Role } from '@/generated/prisma/enums';
+import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { saveImageToDisk } from '@/shared/helpers/multer.helper';
 
-@ApiTags('users')
 @Controller('users')
+@ApiTags('Users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get()
+  @Roles(Role.ADMIN)
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @Post()
+  createUser(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
+  }
+
+  @Get('profile')
+  getProfile(@CurrentUser() userData: UserData) {
+    return {
+      message: 'Xác thực tài khoản thành công qua NativeAuthGuard!',
+      user: userData,
+    };
+  }
+
+  /**
+   * API Upload ảnh đại diện cá nhân
+   */
   @Post('avatar')
   @ApiOperation({ summary: 'Upload và cập nhật ảnh đại diện cá nhân' })
-  @ApiImageUpload('avatar', {
-    folder: 'avatars',
-    description: 'File ảnh đại diện (JPG, PNG, WEBP - Tối đa 2MB)',
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: {
+          type: 'string',
+          format: 'binary',
+          description: 'Chọn file ảnh đại diện (Tối đa 2MB)',
+        },
+      },
+      required: ['avatar'],
+    },
   })
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: saveImageToDisk('avatars'), // Lưu file vào /uploads/avatars
+    }),
+  )
   @ResponseMessage('Cập nhật ảnh đại diện thành công!')
   async uploadAvatar(
     @CurrentUser('userId') userId: number,
-    @UploadedFile(createImageValidationPipe({ maxSizeInMb: 2 }))
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        // Chỉ chấp nhận các định dạng ảnh phổ biến
+        .addFileTypeValidator({
+          fileType: /(jpg|jpeg|png|webp)$/i,
+        })
+        // Giới hạn dung lượng tối đa 2MB
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024,
+          message: 'Dung lượng ảnh không được vượt quá 2MB!',
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.BAD_REQUEST,
+          fileIsRequired: true,
+        }),
+    )
     file: Express.Multer.File,
   ) {
+    // Tạo đường dẫn tĩnh để xem ảnh
     const avatarUrl = `/uploads/avatars/${file.filename}`;
-    const result = await this.usersService.updateAvatar(userId, avatarUrl);
+
+    // Lưu vào CSDL
+    await this.usersService.updateAvatar(userId, avatarUrl);
 
     return {
       filename: file.filename,
       size: `${(file.size / 1024).toFixed(1)} KB`,
       mimetype: file.mimetype,
-      url: result.avatarUrl,
+      url: avatarUrl,
     };
   }
 }
@@ -435,230 +357,189 @@ export class UsersController {
 
 ---
 
-### 📌 Bước 6: Triển Khai API Upload Album Ảnh Bài Viết (`PostsModule`)
+### 📌 Bước 5: Cấu hình xem ảnh tĩnh qua URL trong `main.ts`
 
-📄 **`src/posts/posts.controller.ts`**
+Mặc định, NestJS chỉ xử lý các request API JSON. Nếu muốn truy cập trực tiếp file tĩnh qua trình duyệt (ví dụ: `http://localhost:3000/uploads/avatars/ten-file.png`), chúng ta cần kích hoạt tính năng **Static Assets**.
 
-```typescript
-import { Controller, Post, UploadedFiles } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResponseMessage } from 'src/shared/decorators/response-message.decorator';
-import { ApiImagesUpload } from 'src/shared/decorators/api-file.decorator';
-import { createImageValidationPipe } from 'src/shared/pipes/image-validation.pipe';
-
-@ApiTags('posts')
-@Controller('posts')
-export class PostsController {
-  @Post('upload-images')
-  @ApiOperation({
-    summary: 'Upload danh sách ảnh đính kèm bài viết (Tối đa 5 ảnh)',
-  })
-  @ApiImagesUpload('images', {
-    folder: 'posts',
-    maxCount: 5,
-    description: 'Chọn danh sách ảnh bài viết (Tối đa 5 file, mỗi file <= 5MB)',
-  })
-  @ResponseMessage('Tải lên danh sách ảnh bài viết thành công!')
-  uploadPostImages(
-    @UploadedFiles(createImageValidationPipe({ maxSizeInMb: 5 }))
-    files: Express.Multer.File[],
-  ) {
-    const uploadedList = files.map((file) => ({
-      originalName: file.originalname,
-      filename: file.filename,
-      size: `${(file.size / 1024).toFixed(1)} KB`,
-      url: `/uploads/posts/${file.filename}`,
-    }));
-
-    return {
-      total: uploadedList.length,
-      items: uploadedList,
-    };
-  }
-}
-```
-
----
-
-### 📌 Bước 7: Kích Hoạt Phục Vụ Tệp Tĩnh Trong `main.ts`
-
-📄 **`src/main.ts`**
+Mở tệp 📄 **`src/main.ts`**:
 
 ```typescript
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
 
 async function bootstrap() {
-  // 💡 Ép kiểu sang NestExpressApplication để truy cập các hàm static của Express
+  // 💡 Ép kiểu NestExpressApplication để dùng hàm useStaticAssets
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const configService = app.get(ConfigService);
 
-  // Cấu hình phục vụ thư mục tĩnh 'uploads'
+  const port = configService.get<number>('PORT', 3000);
+  const globalPrefix = configService.get<string>('GLOBAL_PREFIX', 'api');
+  const versionPrefix = configService.get<string>('VERSION_PREFIX', 'v');
+  const versionApi = configService.get<string>('VERSION_API', '1');
+
+  app.setGlobalPrefix(globalPrefix);
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: versionApi,
+    prefix: versionPrefix,
+  });
+
+  // 📂 Phục vụ thư mục 'uploads' ra ngoài thông qua tiền tố '/uploads/'
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
 
-  // ... các cấu hình pipes, swagger, listen giữ nguyên
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
+  const config = new DocumentBuilder()
+    .setTitle('Social Chat App API')
+    .setDescription(
+      'Hệ thống REST API cho ứng dụng Mạng xã hội & Chat Realtime',
+    )
+    .setVersion(versionApi)
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Nhập JWT Access Token của bạn vào đây',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .addSecurityRequirements('JWT-auth')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup(`${globalPrefix}/docs`, app, document, {
+    jsonDocumentUrl: `${globalPrefix}/docs-json`,
+    yamlDocumentUrl: `${globalPrefix}/docs-yaml`,
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
+
+  await app.listen(port);
+
+  Logger.log(
+    `🚀 Server đang chạy tại: http://localhost:${port}/${globalPrefix}/${versionPrefix}${versionApi}`,
+  );
+  Logger.log(`📚 Swagger UI: http://localhost:${port}/${globalPrefix}/docs`);
+  Logger.log(`🖼️ Link xem file tĩnh: http://localhost:${port}/uploads/`);
 }
 void bootstrap();
 ```
 
 ---
 
-## 4. Kịch Bản Kiểm Tra & Thử Nghiệm (Hands-on Lab)
+## 5. Kiểm Tra Hoạt Động (Verify)
 
-### 🟢 Kịch Bản 1: Upload Avatar Hợp Lệ & Tự Dọn Rác File Cũ
+### Cách 1: Sử dụng Swagger UI (Trực quan nhất)
 
-#### Bước 1: Gửi Request Upload Avatar Lần 1
+1. Khởi động server:
+   ```bash
+   pnpm start:dev
+   ```
+2. Mở trình duyệt vào trang tài liệu API: **`http://localhost:3000/api/docs`**
+3. Bấm nút **Authorize 🔒** ở góc phải và dán JWT Token của bạn vào.
+4. Tìm đến endpoint **`POST /api/v1/users/avatar`** ➔ bấm **Try it out**.
+5. Bạn sẽ thấy ô **Choose File** (hoặc Duyệt tệp). Chọn một tấm ảnh `.png` hoặc `.jpg` bất kỳ (dung lượng < 2MB).
+6. Bấm **Execute**.
 
-```bash
-curl -X POST http://localhost:3000/api/v1/users/avatar \
-  -H "Authorization: Bearer <TOKEN_CỦA_BẠN>" \
-  -F "avatar=@/path/to/avatar-1.png"
-```
-
-**Phản hồi thành công (HTTP 201 Created):**
+**Kết quả trả về thành công (HTTP 201):**
 
 ```json
 {
   "statusCode": 201,
-  "message": "Cập nhật ảnh đại diện thành công!",
   "data": {
-    "filename": "avatars-1725785000000-7a8f9b2c.png",
-    "size": "512.4 KB",
+    "filename": "1728954000000-4b2a8d1e-92c1-4b11.png",
+    "size": "345.2 KB",
     "mimetype": "image/png",
-    "url": "/uploads/avatars/avatars-1725785000000-7a8f9b2c.png"
-  }
+    "url": "/uploads/avatars/1728954000000-4b2a8d1e-92c1-4b11.png"
+  },
+  "message": "Cập nhật ảnh đại diện thành công!"
 }
 ```
 
-#### Bước 2: Upload Avatar Lần 2 (Kiểm tra cơ chế dọn rác)
-
-Tải tiếp file `avatar-2.png`. Quan sát Terminal backend, bạn sẽ thấy log tự động:  
-`[MulterHelper] 🗑️ Đã xóa file cũ: uploads/avatars/avatars-1725785000000-7a8f9b2c.png`  
-👉 **Ổ đĩa máy chủ luôn sạch sẽ, không bị tích tụ file rác của các avatar cũ!**
+7. Mở một tab mới trên trình duyệt và dán link ảnh:  
+   `http://localhost:3000/uploads/avatars/1728954000000-4b2a8d1e-92c1-4b11.png`  
+   👉 Ảnh của bạn sẽ hiển thị ngay lập tức!
 
 ---
 
-### 🔴 Kịch Bản 2: Kiểm Thử Chặn Đứng 3 Mối Đe Dọa An Ninh
-
-#### 1. Chặn file quá khổ (> 2MB):
+### Cách 2: Sử dụng lệnh cURL trong Terminal
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/users/avatar \
-  -H "Authorization: Bearer <TOKEN>" \
-  -F "avatar=@/path/to/video-nang-15mb.mp4"
-```
-
-```json
-{
-  "statusCode": 400,
-  "message": "Dung lượng ảnh không được vượt quá 2MB!",
-  "error": "Bad Request"
-}
+  -H "Authorization: Bearer <TOKEN_CỦA_BẠN>" \
+  -F "avatar=@/duong-dan-toi-anh/my-avatar.png"
 ```
 
 ---
 
-#### 2. Chặn file script độc hại (`.sh`, `.php`, `.exe`):
+### Thử nghiệm tình huống lỗi (Error Validation):
 
-```bash
-curl -X POST http://localhost:3000/api/v1/users/avatar \
-  -H "Authorization: Bearer <TOKEN>" \
-  -F "avatar=@/path/to/malicious_exploit.sh"
-```
-
-```json
-{
-  "statusCode": 400,
-  "message": "Validation failed (expected type is /(jpg|jpeg|png|webp)$/i)",
-  "error": "Bad Request"
-}
-```
+1. **File quá 2MB:** Gửi một file ảnh nặng > 2MB ➔ Nhận ngay lỗi `400 Bad Request`:
+   ```json
+   {
+     "statusCode": 400,
+     "message": "Dung lượng ảnh không được vượt quá 2MB!",
+     "error": "Bad Request"
+   }
+   ```
+2. **Sai định dạng file:** Thử gửi file `.pdf` hoặc `.txt` ➔ Nhận ngay thông báo từ chối định dạng từ `FileTypeValidator`.
 
 ---
 
-#### 3. Chặn request không gửi kèm tệp tin:
+## 6. Những Lỗi Thường Gặp & Cách Khắc Phục (Common Mistakes)
 
-```bash
-curl -X POST http://localhost:3000/api/v1/users/avatar \
-  -H "Authorization: Bearer <TOKEN>"
-```
-
-```json
-{
-  "statusCode": 400,
-  "message": "File is required",
-  "error": "Bad Request"
-}
-```
+| Lỗi Gặp Phải                                                | Nguyên Nhân                                                                                                                                             | Cách Khắc Phục                                                                                         |
+| :---------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------- |
+| `Cannot find namespace 'Express'` hoặc lỗi type Multer      | Chưa cài đặt type definitions cho Multer.                                                                                                               | Chạy lệnh `pnpm add -D @types/multer`.                                                                 |
+| Gửi request nhưng bị báo lỗi `File is required`             | Tên field trong form gửi lên không khớp với tên khai báo trong code (ví dụ: client gửi key `image` nhưng backend khai báo `FileInterceptor('avatar')`). | Đảm bảo tên trường trong cURL / Postman / Swagger khớp 100% với tên trong `FileInterceptor('avatar')`. |
+| Upload thành công nhưng truy cập URL ảnh bị `404 Not Found` | Chưa khai báo `app.useStaticAssets()` trong `main.ts` hoặc sai đường dẫn thư mục `uploads`.                                                             | Bổ sung `app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' })` vào `main.ts`.  |
+| Hai người dùng tải ảnh trùng tên làm đè mất ảnh của nhau    | Dùng trực tiếp `file.originalname` để lưu file.                                                                                                         | Luôn đặt tên file ngẫu nhiên kết hợp `Date.now()` và UUID trong hàm `filename` của `diskStorage`.      |
 
 ---
 
-### 🖥️ Kịch Bản 3: Trải Nghiệm Thao Tác Trực Quan Trên Swagger UI
+## 7. Tổng Kết Bài Học & Checklist Ghi Nhớ
 
-Mở trình duyệt truy cập: **`http://localhost:3000/api/docs`**
+Trong bài này, bạn đã nắm vững bản chất và cách thức upload cũng như lưu trữ file trong NestJS:
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│  POST /api/v1/users/avatar           [Authorize 🔒]          │
-├──────────────────────────────────────────────────────────────┤
-│  Request Content-Type: multipart/form-data                   │
-│                                                              │
-│  avatar: [ Choose File ]  my-avatar.png                      │
-│                                                              │
-│  [ Execute ] 🚀                                              │
-├──────────────────────────────────────────────────────────────┤
-│  Response Code: 201 Created                                  │
-│  { "url": "/uploads/avatars/avatars-1725...png" }            │
-└──────────────────────────────────────────────────────────────┘
-```
+1. **Hiểu bản chất:** Tại sao không dùng Base64 qua JSON (tránh phình 33% dung lượng, quá tải RAM) mà luôn dùng `multipart/form-data`.
+2. **Nắm rõ chiến lược lưu trữ:** Phân biệt rõ Local Disk vs In-Memory vs Cloud Object Storage (S3/R2).
+3. **`FileInterceptor('tên_trường', { storage })`**: Bắt file gửi lên từ form `multipart/form-data`.
+4. **`diskStorage`**: Lưu file trực tiếp vào ổ đĩa máy chủ với tên ngẫu nhiên độc nhất.
+5. **`ParseFilePipeBuilder`**: Bộ lọc kiểm tra dung lượng và đuôi file ảnh tự động.
+6. **`app.useStaticAssets`**: Mở quyền truy cập file tĩnh qua đường dẫn HTTP URL.
 
-1. Bấm **Authorize 🔒**, dán JWT Token vào form.
-2. Tìm đến tag `users` ➔ chọn `POST /api/v1/users/avatar`.
-3. Bấm **Try it out** ➔ Nhờ decorator `@ApiImageUpload`, Swagger tự động nhận diện schema binary và hiển thị nút **Choose File**.
-4. Chọn một tấm ảnh bất kỳ và bấm **Execute** để kiểm tra kết quả tức thì!
+### ✅ Checklist Tự Đánh Giá:
+
+- [x] Giải thích được lý do không truyền file dưới dạng chuỗi Base64 trong JSON.
+- [x] Phân biệt được 3 chiến lược lưu trữ file phổ biến trong hệ thống backend.
+- [x] Cài đặt được package `@types/multer` bằng `pnpm`.
+- [x] Cấu hình được `diskStorage` để lưu file vào thư mục `uploads/avatars` với tên UUID an toàn.
+- [x] Áp dụng được `ParseFilePipeBuilder` để giới hạn dung lượng 2MB và chỉ cho phép file ảnh.
+- [x] Cấu hình được `app.useStaticAssets` trong `main.ts` để xem được ảnh qua trình duyệt.
+- [x] Lưu được đường dẫn `avatarUrl` vào CSDL PostgreSQL qua Prisma ORM.
 
 ---
 
-## 5. Tổng Kết Bài Học & Checklist Ghi Nhớ
-
-```mermaid
-mindmap
-  root((File Upload Multer))
-    Khai Niệm & Cơ Chế
-      Multipart Form Data
-      Boundary Chunks Parsing
-      DiskStorage vs MemoryStorage
-    Bảo Mật Cốt Lõi
-      Sanitize UUIDv4 Filename
-      Ngăn Chặn Path Traversal
-      Chống Mã Độc RCE
-      Khống Chế Ngưỡng Dung Lượng DoS
-    Thành Phần Tái Sử Dụng
-      Decorator Composition applyDecorators
-      ApiImageUpload Don Tep
-      ApiImagesUpload Da Tep
-      Pipe Factory createImageValidationPipe
-      File Cleanup deleteUploadedFile
-    Tích Hợp Toàn Diện
-      OpenAPI Binary Schema
-      Static Assets useStaticAssets
-      Prisma Profile avatarUrl
-```
-
-### ✅ Checklist Tự Đánh Giá Sau Bài Học:
-
-- [x] Hiểu rõ vì sao upload file bắt buộc dùng `multipart/form-data` thay vì JSON thông thường.
-- [x] Nắm vững 4 hiểm họa bảo mật lớn nhất khi upload file và cách phòng ngừa triệt để.
-- [x] Xây dựng được **Decorator Composition** (`@ApiImageUpload`, `@ApiImagesUpload`) kết hợp gọn gàng Multer Interceptor và OpenAPI Schema.
-- [x] Xây dựng được **Pipe Factory** (`createImageValidationPipe`) tái sử dụng ở mọi endpoint trong hệ thống.
-- [x] Triển khai được cơ chế tự dọn dẹp file cũ (`deleteUploadedFile`) khi người dùng thay đổi ảnh đại diện.
-- [x] Cấu hình `app.useStaticAssets()` để phục vụ ảnh công khai qua URL tĩnh.
-- [x] Đồng bộ dữ liệu ảnh đại diện trực tiếp vào CSDL PostgreSQL qua Prisma ORM.
-
----
-
-👈 **Bài trước:** [Lesson 5.2: Posts API — CRUD Bài Viết & Phân Trang Cursor/Offset Trong NestJS](../lesson-5.2/lesson-5.2.md)  
+👈 **Bài trước:** [Lesson 5.2: Posts API — CRUD Quản Lý Bài Viết & Phân Trang Cursor/Offset Tối Ưu Với Prisma](../lesson-5.2/lesson-5.2.md)  
 👉 **Bài tiếp theo:** [Lesson 5.4: Comments API — Thêm Bình Luận Dưới Bài Viết Trong NestJS](../lesson-5.4/lesson-5.4.md)
