@@ -1,11 +1,23 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  ParseFilePipeBuilder,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { type UserData } from '@/auth/interfaces/jwt.interface';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Roles } from '@/shared/decorators/roles.decorator';
 import { Role } from '@/generated/prisma/enums';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { saveImageToDisk } from '@/shared/helpers/multer.helper';
 
 @Controller('users')
 @ApiTags('Users')
@@ -28,6 +40,43 @@ export class UsersController {
     return {
       message: 'Xác thực tài khoản thành công qua NativeAuthGuard!',
       user: userData,
+    };
+  }
+
+  @Post('avatar')
+  @ApiOperation({ summary: 'Upload và cập nhật avatar' })
+  @ResponseMessage('Cập nhật ảnh đại diện thành công')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: saveImageToDisk('avatars'),
+    }),
+  )
+  async uploadAvatar(
+    @CurrentUser('userId') userId: number,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: /(jpg|jpeg|png|webp)$/i,
+          fallbackToMimetype: true,
+        })
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024,
+          errorMessage: 'Ảnh phải dưới 2 mb',
+        })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.BAD_REQUEST,
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const avatarUrl = `uploads/avatars/${file.filename}`;
+    await this.usersService.updateAvatar(userId, avatarUrl);
+    return {
+      filename: file.filename,
+      size: `${(file.size / 1024).toFixed(1)} KB`,
+      mimetype: file.mimetype,
+      url: avatarUrl,
     };
   }
 }

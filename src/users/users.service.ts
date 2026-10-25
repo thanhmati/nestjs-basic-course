@@ -49,4 +49,19 @@ export class UsersService {
 
     return createdUser;
   }
+
+  async updateAvatar(userId: number, avatarUrl: string) {
+    const updatedProfile = await this.prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        avatarUrl,
+      },
+      update: {
+        avatarUrl,
+      },
+    });
+
+    return updatedProfile;
+  }
 }
