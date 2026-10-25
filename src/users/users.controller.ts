@@ -2,8 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpStatus,
-  ParseFilePipeBuilder,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -18,6 +16,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { saveImageToDisk } from '@/shared/helpers/multer.helper';
+import { createImageValidationPipe } from '@/shared/pipes/image-validation.pipe';
 
 @Controller('users')
 @ApiTags('Users')
@@ -53,21 +52,7 @@ export class UsersController {
   )
   async uploadAvatar(
     @CurrentUser('userId') userId: number,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /(jpg|jpeg|png|webp)$/i,
-          fallbackToMimetype: true,
-        })
-        .addMaxSizeValidator({
-          maxSize: 2 * 1024 * 1024,
-          errorMessage: 'Ảnh phải dưới 2 mb',
-        })
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.BAD_REQUEST,
-        }),
-    )
+    @UploadedFile(createImageValidationPipe({ maxSizeInMb: 2 }))
     file: Express.Multer.File,
   ) {
     const avatarUrl = `uploads/avatars/${file.filename}`;
