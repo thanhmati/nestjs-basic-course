@@ -18,12 +18,20 @@ import { RolesGuard } from './auth/guards/roles-guard';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 import { CommentsModule } from './comments/comments.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       validationSchema: envValidationSchema,
       isGlobal: true,
+    }),
+    EventEmitterModule.forRoot({
+      wildcard: true,
+      delimiter: '.',
+      maxListeners: 20,
+      ignoreErrors: false,
     }),
     ThrottlerModule.forRoot([
       {
@@ -48,6 +56,7 @@ import { CommentsModule } from './comments/comments.module';
     PostsModule,
     AuthModule,
     CommentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

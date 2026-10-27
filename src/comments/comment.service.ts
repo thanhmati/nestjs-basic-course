@@ -7,10 +7,16 @@ import {
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { QueryCommentDto } from './dto/query-comment.dto';
 import { Role } from '@/generated/prisma/enums';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CommentCreatedEvent } from './events/comment-created.event';
+import { EVENT_NAME } from '@/shared/constants/event.constant';
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async create(postId: number, userId: number, body: CreateCommentDto) {
     const post = await this.prisma.post.findUnique({
@@ -21,7 +27,7 @@ export class CommentsService {
       throw new NotFoundException(`Không tìm thấy bài viết với ID #${postId}`);
     }
 
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: {
         content: body.content,
         authorId: userId,
@@ -42,6 +48,21 @@ export class CommentsService {
         },
       },
     });
+
+    this.eventEmitter.emit(
+      EVENT_NAME.COMMENT.CREATED,
+      new CommentCreatedEvent(
+        comment.id,
+        post.id,
+        post.title,
+        post.authorId,
+        comment.authorId,
+        comment.author?.name || 'Thành viên ẩn danh',
+        comment.content,
+      ),
+    );
+
+    return comment;
   }
 
   async findCommentsByPost(postId: number, query: QueryCommentDto) {
