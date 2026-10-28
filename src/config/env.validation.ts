@@ -15,4 +15,14 @@ export const envValidationSchema = Joi.object({
   GOOGLE_CLIENT_SECRET: Joi.string().required(),
   GOOGLE_CALLBACK_URL: Joi.string().required(),
   APP_URL: Joi.string().default('http://localhost:4200'),
+  MAIL_TRANSPORT: Joi.string().valid('file', 'smtp').default('file'),
+  MAIL_DIRECTORY: Joi.string().default('var/mail'),
+  MAIL_FROM: Joi.string().default(
+    'Social Chat App <noreply@socialchat.example.com>',
+  ),
+  SMTP_URL: Joi.string().when('MAIL_TRANSPORT', {
+    is: 'smtp',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
 });

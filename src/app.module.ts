@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -20,13 +20,10 @@ import { CustomThrottlerGuard } from './shared/guards/custom-throttler.guard';
 import { CommentsModule } from './comments/comments.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
-import {
-  FileMailTransport,
-  FileTemplateEngine,
-  MailModule,
-} from '@nestjs/mail';
+import { FileTemplateEngine, MailModule } from '@nestjs/mail';
 import { join } from 'path';
 import { AppMailModule } from './mail/mail.module';
+import { createMailTransport } from './mail/transports/mail-transport.factory';
 
 @Module({
   imports: [
@@ -57,15 +54,23 @@ import { AppMailModule } from './mail/mail.module';
         limit: 10000,
       },
     ]),
-    MailModule.forRoot({
-      transport: new FileMailTransport({ directory: 'var/mail' }),
-      templates: new FileTemplateEngine({
-        dir: join(__dirname, 'mail/templates'),
-        layout: 'layout',
-        cache: process.env.NODE_ENV === 'production',
+    MailModule.forRootAsync({
+      inject: [ConfigService],
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        transport: createMailTransport(configService),
+        templates: new FileTemplateEngine({
+          dir: join(__dirname, 'mail/templates'),
+          layout: 'layout',
+          cache: configService.get<string>('NODE_ENV') === 'production',
+        }),
+        from: configService.get<string>(
+          'MAIL_FROM',
+          'Social Chat App <noreply@socialchat.example.com>',
+        ),
       }),
-      from: 'Social Chat App <noreply@socialchat.example.com>',
     }),
+
     PrismaModule,
     SharedServiceModule,
     UsersModule,
