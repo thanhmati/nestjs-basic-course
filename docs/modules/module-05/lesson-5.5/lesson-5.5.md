@@ -240,13 +240,10 @@ src/
 │   └── comments.module.ts
 ├── notifications/                     👈 [MỚI] Module quản lý thông báo độc lập
 │   ├── dto/
-│   │   └── query-notification.dto.ts  👈 [MỚI] DTO phân trang & lọc isRead
+│   │   └── query-notification.dto.ts  👈 [MỚI] DTO phân trang thông báo
 │   ├── notifications.controller.ts    👈 [MỚI] API xem & đánh dấu đã đọc
 │   ├── notifications.service.ts       👈 [MỚI] Listener @OnEvent & CRUD Database
 │   └── notifications.module.ts        👈 [MỚI] Đóng gói NotificationsModule
-├── shared/
-│   └── decorators/
-│       └── to-boolean.decorator.ts    👈 [MỚI] Transform Query boolean chuẩn xác
 ├── app.module.ts                      👈 [CẬP NHẬT] Đăng ký EventEmitterModule.forRoot()
 └── main.ts
 ```
@@ -565,47 +562,7 @@ export class CommentsService {
 
 ---
 
-### 📌 Bước 5: Tạo Decorator Chuyển Đổi Kiểu Boolean An Toàn Cho Query Params
-
-Trong HTTP GET request, query parameters luôn được truyền dưới dạng chuỗi (`?isRead=false`). Khi sử dụng `class-transformer` với cấu hình chuyển đổi ngầm định, hàm ép kiểu mặc định của JavaScript `Boolean("false")` sẽ trả về `true`!  
-Để giải quyết triệt để lỗi này, chúng ta tạo một custom decorator chuyển đổi an toàn:
-
-📄 **`src/shared/decorators/to-boolean.decorator.ts`**
-
-```typescript
-import { Transform } from 'class-transformer';
-
-/**
- * Decorator chuyển đổi an toàn các chuỗi ký tự 'true'/'false' từ Query String
- * thành kiểu dữ liệu nguyên thủy boolean (true/false) trong TypeScript.
- */
-export function ToBoolean() {
-  return Transform(
-    ({
-      value,
-      obj,
-      key,
-    }: {
-      value: unknown;
-      obj?: Record<string, unknown>;
-      key?: string;
-    }) => {
-      const rawValue = obj && key ? obj[key] : value;
-      if (rawValue === 'true' || rawValue === true) {
-        return true;
-      }
-      if (rawValue === 'false' || rawValue === false) {
-        return false;
-      }
-      return rawValue;
-    },
-  );
-}
-```
-
----
-
-### 📌 Bước 6: Xây Dựng DTO Phân Trang & Lọc Thông Báo
+### 📌 Bước 5: Xây Dựng DTO Phân Trang Thông Báo
 
 Tạo thư mục `src/notifications/dto/` và tạo file `query-notification.dto.ts`:
 
@@ -614,8 +571,7 @@ Tạo thư mục `src/notifications/dto/` và tạo file `query-notification.dto
 ```typescript
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
-import { ToBoolean } from '@/shared/decorators/to-boolean.decorator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class QueryNotificationDto {
   @ApiPropertyOptional({
@@ -640,22 +596,12 @@ export class QueryNotificationDto {
   @Min(1, { message: 'Số lượng bản ghi tối thiểu là 1' })
   @Max(50, { message: 'Tối đa 50 thông báo trên một trang' })
   limit?: number = 10;
-
-  @ApiPropertyOptional({
-    description:
-      'Lọc thông báo theo trạng thái đã đọc (true: đã đọc, false: chưa đọc)',
-    example: false,
-  })
-  @IsOptional()
-  @ToBoolean()
-  @IsBoolean({ message: 'isRead phải là giá trị boolean (true hoặc false)' })
-  isRead?: boolean;
 }
 ```
 
 ---
 
-### 📌 Bước 7: Xây Dựng `NotificationsService` Với `@OnEvent`
+### 📌 Bước 6: Xây Dựng `NotificationsService` Với `@OnEvent`
 
 Service này đảm nhận hai trọng trách:
 
@@ -735,13 +681,10 @@ export class NotificationsService {
    * Lấy danh sách thông báo của người dùng hiện tại có phân trang và đếm số lượng chưa đọc
    */
   async getUserNotifications(userId: number, query: QueryNotificationDto) {
-    const { page = 1, limit = 10, isRead } = query;
+    const { page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.NotificationWhereInput = { userId };
-    if (typeof isRead === 'boolean') {
-      where.isRead = isRead;
-    }
 
     // Chạy song song truy vấn dữ liệu và đếm số lượng để tối ưu hiệu năng DB
     const [items, totalItems, unreadCount] = await Promise.all([
@@ -820,7 +763,7 @@ export class NotificationsService {
 
 ---
 
-### 📌 Bước 8: Xây Dựng `NotificationsController` Với Swagger & Guards
+### 📌 Bước 7: Xây Dựng `NotificationsController` Với Swagger & Guards
 
 Tạo file `src/notifications/notifications.controller.ts` để định nghĩa REST endpoints:
 
@@ -856,7 +799,7 @@ export class NotificationsController {
   @ApiOperation({
     summary: 'Lấy danh sách thông báo của người dùng đang đăng nhập',
     description:
-      'Hỗ trợ phân trang (page, limit) và lọc theo trạng thái đã đọc (isRead=true/false). Luôn tính toán số lượng thông báo chưa đọc (unreadCount).',
+      'Hỗ trợ phân trang (page, limit). Luôn tính toán số lượng thông báo chưa đọc (unreadCount).',
   })
   @ApiResponse({
     status: 200,
@@ -923,7 +866,7 @@ export class NotificationsController {
 
 ---
 
-### 📌 Bước 9: Đóng Gói `NotificationsModule`
+### 📌 Bước 8: Đóng Gói `NotificationsModule`
 
 Tạo file `src/notifications/notifications.module.ts`:
 
@@ -1110,7 +1053,7 @@ Mở trình duyệt truy cập: **`http://localhost:3000/api/docs`**
 
 1. Bấm **Authorize 🔒** ở góc trên bên phải và dán JWT Bearer Token của User A vào.
 2. Mở tag **`notifications`** ➔ Chọn endpoint `GET /api/v1/notifications`.
-3. Bấm **Try it out** ➔ Chọn filter `isRead = false` ➔ Bấm **Execute**.
+3. Bấm **Try it out** ➔ Nhập các tham số `page = 1`, `limit = 10` ➔ Bấm **Execute**.
 4. Toàn bộ danh sách thông báo và biến số `unreadCount` được hiển thị trực quan và chi tiết!
 
 ---
