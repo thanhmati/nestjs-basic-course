@@ -462,22 +462,97 @@ Chỉ hiển thị technology thực sự liên quan đến lesson.
 
 ---
 
-# 13. 🖼️ Hình Ảnh Minh Họa (Visuals)
+# 13. 🖼️ HÌNH ẢNH MINH HỌA (VISUALS)
 
-Hình ảnh minh họa phải phục vụ trực tiếp cho **nội dung bài học và trải nghiệm của học viên**, giúp trực quan hóa rõ ràng những gì người học cần thấy và hiểu.
+Hình ảnh phải phục vụ trực tiếp cho nội dung bài học và trải nghiệm học viên. Ưu tiên trực quan hóa các khái niệm, kiến trúc, luồng xử lý và giao diện thực tế giúp người học hiểu nhanh, nhớ lâu.
 
-### 13.1 Nguyên Tắc Cốt Lõi
+## 13.1. Nguyên Tắc Cốt Lõi
 
-- **Minh họa đúng cái người học cần:** Thể hiện trực quan giao diện ứng dụng thực tế (Modern clean Web/App UI mockup), bảng điều khiển tương tác, hoặc luồng dữ liệu kiến trúc trực quan, dễ hiểu.
-- **Tự nhiên & Hiện đại:** Phong cách thiết kế giao diện phẳng hoặc 3D tối giản (Clean modern UI, Minimalist tech illustration), màu sắc trang nhã, thân thiện, giống sản phẩm số thực tế.
-- **Tránh xa phong cách máy móc, viễn tưởng:** Tuyệt đối không nhồi nhét keyword cơ khí, phần cứng, bo mạch điện tử, ống dẫn phát sáng hoặc viễn tưởng (sci-fi/cyberpunk) gây cảm giác giả tạo và xa rời lập trình phần mềm.
-- **Prompt ngắn gọn, đúng trọng tâm:** Viết prompt súc tích, mô tả thẳng vào chủ thể thực tế của bài học (ví dụ: màn hình giao diện Chat đa phòng, giao diện tin nhắn người dùng, sơ đồ luồng dữ liệu phân tầng) thay vì nhồi nhét vật liệu công nghiệp.
+- **Content First:** Chọn hình ảnh dựa trên mục tiêu sư phạm và nội dung bài học, không tạo hình chỉ để trang trí.
+- **Correct Visual Representation:** Minh họa đúng bản chất kỹ thuật, quan hệ giữa các thành phần và luồng dữ liệu. Không bịa đặt kiến trúc, API, số liệu hoặc hành vi hệ thống.
+- **Appropriate Visual Type:** Tự chọn loại hình phù hợp với chủ đề: hand-drawn technical infographic, architecture diagram, flow diagram, UI mockup, dashboard, code illustration hoặc minimalist tech illustration.
+- **Consistent Visual Identity:** Ưu tiên phong cách Hand-drawn Technical Explainer / Sketchnote làm nhận diện mặc định cho hình ảnh giải thích kiến thức IT. Phong cách phải giống kỹ sư đang giải thích trên bảng trắng: tự nhiên, rõ ràng, thân thiện và có tính giáo dục.
+- **Realistic When Needed:** Với bài học về giao diện ứng dụng, công cụ hoặc sản phẩm cụ thể, ưu tiên UI mockup hiện đại, giao diện phẳng, sạch sẽ và gần với sản phẩm thực tế. Không ép mọi hình ảnh phải theo phong cách vẽ tay nếu điều đó làm giảm tính trực quan.
+- **Prompt Conciseness:** Viết prompt ngắn gọn, tập trung vào chủ thể, thông điệp và các thành phần thiết yếu. Tránh mô tả dài dòng hoặc nhồi nhét keyword không liên quan.
 
-### 13.2 Tiêu Chuẩn Kỹ Thuật
+## 13.2. Visual Style Guide
 
-- **Tỷ lệ:** 16:9 cho Lesson Overview Banner, hoặc 4:3 / 1:1 cho hình minh họa chi tiết.
-- **Định dạng:** Lưu dạng `.png` hoặc `.jpg` trong thư mục `assets/` của bài học.
-- **Text trong hình:** Không để AI vẽ các dòng code hoặc văn bản kỹ thuật dài vì dễ sai chính tả; hãy dùng Markdown và Mermaid cho nội dung kỹ thuật.
+Khi sử dụng phong cách Hand-drawn Technical Explainer / Sketchnote, tuân thủ các quy tắc sau:
+
+- **Background:** Nền trắng sạch, ít hoặc không có texture.
+- **Typography:** Tiêu đề viết tay bằng màu đen, tự nhiên và dễ đọc; chú thích ngắn gọn, phân cấp rõ ràng.
+- **Shapes:** Hình chữ nhật bo góc, node, card, mũi tên và đường viền có nét vẽ tay nhẹ, không hoàn hảo tuyệt đối nhưng vẫn rõ ràng.
+- **Color Palette:** Đen cho nội dung chính; vàng nhạt cho highlight; xám nhạt cho đường kết nối; cam cho event hoặc điểm tương tác; xanh lá cho trạng thái tích cực; xanh dương cho số liệu hoặc thông tin quan trọng.
+- **Composition:** Bố cục cân đối, có khoảng trắng, một thông điệp chính và hệ thống phân cấp thị giác rõ ràng.
+- **Illustration:** Flat 2D, tối giản, dễ hiểu. Dùng card, sơ đồ, node, icon và mũi tên để làm rõ nội dung.
+- **Color Restraint:** Dùng màu có chủ đích để phân nhóm và nhấn mạnh thông tin. Tránh sử dụng quá nhiều màu cạnh tranh sự chú ý.
+- **Consistency:** Các hình ảnh trong cùng bài học hoặc series phải giữ phong cách, bảng màu và cách trình bày nhất quán.
+
+## 13.3. Lựa Chọn Phong Cách Theo Nội Dung
+
+- **System Design / Architecture:** Dùng sơ đồ kiến trúc, node, component, connector và mũi tên để mô tả quan hệ giữa các thành phần.
+- **Data Flow / Event-Driven Architecture:** Minh họa producer, event, message broker, consumer và hướng di chuyển dữ liệu chính xác.
+- **Coding / Programming Concepts:** Dùng sơ đồ logic, minh họa luồng thực thi hoặc code panel ngắn. Không yêu cầu AI tạo các đoạn code dài.
+- **Technology Comparison:** Dùng các card đặt cạnh nhau, phân biệt bằng màu sắc và trình bày những đặc điểm quan trọng.
+- **UI / Frontend / App Development:** Dùng giao diện Web/App mockup hiện đại, dashboard, cửa sổ ứng dụng hoặc màn hình tương tác thực tế.
+- **Database / Networking / Infrastructure:** Ưu tiên sơ đồ thành phần, luồng request, kết nối và quan hệ dữ liệu; chỉ dùng hình ảnh phần cứng khi thực sự liên quan.
+- **Performance / Scalability:** Dùng biểu đồ, node, connection hoặc metric trực quan. Mọi số liệu phải có nguồn hoặc được cung cấp trong nội dung.
+- **Lesson Overview:** Dùng composition đơn giản, chủ thể rõ ràng và tỷ lệ ngang 16:9 khi phù hợp.
+
+## 13.4. Những Phong Cách Cần Tránh
+
+- Sci-fi, cyberpunk, neon glow hoặc giao diện viễn tưởng không liên quan đến nội dung.
+- Hình ảnh máy móc, bo mạch điện tử, dây dẫn phát sáng hoặc chi tiết công nghiệp được thêm vào chỉ để tạo cảm giác công nghệ.
+- 3D bóng bẩy, hiệu ứng vật liệu phức tạp hoặc trang trí quá mức làm giảm khả năng đọc hiểu.
+- Bố cục dày đặc, chữ quá nhỏ, quá nhiều card hoặc quá nhiều màu nhấn.
+- Mũi tên, connector hoặc biểu tượng làm sai lệch ý nghĩa kỹ thuật.
+- Logo giả, UI sai lệch rõ ràng so với sản phẩm được mô tả hoặc các chi tiết kỹ thuật do AI tự bịa.
+
+## 13.5. Tiêu Chuẩn Text Và Độ Chính Xác
+
+- Không yêu cầu AI vẽ code dài, đoạn văn dài, bảng dữ liệu phức tạp hoặc nhiều nhãn kỹ thuật.
+- Chỉ sử dụng text trong ảnh khi cần thiết, chẳng hạn tiêu đề ngắn, tên component hoặc một vài từ khóa.
+- Với code, cấu hình, thuật ngữ chính xác, dữ liệu có cấu trúc và nội dung cần kiểm chứng, hãy dựng bằng Markdown, Mermaid, HTML/SVG hoặc React/Remotion thay vì phụ thuộc vào chữ do AI tạo.
+- Không sử dụng hình ảnh AI làm nguồn xác thực cho kiến thức kỹ thuật.
+- Với logo thương hiệu hoặc giao diện sản phẩm cụ thể, ưu tiên asset chính thức hoặc component được dựng có kiểm soát.
+- Nếu chữ trong ảnh là thành phần không thể thiếu, kiểm tra chính tả, khả năng đọc và độ chính xác trước khi sử dụng.
+
+## 13.6. Tiêu Chuẩn Kỹ Thuật Và Lưu Trữ
+
+- **Aspect Ratio:** 16:9 cho Lesson Overview Banner và minh họa ngang; 4:3 hoặc 1:1 cho minh họa chi tiết; 9:16 cho hình được thiết kế riêng cho video Shorts.
+- **Format:** Ưu tiên PNG cho infographic, sơ đồ và hình có vùng màu phẳng; dùng JPG cho hình ảnh nhiều chi tiết hoặc mang tính chụp ảnh khi phù hợp.
+- **Location:** Lưu asset trong thư mục `assets/` của bài học, tuân theo cấu trúc thư mục hiện có.
+- **Naming:** Dùng tên file mô tả nội dung, dễ tìm kiếm và nhất quán với quy ước của project.
+- **Reusability:** Tái sử dụng asset phù hợp thay vì tạo nhiều hình gần như giống nhau.
+- **Verification:** Kiểm tra file thực tế, định dạng, tỷ lệ, chất lượng hiển thị và tính phù hợp với nội dung trước khi xác nhận hoàn thành.
+
+## 13.7. Quy Trình Tạo Hình
+
+1. Xác định kiến thức hoặc thông điệp mà hình ảnh cần truyền tải.
+2. Chọn loại hình và bố cục phù hợp nhất với nội dung.
+3. Tạo prompt mô tả chủ thể, các thành phần cần xuất hiện, quan hệ giữa chúng và phong cách hình ảnh.
+4. Tạo hình với nền, tỷ lệ và visual identity phù hợp.
+5. Kiểm tra tính chính xác, khả năng đọc, bố cục và các chi tiết không mong muốn.
+6. Lưu hình vào `assets/` và tích hợp vào bài học.
+7. Không tuyên bố asset đã được tạo, lưu hoặc tích hợp thành công nếu chưa xác minh kết quả thực tế.
+
+## 13.8. Universal Image Prompt
+
+Khi cần tạo hình minh họa bằng AI, sử dụng prompt chung sau và thay `[TOPIC]` bằng chủ đề cụ thể:
+
+"Create a clear educational visual about [TOPIC]. Choose the most appropriate visual representation for the subject, such as a hand-drawn technical infographic, architecture diagram, flow diagram, UI mockup, or minimalist technical illustration. Prefer a clean whiteboard sketchnote style with natural black handwritten outlines, soft yellow highlights, thin light-gray connectors, restrained orange, green, and blue accents, simple flat 2D shapes, and generous white space. Make the main concept immediately understandable, technically accurate, and readable on mobile screens. Use concise labels only when necessary. Avoid long text, code, fabricated technical details, unnecessary hardware imagery, sci-fi aesthetics, neon effects, excessive decoration, and clutter. Use the requested aspect ratio and maintain a consistent visual identity."
+
+## 13.9. Nguyên Tắc Ra Quyết Định
+
+Ưu tiên theo thứ tự:
+
+1. Độ chính xác của nội dung kỹ thuật.
+2. Khả năng giúp học viên hiểu bài.
+3. Khả năng đọc và nhận biết trên màn hình nhỏ.
+4. Tính nhất quán của visual identity.
+5. Tính thẩm mỹ và trang trí.
+
+Mọi quyết định về hình ảnh phải phục vụ mục tiêu học tập, không đánh đổi tính chính xác hoặc khả năng đọc hiểu để tạo ra hình ảnh bắt mắt.
 
 ---
 

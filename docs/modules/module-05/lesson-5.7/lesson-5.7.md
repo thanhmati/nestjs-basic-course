@@ -39,14 +39,26 @@ Trong **Lesson 5.6**, chúng ta dùng `FileMailTransport`: mỗi email xuất ra
 
 Khi deploy ứng dụng lên môi trường Production (Docker, Kubernetes, AWS ECS, Cloud Run):
 
-```text
-❌ Vấn Đề Với FileMailTransport Trong Container:
+```mermaid
+flowchart TD
+    subgraph DevProblem["❌ Vấn Đề: FileMailTransport trong Production Container"]
+        direction TB
+        UserA["👤 User đăng ký"] --> AppA["🚀 NestJS Backend"]
+        AppA -->|"Ghi file email cục bộ"| FileEml["📁 var/mail/xxx.eml\n(Ephemeral Storage - Bộ nhớ tạm)"]
+        FileEml -.->|"Container Restart / Scale-Out"| Lost["💥 File email biến mất hoàn toàn!\nNgười dùng thật KHÔNG nhận được email!"]
+    end
 
-User đăng ký ──> Backend ghi file var/mail/xxx.eml
-                        │
-                        ▼ (Container bị restart hoặc scale out)
-                  💥 Toàn bộ file email bị mất!
-                  📧 Người dùng thật KHÔNG NHẬN ĐƯỢC email nào!
+    subgraph ProdSolution["✅ Giải Pháp: SmtpTransport qua Relay Server"]
+        direction TB
+        UserB["👤 User đăng ký"] --> AppB["🚀 NestJS Backend"]
+        AppB -->|"Kết nối SMTP bảo mật (TLS)"| SmtpServer["📮 SMTP Relay Server\n(Gmail, AWS SES, Brevo...)"]
+        SmtpServer -->|"Chuyển phát tức thì"| UserInbox["📬 Inbox thật của User\n(Email chào mừng đến ngay lập tức)"]
+    end
+
+    style DevProblem fill:#FFF5F5,stroke:#FEB2B2,stroke-width:2px
+    style ProdSolution fill:#F0FDF4,stroke:#86EFAC,stroke-width:2px
+    style Lost fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#B91C1C
+    style UserInbox fill:#DCFCE7,stroke:#22C55E,stroke-width:2px,color:#15803D
 ```
 
 **Nguyên tắc "Build Once, Run Anywhere":**  
@@ -61,17 +73,36 @@ Chúng ta **không viết code riêng** cho dev và production. Cùng một bả
 
 ## 2. Kiến Trúc Factory Pattern Cho Mail Transport (Mental Model)
 
-Thay vì cấu hình cứng trong `AppModule`, ta xây dựng một **Transport Factory** độc lập:
+Thay vì cấu hình cứng trong `AppModule`, ta xây dựng một **Transport Factory** độc lập với luồng xác thực Fail-Fast rõ ràng:
 
 ```mermaid
 flowchart TD
-    Env["⚙️ Biến môi trường\nMAIL_TRANSPORT"] --> Factory["🏭 createMailTransport()"]
+    subgraph EnvConfig["1. Biến môi trường & Joi Validation (Fail-Fast)"]
+        Env[".env: MAIL_TRANSPORT / SMTP_URL"] --> Joi["🛡️ envValidationSchema (Joi)\n• Kiểm tra MAIL_TRANSPORT hợp lệ\n• Bắt buộc có SMTP_URL nếu là 'smtp'"]
+        Joi --> CS["⚙️ ConfigService"]
+    end
 
-    Factory -->|"'file'"| FileTr["📁 FileMailTransport\n(var/mail/*.eml)"]
-    Factory -->|"'smtp'"| SmtpTr["📮 SmtpTransport\n(STARTTLS + Connection Pool)"]
+    subgraph FactoryPattern["2. Transport Factory (createMailTransport)"]
+        CS -->|"get('MAIL_TRANSPORT')"| Factory{"🏭 createMailTransport()"}
+        Factory -->|"case 'file'"| FileTr["📁 FileMailTransport\n• directory: 'var/mail'\n• Dành cho Development & Test"]
+        Factory -->|"case 'smtp'"| SmtpTr["📮 SmtpTransport\n• url: SMTP_URL\n• pool: true (Connection Pool)\n• Dành cho Production Container"]
+        Factory -.->|"giá trị lạ"| Err["💥 Throw Error\n(Fail-Fast ngay startup)"]
+    end
 
-    FileTr --> MailModule["MailModule.forRootAsync()"]
-    SmtpTr --> MailModule
+    subgraph ModuleRegistration["3. Đăng ký vào AppModule"]
+        FileTr --> MailRoot["📦 MailModule.forRootAsync()"]
+        SmtpTr --> MailRoot
+        Engine["📄 FileTemplateEngine\n(templates/ + layout.html)"] --> MailRoot
+        MailRoot --> AppReady["🚀 Ready: MailService & UserMailHandler sẵn sàng gửi"]
+    end
+
+    style EnvConfig fill:#F8FAFC,stroke:#CBD5E1,stroke-width:2px
+    style FactoryPattern fill:#FEFCE8,stroke:#FDE047,stroke-width:2px
+    style ModuleRegistration fill:#EFF6FF,stroke:#93C5FD,stroke-width:2px
+    style FileTr fill:#F1F5F9,stroke:#64748B,stroke-width:1.5px
+    style SmtpTr fill:#ECFDF5,stroke:#10B981,stroke-width:2px
+    style Err fill:#FEE2E2,stroke:#EF4444,stroke-width:1.5px,color:#B91C1C
+    style AppReady fill:#DCFCE7,stroke:#22C55E,stroke-width:2px,color:#15803D
 ```
 
 ### ✅ Best Practice: Fail-Fast Lúc Khởi Động
@@ -231,6 +262,45 @@ export class AppModule {}
 - **Connection Pooling (`pool: true`):**
   - Mặc định giữ tối đa **5 kết nối** và tái sử dụng cho tối đa **100 email/kết nối**.
   - Tránh chi phí bắt tay TCP và trao đổi TLS handshake tốn kém cho từng email. Tự động ngắt kết nối rảnh sau 30 giây.
+
+### 🏊 Cơ Chế Connection Pooling (`pool: true`)
+
+Khi gửi email hàng loạt hoặc ứng dụng có nhiều user cùng đăng ký đồng thời, việc mở một kết nối TCP/TLS mới cho từng email sẽ gây nghẽn và tăng độ trễ đáng kể:
+
+```mermaid
+flowchart LR
+    subgraph NoPool["❌ Không có Connection Pool (pool: false)"]
+        direction TB
+        M1["📧 Gửi Email #1"] --> H1["🤝 TCP Handshake\n🔐 TLS Handshake\n🔑 SMTP Auth\n(~300-500ms)"]
+        H1 --> S1["📤 Truyền dữ liệu"] --> D1["🔌 Đóng socket"]
+
+        M2["📧 Gửi Email #2"] --> H2["🤝 TCP Handshake\n🔐 TLS Handshake\n🔑 SMTP Auth\n(~300-500ms)"]
+        H2 --> S2["📤 Truyền dữ liệu"] --> D2["🔌 Đóng socket"]
+
+        PAlert["⚠️ Lặp lại bắt tay mã hóa liên tục\nĐộ trễ cao, dễ bị SMTP Server rate limit"]
+    end
+
+    subgraph WithPool["✅ Bật Connection Pool (pool: true)"]
+        direction TB
+        PoolStart["🤝 Bắt tay TCP + TLS một lần duy nhất"]
+        PoolStart --> Pool[("🏊 Connection Pool\n(Duy trì tối đa 5 socket mở)")]
+
+        Pm1["📧 Gửi Email #1"] -->|"Mượn socket rảnh"| Pool
+        Pool -->|"Gửi ngay (~10-20ms)"| Ret1["📤 Hoàn thành -> Trả socket về Pool"]
+
+        Pm2["📧 Gửi Email #2"] -->|"Tái sử dụng socket"| Pool
+        Pool -->|"Gửi ngay (~10-20ms)"| Ret2["📤 Hoàn thành -> Trả socket về Pool"]
+
+        PSuccess["⚡ Tái sử dụng tối đa 100 email/kết nối\nTự đóng sau 30s idle, tiết kiệm tài nguyên"]
+    end
+
+    style NoPool fill:#FFF5F5,stroke:#FEB2B2,stroke-width:2px
+    style WithPool fill:#F0FDF4,stroke:#86EFAC,stroke-width:2px
+    style Pool fill:#E0E7FF,stroke:#6366F1,stroke-width:2px
+    style PAlert fill:#FEF2F2,stroke:#EF4444,stroke-width:1px,color:#991B1B
+    style PSuccess fill:#ECFDF5,stroke:#10B981,stroke-width:1px,color:#065F46
+```
+
 - **Format URL:**
   ```text
   smtp://[username]:[password]@[host]:[port]
