@@ -1,0 +1,68 @@
+<h2 style="color: #333333; margin: 0 0 16px">Chào mừng bạn, {{ name }}! 👋</h2>
+
+<p style="color: #555555; font-size: 15px; line-height: 1.6">
+  Cảm ơn bạn đã đăng ký tài khoản trên <strong>Social Chat App</strong>. Chúng
+  tôi rất vui khi có bạn là thành viên của cộng đồng!
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0">
+  <tr>
+    <td style="background-color: #f9f9fb; border-radius: 6px; padding: 20px">
+      <p style="margin: 0 0 8px; font-size: 14px; color: #888">
+        Thông tin tài khoản của bạn:
+      </p>
+      <table>
+        <tr>
+          <td style="padding: 4px 12px 4px 0; font-weight: 600; color: #333">
+            📧 Email:
+          </td>
+          <td style="color: #555">{{ email }}</td>
+        </tr>
+        {{#if name}}
+        <tr>
+          <td style="padding: 4px 12px 4px 0; font-weight: 600; color: #333">
+            👤 Tên:
+          </td>
+          <td style="color: #555">{{ name }}</td>
+        </tr>
+        {{/if}}
+        <tr>
+          <td style="padding: 4px 12px 4px 0; font-weight: 600; color: #333">
+            📅 Ngày tham gia:
+          </td>
+          <td style="color: #555">{{ joinedAt }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="color: #555555; font-size: 15px; line-height: 1.6">
+  Bạn có thể bắt đầu bằng cách:
+</p>
+
+<ul
+  style="color: #555555; font-size: 15px; line-height: 1.8; padding-left: 20px"
+>
+  <li>📝 Tạo bài viết đầu tiên trên cộng đồng</li>
+  <li>💬 Bình luận và tương tác với các thành viên khác</li>
+  <li>🔔 Nhận thông báo khi có ai tương tác bài viết của bạn</li>
+</ul>
+
+<p style="text-align: center; margin: 28px 0">
+  <a
+    href="{{ appUrl }}"
+    style="
+      background-color: #e0234e;
+      color: #ffffff;
+      padding: 12px 32px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 15px;
+      display: inline-block;
+    "
+  >
+    🚀 Bắt Đầu Khám Phá
+  </a>
+</p>

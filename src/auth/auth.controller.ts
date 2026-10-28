@@ -27,7 +27,6 @@ export class AuthController {
     summary: 'Đăng ký tài khoản mới',
     description:
       'Người dùng tạo tài khoản mới trong hệ thống, cần cung cấp email, mật khẩu và tên hiển thị',
-    deprecated: true,
   })
   @ApiResponse({
     status: 201,
