@@ -205,9 +205,19 @@ Chỉ recap ngắn khi cần thiết.
 
 ---
 
-# 6. 🧠 Mental Model First
+# 6. 🧠 Trực Quan Hóa Khái Niệm Trước (Intuitive Analogy / Mental Model)
 
-Đối với các concept trừu tượng, ưu tiên xây dựng mental model trước implementation.
+Đối với các concept trừu tượng, ưu tiên xây dựng cách hình dung trực quan hoặc ẩn dụ thực tế trước khi đi vào implementation.
+
+> [!CAUTION]
+> **QUY TẮC DÙNG TỪ (WORDING RULE):**  
+> **TUYỆT ĐỐI KHÔNG để từ tiếng Anh "Mental Model" vào tiêu đề hay nội dung bài giảng cho học viên!**  
+> Cụm từ "Mental Model" mang tính học thuật gượng gạo, kì cục và gây khó hiểu cho người học.  
+> Thay vào đó, hãy dùng các cách diễn đạt tiếng Việt tự nhiên, gần gũi:
+>
+> - `Hình dung trực quan:` / `Cách hình dung đơn giản:`
+> - `Ẩn dụ thực tế:` / `So sánh đời thực:`
+> - Hoặc lồng ghép trực tiếp câu chuyện/ví dụ so sánh vào bài giảng mà không cần đặt tiêu đề học thuật.
 
 Ví dụ Dependency Injection:
 
@@ -233,7 +243,7 @@ Sau đó:
      Controller  Service  Repository
 ```
 
-Sau mental model mới đi vào:
+Sau khi có hình dung trực quan mới đi vào code:
 
 ```typescript
 @Injectable()
@@ -241,9 +251,9 @@ export class UserService {}
 ```
 
 > [!TIP]
-> Mental model nên trả lời câu hỏi:
+> Việc xây dựng ẩn dụ trực quan nên trả lời câu hỏi:
 >
-> **"Trong đầu tôi nên hình dung concept này như thế nào?"**
+> **"Trong đầu học viên nên hình dung concept này như thế nào cho dễ hiểu nhất?"**
 
 ---
 
@@ -421,7 +431,7 @@ Tuy nhiên lesson kỹ thuật nên bao phủ các thành phần phù hợp sau:
 1. Context / Problem
 2. Learning Objectives
 3. Core Concept
-4. Mental Model
+4. Intuitive Analogy / Cách hình dung trực quan
 5. Architecture / Workflow
 6. Step-by-Step Implementation
 7. Verification
@@ -1436,7 +1446,7 @@ Có nhiều hình ảnh
 
 ...
 
-### Mental Model
+### Ẩn Dụ Trực Quan / Cách Hình Dung Đơn Giản
 
 ...
 
