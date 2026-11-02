@@ -24,6 +24,7 @@ import { FileTemplateEngine, MailModule } from '@nestjs/mail';
 import { join } from 'path';
 import { AppMailModule } from './mail/mail.module';
 import { createMailTransport } from './mail/transports/mail-transport.factory';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { createMailTransport } from './mail/transports/mail-transport.factory';
     CommentsModule,
     NotificationsModule,
     AppMailModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [
