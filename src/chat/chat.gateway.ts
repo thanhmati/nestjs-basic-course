@@ -1,4 +1,7 @@
-import { Logger } from '@nestjs/common';
+import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
+import { type UserData } from '@/auth/interfaces/jwt.interface';
+import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { Logger, UseGuards } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -17,6 +20,7 @@ import { Namespace, Socket } from 'socket.io';
     origin: '*', // Cho phép kết nối từ mọi client (tránh lỗi CORS)
   },
 })
+@UseGuards(WsJwtGuard)
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -41,11 +45,13 @@ export class ChatGateway
   handleChatMessage(
     @MessageBody() payload: { sender: string; content: string },
     @ConnectedSocket() client: Socket,
+    @CurrentUser() user: UserData,
   ) {
-    this.logger.log(`💬 [${payload.sender || 'Ẩn danh'}]: ${payload.content}`);
+    this.logger.log(`💬 Tin nhắn từ [${user.email}]: ${payload.content}`);
 
     const broadcastData = {
-      sender: payload.sender || 'Ẩn danh',
+      senderId: user.userId,
+      senderEmail: user.email,
       content: payload.content,
       senderSocketId: client.id,
       timestamp: new Date().toISOString(),
