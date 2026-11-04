@@ -123,33 +123,6 @@ Mỗi khi một client gọi `client.join('room_frontend')`, Socket.IO chỉ đ�
 
 Khi một tin nhắn được gửi lên Server, hệ thống triển khai một luồng xử lý đồng thời (Forked Execution):
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Alice as "💻 Client A (Alice - ID #1)"
-    participant Gateway as "🚪 ChatGateway (Thin Transport)"
-    participant ChatSvc as "💾 ChatService (Business Logic)"
-    participant DB as "🗄️ PostgreSQL (Prisma)"
-    actor Bob as "💻 Client B (Bob - ID #2)"
-
-    Note over Alice, Gateway: 1. Gửi tin nhắn vào cuộc trò chuyện
-    Alice->>Gateway: emit('send_room_message', { receiverId: 2, content: "Chào Bob!" })
-
-    Note over Gateway, ChatSvc: 2. Ủy quyền toàn bộ nghiệp vụ cho Service
-    Gateway->>ChatSvc: processRoomMessage(user, dto)
-    alt Có receiverId (Direct Chat 1-1)
-        ChatSvc->>DB: saveDirectMessage() -> prisma.message.create({ ... })
-        DB-->>ChatSvc: Bản ghi Message (id, sender, receiver...)
-    end
-    ChatSvc-->>Gateway: { targetRoom, broadcastPayload }
-
-    Note over Gateway, Bob: 3. Phát tán thời gian thực theo Room (Transport Layer)
-    par Gửi cho thành viên trong Room
-        Gateway->>Bob: emit('new_room_message', broadcastPayload) (qua room 'conversation:1_2')
-        Gateway-->>Alice: return { status: 'sent', message: broadcastPayload }
-    end
-```
-
 ---
 
 ## 3. Chuẩn Hóa Hằng Số (Constants) & Khởi Tạo DTOs (How - Step 1)
