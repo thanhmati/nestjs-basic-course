@@ -1,5 +1,6 @@
 import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
 import { type UserData } from '@/auth/interfaces/jwt.interface';
+import { CHAT_EVENTS } from '@/shared/constants/chat.constant';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Logger, UseGuards } from '@nestjs/common';
 import {
@@ -13,6 +14,12 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
+import {
+  type SendMessagePayload,
+  type JoinRoomPayload,
+} from './interfaces/chat.interface';
+import { ChatMapper } from './mappers/chat.mapper';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway({
   namespace: '/chat', // Phân vùng namespace riêng cho Chat
@@ -25,6 +32,8 @@ export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(ChatGateway.name);
+
+  constructor(private readonly chatService: ChatService) {}
 
   @WebSocketServer()
   server: Namespace;
@@ -41,27 +50,78 @@ export class ChatGateway
     this.logger.warn(`🔴 Client ngắt kết nối: [ID: ${client.id}]`);
   }
 
-  @SubscribeMessage('chat_message')
-  handleChatMessage(
-    @MessageBody() payload: { sender: string; content: string },
+  @SubscribeMessage(CHAT_EVENTS.JOIN_ROOM)
+  async handleJoinRoom(
+    @MessageBody() payload: JoinRoomPayload,
     @ConnectedSocket() client: Socket,
     @CurrentUser() user: UserData,
   ) {
-    this.logger.log(`💬 Tin nhắn từ [${user.email}]: ${payload.content}`);
+    const { roomId } = payload;
 
-    const broadcastData = {
-      senderId: user.userId,
-      senderEmail: user.email,
-      content: payload.content,
-      senderSocketId: client.id,
-      timestamp: new Date().toISOString(),
-    };
+    await client.join(roomId);
 
-    this.server.emit('new_message', broadcastData);
+    this.logger.log(
+      `📥 [${user.email}] (${client.id}) đã tham gia phòng: ${roomId}`,
+    );
+
+    client
+      .to(roomId)
+      .emit(CHAT_EVENTS.USER_JOINED, ChatMapper.toUserRoomEvent(user));
 
     return {
       status: 'success',
-      deliveredAt: broadcastData.timestamp,
+      message: `Bạn đã tham gia phòng ${roomId} thành công`,
+      roomId,
+    };
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.LEAVE_ROOM)
+  async handleLeaveRoom(
+    @MessageBody() payload: JoinRoomPayload,
+    @ConnectedSocket() client: Socket,
+    @CurrentUser() user: UserData,
+  ) {
+    const { roomId } = payload;
+
+    await client.leave(roomId);
+
+    this.logger.log(
+      `📤 [${user.email}] (${client.id}) đã rời khỏi phòng: ${roomId}`,
+    );
+
+    client
+      .to(roomId)
+      .emit(CHAT_EVENTS.USER_LEFT, ChatMapper.toUserRoomEvent(user));
+
+    return {
+      status: 'success',
+      message: `Bạn đã rời phòng ${roomId}`,
+      roomId,
+    };
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.SEND_ROOM_MESSAGE)
+  async handleSendRoomMessage(
+    @MessageBody() payload: SendMessagePayload,
+    @CurrentUser() user: UserData,
+  ) {
+    const { targetRoom, broadcastPayload } =
+      await this.chatService.processRoomMessage(user, payload);
+
+    // Phát tán tin nhắn tới đúng phòng mục tiêu (Group Room hoặc Cuộc hội thoại 1-1)
+    this.server
+      .to(targetRoom)
+      .emit(CHAT_EVENTS.NEW_ROOM_MESSAGE, broadcastPayload);
+
+    this.logger.log(
+      payload.receiverId
+        ? `💬 [Direct Chat: ${targetRoom}] [${user.email}] -> User #${payload.receiverId}: ${payload.content}`
+        : `💬 [Room: ${targetRoom}] [${user.email}]: ${payload.content}`,
+    );
+
+    return {
+      status: 'sent',
+      message: broadcastPayload,
     };
   }
 }

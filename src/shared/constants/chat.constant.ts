@@ -1,0 +1,13 @@
+export const CHAT_EVENTS = {
+  JOIN_ROOM: 'join_room',
+  LEAVE_ROOM: 'leave_room',
+  SEND_ROOM_MESSAGE: 'send_room_message',
+
+  USER_JOINED: 'user_joined',
+  USER_LEFT: 'user_left',
+  NEW_ROOM_MESSAGE: 'new_room_message',
+};
+
+export const CHAT_ROOM = {
+  CONVERSATION_PREFIX: 'conversation:',
+};
