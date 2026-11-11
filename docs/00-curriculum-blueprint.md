@@ -133,7 +133,7 @@ timeline
 > [!IMPORTANT]  
 > **Mục tiêu:** Tối ưu hóa hiệu năng hệ thống (Caching), kiểm tra sức khỏe ứng dụng (Healthchecks), viết Unit/E2E Test và triển khai lên Cloud.
 
-- **7.1** _Performance Caching:_ Tăng tốc API Newsfeed & Hot Posts với `@nestjs/cache-manager` (In-Memory & Redis Cache).
+- **7.1** [_Performance Caching:_ Tăng tốc API với `@nestjs/cache-manager` (In-Memory & Redis).](./modules/module-07/lesson-7.1/lesson-7.1.md)
 - **7.2** _Logging:_ Ghi log hệ thống dạng Structured JSON cho môi trường Production.
 - **7.3** _Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.
 - **7.4** _Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.
