@@ -21,6 +21,10 @@ async function bootstrap() {
 
   app.setGlobalPrefix(globalPrefix);
 
+  app.enableCors({
+    origin: true,
+  });
+
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: versionApi,

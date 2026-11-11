@@ -95,7 +95,14 @@ export class PostsService {
         content: true,
         createdAt: true,
         author: {
-          select: { id: true, email: true, name: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            profile: {
+              select: { avatarUrl: true },
+            },
+          },
         },
         _count: {
           select: {

@@ -173,31 +173,22 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateProfileDto {
-  @ApiPropertyOptional({
-    example: 'Nguyễn Văn A',
-    description: 'Họ và tên hiển thị của người dùng',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsString({ message: 'Tên phải là một chuỗi ký tự!' })
-  @MaxLength(100, { message: 'Tên không được vượt quá 100 ký tự!' })
+  @IsString()
+  @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({
-    example: 'Lập trình viên Full-Stack đam mê NestJS và React',
-    description: 'Tiểu sử cá nhân (Bio)',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsString({ message: 'Tiểu sử phải là một chuỗi ký tự!' })
-  @MaxLength(300, { message: 'Tiểu sử không được vượt quá 300 ký tự!' })
+  @IsString()
+  @MaxLength(300)
   bio?: string;
 
-  @ApiPropertyOptional({
-    example: 'Hà Nội, Việt Nam',
-    description: 'Nơi sinh sống hoặc địa điểm làm việc',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsString({ message: 'Địa điểm phải là một chuỗi ký tự!' })
-  @MaxLength(100, { message: 'Địa điểm không được vượt quá 100 ký tự!' })
+  @IsString()
+  @MaxLength(100)
   location?: string;
 }
 ```
@@ -210,17 +201,12 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class QueryUserDto {
-  @ApiPropertyOptional({
-    description: 'Từ khóa tìm kiếm theo tên hoặc email của người dùng',
-    example: 'Alice',
-  })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Số lượng kết quả tối đa cần lấy (Mặc định: 50, Tối đa: 100)',
-    example: 20,
     default: 50,
   })
   @IsOptional()
@@ -241,19 +227,6 @@ Chúng ta xóa bỏ hoàn toàn mảng `this.users` tĩnh từ Module 1, thay th
 Chỉnh sửa file 📄 **`src/users/users.service.ts`**:
 
 ```typescript
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { QueryUserDto } from './dto/query-user.dto';
-import { PrismaService } from '@/prisma/prisma.service';
-import { HashService } from '@/shared/services/hash.service';
-import { deleteUploadedFile } from '@/shared/helpers/multer.helper';
-import { Prisma } from '@/generated/prisma/client';
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -337,14 +310,14 @@ export class UsersService {
     const { name, bio, location } = dto;
 
     await this.prisma.$transaction(async (tx) => {
-      if (typeof name === 'string') {
+      if (name) {
         await tx.user.update({
           where: { id: userId },
           data: { name },
         });
       }
 
-      if (bio !== undefined || location !== undefined) {
+      if (bio || location) {
         await tx.profile.upsert({
           where: { userId },
           create: {
@@ -353,8 +326,8 @@ export class UsersService {
             location,
           },
           update: {
-            ...(bio !== undefined && { bio }),
-            ...(location !== undefined && { location }),
+            ...(bio && { bio }),
+            ...(location && { location }),
           },
         });
       }
@@ -396,85 +369,12 @@ export class UsersService {
 
     return user;
   }
-
-  async create(dto: CreateUserDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('Email này đã được sử dụng!');
-    }
-
-    const hashedPassword = await this.hashService.hashPassword(dto.password);
-
-    const createdUser = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        name: dto.name,
-        password: hashedPassword,
-      },
-      omit: {
-        password: true,
-      },
-    });
-
-    return createdUser;
-  }
-
-  async updateAvatar(userId: number, newAvatarUrl: string) {
-    const existingProfile = await this.prisma.profile.findUnique({
-      where: { userId },
-    });
-
-    if (existingProfile?.avatarUrl) {
-      deleteUploadedFile(existingProfile.avatarUrl);
-    }
-
-    const updatedProfile = await this.prisma.profile.upsert({
-      where: { userId },
-      create: {
-        userId,
-        avatarUrl: newAvatarUrl,
-      },
-      update: {
-        avatarUrl: newAvatarUrl,
-      },
-    });
-
-    return {
-      userId,
-      avatarUrl: updatedProfile.avatarUrl,
-    };
-  }
 }
 ```
 
 Chỉnh sửa file 📄 **`src/users/users.controller.ts`**:
 
 ```typescript
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Query,
-  UploadedFile,
-} from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { QueryUserDto } from './dto/query-user.dto';
-import { CurrentUser } from '@/shared/decorators/current-user.decorator';
-import { ApiImageUpload } from '@/shared/decorators/api-file.decorator';
-import { ResponseMessage } from '@/shared/decorators/response-message.decorator';
-import { createImageValidationPipe } from '@/shared/pipes/image-validation.pipe';
-import { Public } from '@/shared/decorators/public.decorator';
-
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
@@ -483,12 +383,6 @@ export class UsersController {
   @Get()
   @ApiOperation({
     summary: 'Lấy danh sách thành viên trong hệ thống (User Directory)',
-    description:
-      'Trả về danh sách người dùng kèm Avatar và Bio để hiển thị danh bạ hoặc tìm kiếm người nhắn tin. Tự động loại trừ tài khoản đang đăng nhập.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy danh sách thành viên thành công',
   })
   @ResponseMessage('Lấy danh sách thành viên thành công!')
   findAll(
@@ -501,12 +395,6 @@ export class UsersController {
   @Get('profile')
   @ApiOperation({
     summary: 'Xem hồ sơ cá nhân đầy đủ của người dùng hiện tại',
-    description:
-      'Truy vấn CSDL lấy đầy đủ thông tin: họ tên, email, vai trò, avatar, bio, location.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy thông tin hồ sơ tài khoản thành công',
   })
   @ResponseMessage('Lấy thông tin hồ sơ tài khoản thành công!')
   getProfile(@CurrentUser('userId') userId: number) {
@@ -516,10 +404,7 @@ export class UsersController {
   @Patch('profile')
   @ApiOperation({
     summary: 'Cập nhật thông tin hồ sơ cá nhân',
-    description:
-      'Cập nhật họ tên hiển thị, tiểu sử (bio) và địa điểm (location).',
   })
-  @ApiResponse({ status: 200, description: 'Cập nhật hồ sơ thành công' })
   @ResponseMessage('Cập nhật thông tin hồ sơ thành công!')
   updateProfile(
     @CurrentUser('userId') userId: number,
@@ -528,49 +413,14 @@ export class UsersController {
     return this.usersService.updateProfile(userId, updateProfileDto);
   }
 
-  @Post('avatar')
-  @ApiOperation({ summary: 'Upload và cập nhật ảnh đại diện cá nhân' })
-  @ApiImageUpload('avatar', {
-    folder: 'avatars',
-    description: 'File ảnh đại diện (JPG, PNG, WEBP - Tối đa 2MB)',
-  })
-  @ResponseMessage('Cập nhật ảnh đại diện thành công!')
-  async uploadAvatar(
-    @CurrentUser('userId') userId: number,
-    @UploadedFile(createImageValidationPipe({ maxSizeInMb: 2 }))
-    file: Express.Multer.File,
-  ) {
-    const avatarUrl = `/uploads/avatars/${file.filename}`;
-    const result = await this.usersService.updateAvatar(userId, avatarUrl);
-
-    return {
-      filename: file.filename,
-      size: `${(file.size / 1024).toFixed(1)} KB`,
-      mimetype: file.mimetype,
-      url: result.avatarUrl,
-    };
-  }
-
   @Public()
   @Get(':id')
   @ApiOperation({
     summary: 'Xem hồ sơ công khai của một thành viên theo ID',
-    description:
-      'Bất kỳ ai cũng có thể xem hồ sơ công khai của thành viên khác.',
   })
-  @ApiResponse({ status: 200, description: 'Lấy hồ sơ người dùng thành công' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy người dùng' })
   @ResponseMessage('Lấy thông tin hồ sơ người dùng thành công!')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
-  }
-
-  @Post()
-  @ApiOperation({ summary: 'Tạo người dùng mới (Dành cho Quản trị viên)' })
-  @ApiResponse({ status: 201, description: 'Tạo người dùng thành công' })
-  @ResponseMessage('Tạo người dùng thành công!')
-  createUser(@Body() body: CreateUserDto) {
-    return this.usersService.create(body);
   }
 }
 ```
@@ -691,6 +541,37 @@ async markMessagesAsRead(currentUserId: number, senderId: number) {
     updatedCount: result.count,
   };
 }
+
+async getConversationHistory(
+    user1Id: number,
+    user2Id: number,
+    limit: number = 50,
+  ) {
+    const messages = await this.prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: user1Id, receiverId: user2Id },
+          { senderId: user2Id, receiverId: user1Id },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: {
+              select: { avatarUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    return messages.reverse();
+  }
 ```
 
 Tạo file 📄 **`src/chat/chat.controller.ts`**:
@@ -718,12 +599,6 @@ export class ChatController {
   @ApiOperation({
     summary:
       'Lấy danh sách các cuộc trò chuyện gần đây của người dùng hiện tại',
-    description:
-      'Trả về danh sách đối tác chat, tin nhắn gần nhất, thời gian và số lượng tin nhắn chưa đọc.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy danh sách cuộc trò chuyện thành công',
   })
   @ResponseMessage('Lấy danh sách cuộc trò chuyện thành công!')
   getConversations(@CurrentUser('userId') userId: number) {
@@ -734,10 +609,7 @@ export class ChatController {
   @ApiOperation({
     summary:
       'Lấy lịch sử tin nhắn trực tiếp giữa người dùng hiện tại và một người nhận',
-    description:
-      'REST API tải lịch sử tin nhắn ban đầu để render giao diện trước khi kết nối realtime Socket.IO.',
   })
-  @ApiResponse({ status: 200, description: 'Lấy lịch sử tin nhắn thành công' })
   @ResponseMessage('Lấy lịch sử tin nhắn thành công!')
   getMessages(
     @CurrentUser('userId') userId: number,
@@ -754,10 +626,6 @@ export class ChatController {
   @Patch('messages/:senderId/read')
   @ApiOperation({
     summary: 'Đánh dấu đã đọc toàn bộ tin nhắn từ một người gửi cụ thể',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Đánh dấu tin nhắn đã đọc thành công',
   })
   @ResponseMessage('Đánh dấu tin nhắn đã đọc thành công!')
   markAsRead(
@@ -789,16 +657,16 @@ export class ChatModule {}
 
 ---
 
-### Bước 5: Bổ Sung Content & Avatar Vào Query Newsfeed Bài Viết
+### Bước 5: Bổ Sung Avatar Vào Query Newsfeed Bài Viết
 
-Mở file 📄 **`src/posts/posts.service.ts`**, cập nhật cả hai phương thức `findAllOffset` và `findAllCursor` để trả về `content` và `profile.avatarUrl`:
+Mở file 📄 **`src/posts/posts.service.ts`**, cập nhật cả hai phương thức `findAllOffset` và `findAllCursor` để trả về `profile.avatarUrl`:
 
 ```typescript
 // src/posts/posts.service.ts (Trích đoạn select trong findAllOffset & findAllCursor)
 select: {
   id: true,
   title: true,
-  content: true, // Bổ sung nội dung bài viết
+  content: true,
   published: true,
   createdAt: true,
   author: {
