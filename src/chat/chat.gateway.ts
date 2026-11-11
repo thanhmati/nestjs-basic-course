@@ -1,6 +1,6 @@
 import { WsJwtGuard } from '@/auth/guards/ws-jwt.guard';
 import { type UserData } from '@/auth/interfaces/jwt.interface';
-import { CHAT_EVENTS } from '@/shared/constants/chat.constant';
+import { CHAT_EVENTS, CHAT_ROOM } from '@/shared/constants/chat.constant';
 import { CurrentUser } from '@/shared/decorators/current-user.decorator';
 import { Logger, UseGuards } from '@nestjs/common';
 import {
@@ -17,6 +17,7 @@ import { Namespace, Socket } from 'socket.io';
 import {
   type SendMessagePayload,
   type JoinRoomPayload,
+  SendNotificationPayload,
 } from './interfaces/chat.interface';
 import { ChatMapper } from './mappers/chat.mapper';
 import { ChatService } from './chat.service';
@@ -123,5 +124,29 @@ export class ChatGateway
       status: 'sent',
       message: broadcastPayload,
     };
+  }
+
+  @SubscribeMessage(CHAT_EVENTS.SUBSCRIBE_NOTIFICATIONS)
+  async handleSubscribeNotifications(
+    @ConnectedSocket() client: Socket,
+    @CurrentUser() user: UserData,
+  ) {
+    const userRoom = `${CHAT_ROOM.USER_PREFIX}${user.userId}`;
+    await client.join(userRoom);
+
+    this.logger.log(
+      `🔔 [${user.email}] (${client.id}) đã tham gia phòng thông báo: ${userRoom}`,
+    );
+
+    return {
+      status: 'subscribed',
+      room: userRoom,
+    };
+  }
+
+  sendNotificationToUser(userId: number, payload: SendNotificationPayload) {
+    const userRoom = `${CHAT_ROOM.USER_PREFIX}${userId}`;
+    this.server.to(userRoom).emit(CHAT_EVENTS.NEW_NOTIFICATION, payload);
+    this.logger.log(`🔔 Đã đẩy thông báo tới phòng người dùng [${userRoom}]`);
   }
 }

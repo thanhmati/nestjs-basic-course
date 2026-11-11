@@ -39,3 +39,13 @@ export interface ChatBroadcastPayload {
     } | null;
   };
 }
+
+export interface SendNotificationPayload {
+  id: number;
+  title: string;
+  content: string;
+  postId: number;
+  commentAuthorId: number;
+  commentAuthorName: string;
+  createdAt: string;
+}

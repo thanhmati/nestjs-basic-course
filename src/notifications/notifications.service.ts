@@ -7,12 +7,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { QueryNotificationDto } from './dto/query-notification.dto';
+import { ChatGateway } from '@/chat/chat.gateway';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   async create(event: CommentCreatedEvent) {
     if (event.postAuthorId === event.commentAuthorId) {
@@ -34,6 +38,16 @@ export class NotificationsService {
           title: 'Bình luận mới trên bài viết của bạn',
           content: `${event.commentAuthorName} đã bình luận: "${previewContent}"`,
         },
+      });
+
+      this.chatGateway.sendNotificationToUser(event.postAuthorId, {
+        id: notification.id,
+        title: notification.title,
+        content: notification.content,
+        postId: event.postId,
+        commentAuthorId: event.commentAuthorId,
+        commentAuthorName: event.commentAuthorName,
+        createdAt: notification.createdAt.toISOString(),
       });
 
       this.logger.log(
