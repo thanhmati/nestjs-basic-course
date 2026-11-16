@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -11,13 +10,14 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { QueryPostDto } from './dto/query-post.dto';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Post } from '@/generated/prisma/client';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class PostsService {
-  private readonly logger = new Logger(PostsService.name);
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @InjectPinoLogger(PostsService.name) private readonly logger: PinoLogger,
   ) {}
 
   async create(authorId: number, body: CreatePostDto) {
@@ -37,11 +37,11 @@ export class PostsService {
     const cacheKey = `post:${id}`;
     const cached = await this.cacheManager.get<Post>(cacheKey);
     if (cached) {
-      this.logger.log(`[CACHE HIT] ${cacheKey}`);
+      this.logger.info(`[CACHE HIT] ${cacheKey}`);
       return cached;
     }
 
-    this.logger.log(`[CACHE MISS] ${cacheKey} -> Query DB`);
+    this.logger.info(`[CACHE MISS] ${cacheKey} -> Query DB`);
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {

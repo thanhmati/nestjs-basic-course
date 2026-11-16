@@ -27,6 +27,8 @@ import { createMailTransport } from './mail/transports/mail-transport.factory';
 import { ChatModule } from './chat/chat.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
+import { LoggerModule } from 'nestjs-pino';
+import { randomUUID } from 'crypto';
 
 @Module({
   imports: [
@@ -89,6 +91,44 @@ import { createKeyv } from '@keyv/redis';
         return {
           ttl: 15_000,
           stores: [redisStore],
+        };
+      },
+    }),
+    LoggerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isProduction = configService.get<string>('NODE_ENV') === 'prod';
+        return {
+          pinoHttp: {
+            level: isProduction ? 'info' : 'debug',
+            transport: isProduction
+              ? undefined
+              : {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    singleLine: true,
+                    translateTime: 'yyyy-mm-dd HH:MM:ss.l',
+                    ignore: 'pid,hostname',
+                  },
+                },
+            genReqId: (req) =>
+              (req.headers['x-request-id'] as string) || randomUUID(),
+            autoLogging: {
+              ignore: (req) =>
+                req.url === '/health' || req.url === '/api/health',
+            },
+            redact: {
+              paths: [
+                'req.headers.authorization',
+                'req.headers.cookie',
+                'req.body.password',
+                'req.body.refreshToken',
+              ],
+              censor: '[REDACTED]',
+            },
+          },
         };
       },
     }),
