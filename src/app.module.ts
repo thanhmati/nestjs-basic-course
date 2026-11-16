@@ -25,6 +25,8 @@ import { join } from 'path';
 import { AppMailModule } from './mail/mail.module';
 import { createMailTransport } from './mail/transports/mail-transport.factory';
 import { ChatModule } from './chat/chat.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { createKeyv } from '@keyv/redis';
 
 @Module({
   imports: [
@@ -71,7 +73,25 @@ import { ChatModule } from './chat/chat.module';
         ),
       }),
     }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const redisStore = createKeyv(
+          configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+        );
 
+        redisStore.on('error', (err) => {
+          console.error('Redis error:', err);
+        });
+
+        return {
+          ttl: 15_000,
+          stores: [redisStore],
+        };
+      },
+    }),
     PrismaModule,
     SharedServiceModule,
     UsersModule,

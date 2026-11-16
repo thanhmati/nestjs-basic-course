@@ -22,6 +22,7 @@ import { QueryPostDto } from './dto/query-post.dto';
 import { createImageValidationPipe } from '@/shared/pipes/image-validation.pipe';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { saveImageToDisk } from '@/shared/helpers/multer.helper';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 
 @Controller('posts')
 export class PostsController {
@@ -40,6 +41,7 @@ export class PostsController {
   }
 
   @Public()
+  @UseInterceptors(CacheInterceptor)
   @ApiOperation({
     summary: 'Lấy Newsfeed bài viết (Cursor-based Pagination)',
   })

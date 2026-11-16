@@ -1,6 +1,7 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -8,11 +9,16 @@ import {
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { QueryPostDto } from './dto/query-post.dto';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Post } from '@/generated/prisma/client';
 
 @Injectable()
 export class PostsService {
   private readonly logger = new Logger(PostsService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async create(authorId: number, body: CreatePostDto) {
     return this.prisma.post.create({
@@ -28,6 +34,14 @@ export class PostsService {
   }
 
   async findOne(id: number) {
+    const cacheKey = `post:${id}`;
+    const cached = await this.cacheManager.get<Post>(cacheKey);
+    if (cached) {
+      this.logger.log(`[CACHE HIT] ${cacheKey}`);
+      return cached;
+    }
+
+    this.logger.log(`[CACHE MISS] ${cacheKey} -> Query DB`);
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
@@ -43,6 +57,7 @@ export class PostsService {
       throw new NotFoundException('Không tìm thấy bài viết');
     }
 
+    await this.cacheManager.set(cacheKey, post, 60000);
     return post;
   }
 
@@ -53,10 +68,13 @@ export class PostsService {
       throw new ForbiddenException('Bạn không có quyền chỉnh sửa bài viết này');
     }
 
-    return this.prisma.post.update({
+    const updated = await this.prisma.post.update({
       where: { id },
       data: updatePostDto,
     });
+
+    await this.cacheManager.del(`post:${id}`);
+    return updated;
   }
 
   async remove(id: number, userId: number) {
@@ -68,6 +86,7 @@ export class PostsService {
 
     await this.prisma.post.delete({ where: { id } });
 
+    await this.cacheManager.del(`post:${id}`);
     return { id };
   }
 

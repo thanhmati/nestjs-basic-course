@@ -25,4 +25,5 @@ export const envValidationSchema = Joi.object({
     then: Joi.required(),
     otherwise: Joi.optional(),
   }),
+  REDIS_URL: Joi.string().required().default('redis://localhost:6379'),
 });

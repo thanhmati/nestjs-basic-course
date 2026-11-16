@@ -35,6 +35,15 @@ services:
     networks:
       - app_network
 
+  redis_cache:
+    image: redis:7-alpine
+    container_name: nestjs_redis_cache
+    restart: always
+    ports:
+      - '6379:6379'
+    networks:
+      - app_network
+
 # Persistent Data Storage
 volumes:
   postgres_data:
