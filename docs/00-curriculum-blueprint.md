@@ -117,14 +117,13 @@ timeline
 ### Module 6: Real-Time WebSockets Chat & Full-Stack Integration
 
 > [!TIP]  
-> **Mục tiêu:** Xây dựng tính năng Chat thời gian thực (1-1 & Room), đồng bộ thông báo tức thì, hoàn thiện trọn vẹn bộ REST API và ghép nối với giao diện Frontend (React UI Starter) thành Website demo hoàn chỉnh.
+> **Mục tiêu:** Xây dựng tính năng Chat thời gian thực (1-1 & Room), đồng bộ thông báo tức thì và hoàn thiện trọn vẹn bộ REST API sẵn sàng tích hợp với các ứng dụng Frontend.
 
 - **6.1** [_WebSockets:_ Tạo Gateway với `@WebSocketGateway()` (Socket.io).](./modules/module-06/lesson-6.1/lesson-6.1.md)
 - **6.2** [_WebSocket Authentication:_ Chuẩn hóa xác thực WebSockets trong NestJS.](./modules/module-06/lesson-6.2/lesson-6.2.md)
 - **6.3** [_Chat Room:_ Join Room, Broadcast message real-time & lưu DB.](./modules/module-06/lesson-6.3/lesson-6.3.md)
 - **6.4** [_Sockets + Events:_ Đẩy thông báo tức thì khi có sự kiện `comment.created`.](./modules/module-06/lesson-6.4/lesson-6.4.md)
 - **6.5** [_API Integration:_ Hoàn thiện bộ REST API Full-Stack cho Frontend (User Directory DB, Cập nhật Profile, Chat Conversations & History REST API, CORS).](./modules/module-06/lesson-6.5/lesson-6.5.md)
-- **6.6** _Frontend:_ Ghép nối Backend với Template React UI Starter (Full-Stack Social Chat App Demo).
 
 ---
 
@@ -135,6 +134,6 @@ timeline
 
 - **7.1** [_Performance Caching:_ Tăng tốc API với `@nestjs/cache-manager` (In-Memory & Redis).](./modules/module-07/lesson-7.1/lesson-7.1.md)
 - **7.2** [_Logging:_ Ghi log hệ thống dạng Structured JSON cho môi trường Production.](./modules/module-07/lesson-7.2/lesson-7.2.md)
-- **7.3** _Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.
+- **7.3** [_Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.](./modules/module-07/lesson-7.3/lesson-7.3.md)
 - **7.4** _Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.
 - **7.5** _Dockerize & Cloud Deploy:_ Viết `Dockerfile` & `docker-compose.yml` tối ưu và Deploy lên Render / Railway.
