@@ -135,5 +135,5 @@ timeline
 - **7.1** [_Performance Caching:_ Tăng tốc API với `@nestjs/cache-manager` (In-Memory & Redis).](./modules/module-07/lesson-7.1/lesson-7.1.md)
 - **7.2** [_Logging:_ Ghi log hệ thống dạng Structured JSON cho môi trường Production.](./modules/module-07/lesson-7.2/lesson-7.2.md)
 - **7.3** [_Healthchecks:_ Tạo API `/api/v1/health` soi DB Postgres & RAM bằng `@nestjs/terminus`.](./modules/module-07/lesson-7.3/lesson-7.3.md)
-- **7.4** _Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.
+- **7.4** [_Testing:_ Viết Unit Test cho Service & E2E Test cho Auth API với Jest.](./modules/module-07/lesson-7.4/lesson-7.4.md)
 - **7.5** _Dockerize & Cloud Deploy:_ Viết `Dockerfile` & `docker-compose.yml` tối ưu và Deploy lên Render / Railway.

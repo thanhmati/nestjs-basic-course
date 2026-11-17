@@ -345,7 +345,7 @@ sequenceDiagram
 | **Module 4** | Authentication, Security & Rate-Limiting           |  ✅ 100% Hoàn thành   | 4.1 đến 4.8 (JWT, Passport, Google OAuth, Roles, Throttler)                                      |
 | **Module 5** | Swagger, Social Features & Event-Driven            |  ✅ 100% Hoàn thành   | 5.1 đến 5.7 (Posts, Upload, Comments, Events, Mail)                                              |
 | **Module 6** | Real-Time WebSockets Chat & Full-Stack Integration |  ✅ 100% Hoàn thành   | 6.1 đến 6.5 (WebSockets Gateway, Auth, Chat Room, Events, REST APIs)                             |
-| **Module 7** | Performance Optimization, Testing & Cloud Deploy   | ⏳ Kế hoạch tiếp theo | **7.1 (Caching), 7.2 (Logging) & 7.3 (Terminus) đã xong.** Chuẩn bị: 7.4 (Testing), 7.5 (Deploy) |
+| **Module 7** | Performance Optimization, Testing & Cloud Deploy   | ⏳ Kế hoạch tiếp theo | **7.1 (Caching), 7.2 (Logging), 7.3 (Terminus) & 7.4 (Testing) đã xong.** Chuẩn bị: 7.5 (Deploy) |
 
 ---
 
