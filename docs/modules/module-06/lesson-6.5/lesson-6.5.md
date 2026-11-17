@@ -838,4 +838,4 @@ Kết hợp `Map<number, string>` (UserId ↔ SocketId) trong `ChatGateway` đ�
 
 ---
 
-👉 **Bài tiếp theo:** Lesson 6.6: Ghép Nối Backend Với Giao Diện Frontend (React UI Starter)
+👉 **Bài tiếp theo:** [Lesson 7.1: Performance Caching — Tăng Tốc API Với @nestjs/cache-manager (In-Memory & Redis)](../../module-07/lesson-7.1/lesson-7.1.md)
