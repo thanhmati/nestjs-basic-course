@@ -273,28 +273,10 @@ export class HealthController {
   @HealthCheck()
   @ApiOperation({
     summary: 'Kiểm tra trạng thái sức khỏe hệ thống (Database & RAM)',
-    description:
-      'Endpoint công khai dành cho Load Balancer, Kubernetes Probes và Monitoring Bots kiểm tra trạng thái kết nối PostgreSQL và ngưỡng tiêu thụ RAM.',
   })
   @ApiResponse({
     status: 200,
     description: 'Hệ thống hoạt động bình thường, sẵn sàng tiếp nhận yêu cầu.',
-    schema: {
-      example: {
-        status: 'ok',
-        info: {
-          database: { status: 'up' },
-          memory_heap: { status: 'up' },
-          memory_rss: { status: 'up' },
-        },
-        error: {},
-        details: {
-          database: { status: 'up' },
-          memory_heap: { status: 'up' },
-          memory_rss: { status: 'up' },
-        },
-      },
-    },
   })
   @ApiResponse({
     status: 503,
