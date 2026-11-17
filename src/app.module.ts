@@ -29,6 +29,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'crypto';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -141,6 +142,7 @@ import { randomUUID } from 'crypto';
     NotificationsModule,
     AppMailModule,
     ChatModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [
